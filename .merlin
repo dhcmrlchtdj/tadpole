@@ -1,0 +1,19 @@
+S src/**
+
+B _build/**
+
+FLG -safe-string
+FLG -short-paths
+FLG -strict-sequence
+FLG -keep-locs
+FLG -keep-docs
+FLG -principal
+FLG -bin-annot
+
+FLG -w +a-4
+FLG -warn-error -a+31
+
+PKG alcotest
+PKG re
+PKG containers
+PKG ppx_deriving.std
