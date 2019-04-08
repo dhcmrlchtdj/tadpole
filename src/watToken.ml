@@ -7,6 +7,5 @@ type t =
     | RESERVED of string
     | FLOAT of float
     | INT of int
-    | UINT of int
     | COMMENT of string
 [@@deriving show]
