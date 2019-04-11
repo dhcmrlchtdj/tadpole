@@ -1,5 +1,31 @@
 open! Containers
 
+let codepoint_to_chars (codepoint : int) : char list =
+    let aux = function
+        | t when t < 0x80 ->
+            let b1 = t land 0x8f lor 0x00 in
+            [ b1 ]
+        | t when t < 0x800 ->
+            let b1 = (t lsr 6) land 0x1f lor 0xc0 in
+            let b2 = t land 0x3f lor 0x80 in
+            [ b1; b2 ]
+        | t when t < 0xd800 ->
+            let b1 = (t lsr 12) land 0x0f lor 0xe0 in
+            let b2 = (t lsr 6) land 0x3f lor 0x80 in
+            let b3 = t land 0x3f lor 0x80 in
+            [ b1; b2; b3 ]
+        | t when t < 0xe000 -> failwith "invalid uchar"
+        | t when t < 0x110000 ->
+            let b1 = (t lsr 18) land 0x07 lor 0xf0 in
+            let b2 = (t lsr 12) land 0x3f lor 0x80 in
+            let b3 = (t lsr 6) land 0x3f lor 0x80 in
+            let b4 = t land 0x3f lor 0x80 in
+            [ b1; b2; b3; b4 ]
+        | _ -> failwith "invalid uchar"
+    in
+    aux codepoint |> List.map char_of_int
+
+
 let hex_of_char_list (chars : char list) : int =
     let rec aux (acc : int) = function
         | [] -> acc
@@ -123,12 +149,11 @@ let scan (src : string) : Token.t list =
             scan_string (c :: acc) t
         | '\\' :: 'u' :: t ->
             let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
-            (* FIXME: codepoint to char *)
-            let codepoint_to_char_list _codepoint = [] in
             (match scan_hexdigit [] t with
                 | Ok (Some codepoint, tt) when is_valid codepoint ->
-                    let uc = codepoint_to_char_list codepoint in
-                    scan_string (List.rev uc @ acc) tt
+                    let chs = codepoint_to_chars codepoint in
+                    let chs_rev = List.rev chs in
+                    scan_string (chs_rev @ acc) tt
                 | _ -> failwith "[scan_string] invalid codepoint")
         | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t
         | '\\' :: 'n' :: t -> scan_string ('\n' :: acc) t
