@@ -1,18 +1,31 @@
 open! Containers
 
-let run callback =
+let p f = function
+    | `Stdin -> IO.read_all stdin |> f |> ignore
+    | `File file -> IO.File.read_exn file |> f |> ignore
+
+
+let print_token =
+    p (fun s ->
+        s |> WatScanner.scan |> List.map Token.show |> List.map print_endline)
+
+
+let () =
     let exe = Sys.argv.(0) in
-    let usage () = Printf.printf "Usage: %s [file | -]\n" exe in
+    let usage () =
+        Printf.printf "Usage: %s [-token | -ast | -wat] [file | -]\n" exe
+    in
     let argv = Sys.argv |> Array.to_list |> List.tl in
     let aux = function
-        | [ "-h" ] | [ "--help" ] -> usage ()
-        | [ "-" ] -> IO.read_all stdin |> callback
-        | [ file ] -> IO.File.read_exn file |> callback
+        | [ "-h" ] -> usage ()
+        | [ "-token"; "-" ] -> print_token `Stdin
+        | [ "-token"; file ] -> print_token (`File file)
+        (* | [ "-ast"; "-" ] -> print_ast `Stdin *)
+        (* | [ "-ast"; file ] -> print_ast (`File file) *)
+        (* | [ "-wat"; "-" ] -> print_wat `Stdin *)
+        (* | [ "-wat"; file ] -> print_wat (`File file) *)
+        (* | [ "-" ] -> print_val `Stdin *)
+        (* | [ file ] -> print_val (`File file) *)
         | _ -> usage ()
     in
     aux argv
-
-
-let main input = print_endline input
-
-let () = run main
