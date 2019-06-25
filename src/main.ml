@@ -10,6 +10,15 @@ let print_token =
         s |> WatScanner.scan |> List.map Token.show |> List.map print_endline)
 
 
+let print_ast =
+    p (fun s ->
+        s
+        |> WatScanner.scan
+        |> Parser.parse
+        |> List.map Ast.Datum.show
+        |> List.map print_endline)
+
+
 let () =
     let exe = Sys.argv.(0) in
     let usage () =
@@ -20,8 +29,8 @@ let () =
         | [ "-h" ] -> usage ()
         | [ "-token"; "-" ] -> print_token `Stdin
         | [ "-token"; file ] -> print_token (`File file)
-        (* | [ "-ast"; "-" ] -> print_ast `Stdin *)
-        (* | [ "-ast"; file ] -> print_ast (`File file) *)
+        | [ "-ast"; "-" ] -> print_ast `Stdin
+        | [ "-ast"; file ] -> print_ast (`File file)
         (* | [ "-wat"; "-" ] -> print_wat `Stdin *)
         (* | [ "-wat"; file ] -> print_wat (`File file) *)
         (* | [ "-" ] -> print_val `Stdin *)

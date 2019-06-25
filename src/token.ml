@@ -1,11 +1,11 @@
 type t =
+    | COMMENT of string
     | LEFT_PAREN
     | RIGHT_PAREN
-    | KEYWORD of string
+    | INT of int
+    | FLOAT of float
     | STRING of string
     | ID of string
+    | KEYWORD of string
     | RESERVED of string
-    | FLOAT of float
-    | INT of int
-    | COMMENT of string
 [@@deriving show]
