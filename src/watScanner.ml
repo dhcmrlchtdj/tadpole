@@ -4,23 +4,23 @@ let codepoint_to_chars (codepoint : int) : char list =
     let aux = function
         | t when t < 0x80 ->
             let b1 = t land 0x8f lor 0x00 in
-            [ b1 ]
+            [b1]
         | t when t < 0x800 ->
             let b1 = (t lsr 6) land 0x1f lor 0xc0 in
             let b2 = t land 0x3f lor 0x80 in
-            [ b1; b2 ]
+            [b1; b2]
         | t when t < 0xd800 ->
             let b1 = (t lsr 12) land 0x0f lor 0xe0 in
             let b2 = (t lsr 6) land 0x3f lor 0x80 in
             let b3 = t land 0x3f lor 0x80 in
-            [ b1; b2; b3 ]
+            [b1; b2; b3]
         | t when t < 0xe000 -> failwith "invalid uchar"
         | t when t < 0x110000 ->
             let b1 = (t lsr 18) land 0x07 lor 0xf0 in
             let b2 = (t lsr 12) land 0x3f lor 0x80 in
             let b3 = (t lsr 6) land 0x3f lor 0x80 in
             let b4 = t land 0x3f lor 0x80 in
-            [ b1; b2; b3; b4 ]
+            [b1; b2; b3; b4]
         | _ -> failwith "invalid uchar"
     in
     aux codepoint |> List.map char_of_int
@@ -145,7 +145,7 @@ let scan (src : string) : Token.t list =
     and scan_string (acc : char list) = function
         (* TODO https://webassembly.github.io/spec/core/text/values.html#strings *)
         | '\\' :: n :: m :: t when is_hexdigit n && is_hexdigit m ->
-            let c = [ n; m ] |> hex_of_char_list |> Char.chr in
+            let c = [n; m] |> hex_of_char_list |> Char.chr in
             scan_string (c :: acc) t
         | '\\' :: 'u' :: t ->
             let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
@@ -177,9 +177,9 @@ let scan (src : string) : Token.t list =
         in
         let (acc, tt) =
             match t with
-                | '+' :: tt -> ([ '+' ], tt)
-                | '-' :: tt -> ([ '-' ], tt)
-                | tt -> ([ '+' ], tt)
+                | '+' :: tt -> (['+'], tt)
+                | '-' :: tt -> (['-'], tt)
+                | tt -> (['+'], tt)
         in
         aux acc tt
     and scan_token = function
@@ -193,7 +193,7 @@ let scan (src : string) : Token.t list =
         | '(' :: t -> Ok (Some LEFT_PAREN, t)
         | ')' :: t -> Ok (Some RIGHT_PAREN, t)
         (* id or reserved *)
-        | '$' :: t -> scan_id [ '$' ] t
+        | '$' :: t -> scan_id ['$'] t
         (* string *)
         | '"' :: t -> scan_string [] t
         (* int or float *)
@@ -208,7 +208,7 @@ let scan (src : string) : Token.t list =
                     Ok (Some (FLOAT nan), tt)
                 | s -> s)
         (* reserved *)
-        | h :: t when is_idchar h -> scan_reserved [ h ] t
+        | h :: t when is_idchar h -> scan_reserved [h] t
         | _ -> failwith "never"
     in
     scan_all_token [] (String.to_list src)

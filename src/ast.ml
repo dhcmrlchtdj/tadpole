@@ -7,10 +7,14 @@ module Datum = struct
         | KEYWORD of string
         | RESERVED of string
         | LIST of t list
-    [@@deriving show]
+    [@@deriving show, eq]
 end
 
 module Expression = struct
+    type t = int [@@deriving show]
+end
+
+module Exp = struct
     module Op = struct
         type unop =
             | Clz

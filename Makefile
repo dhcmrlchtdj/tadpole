@@ -5,9 +5,8 @@ main: byte
 
 .PHONY: test
 test: main
-	@ ocamlbuild -use-ocamlfind src/test.byte
-	@ ./test.byte
-	@ echo "something" | ./main -
+	# @ ./main -token ./test/address.wast
+	@ ./main -ast ./test/address.wast
 
 .PHONY: byte
 byte: $(mlis)

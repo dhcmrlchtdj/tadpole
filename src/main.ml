@@ -26,11 +26,11 @@ let () =
     in
     let argv = Sys.argv |> Array.to_list |> List.tl in
     let aux = function
-        | [ "-h" ] -> usage ()
-        | [ "-token"; "-" ] -> print_token `Stdin
-        | [ "-token"; file ] -> print_token (`File file)
-        | [ "-ast"; "-" ] -> print_ast `Stdin
-        | [ "-ast"; file ] -> print_ast (`File file)
+        | ["-h"] -> usage ()
+        | ["-token"; "-"] -> print_token `Stdin
+        | ["-token"; file] -> print_token (`File file)
+        | ["-ast"; "-"] -> print_ast `Stdin
+        | ["-ast"; file] -> print_ast (`File file)
         (* | [ "-wat"; "-" ] -> print_wat `Stdin *)
         (* | [ "-wat"; file ] -> print_wat (`File file) *)
         (* | [ "-" ] -> print_val `Stdin *)
