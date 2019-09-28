@@ -110,7 +110,8 @@ let scan (src : string) : Token.t list =
         | ';' :: ';' :: t ->
             let rec aux (acc : char list) = function
                 | [] -> Ok (Some (COMMENT (acc |> str_of_rev_char_list)), [])
-                | '\n' :: t -> Ok (Some (COMMENT (acc |> str_of_rev_char_list)), t)
+                | '\n' :: t ->
+                    Ok (Some (COMMENT (acc |> str_of_rev_char_list)), t)
                 | h :: t -> aux (h :: acc) t
             in
             aux [] t
@@ -148,7 +149,9 @@ let scan (src : string) : Token.t list =
             let c = [n; m] |> hex_of_char_list |> Char.chr in
             scan_string (c :: acc) t
         | '\\' :: 'u' :: t ->
-            let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
+            let is_valid hex =
+                hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000)
+            in
             (match scan_hexdigit [] t with
                 | Ok (Some codepoint, tt) when is_valid codepoint ->
                     let chs = codepoint_to_chars codepoint in
