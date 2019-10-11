@@ -1,6 +1,6 @@
 open! Containers
 module T = Token
-module D = Ast.Datum
+module D = Datum
 
 let tokens2datums (tokens : T.t list) : D.t list =
     let rec aux (acc : D.t list) (t : T.t list) =

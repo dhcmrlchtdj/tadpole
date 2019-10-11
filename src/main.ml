@@ -15,14 +15,14 @@ let print_ast =
         s
         |> WatScanner.scan
         |> Parser.parse
-        |> List.map Ast.Datum.show
+        |> List.map Datum.show
         |> List.map print_endline)
 
 
 let () =
     let exe = Sys.argv.(0) in
     let usage () =
-        Printf.printf "Usage: %s [-token | -ast | -wat] [file | -]\n" exe
+        Printf.printf "Usage: %s [-token | -ast] [file | -]\n" exe
     in
     let argv = Sys.argv |> Array.to_list |> List.tl in
     let aux = function
