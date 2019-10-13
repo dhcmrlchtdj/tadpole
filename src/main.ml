@@ -28,6 +28,16 @@ let print_wat =
         |> print_endline)
 
 
+let print_val =
+    p (fun s ->
+        s
+        |> WatScanner.scan
+        |> Parser.parse
+        |> Evaluator.eval
+        |> Evaluator.to_string
+        |> print_endline)
+
+
 let () =
     let exe = Sys.argv.(0) in
     let usage () =
@@ -42,8 +52,8 @@ let () =
         | ["-ast"; file] -> print_ast (`File file)
         | ["-wat"; "-"] -> print_wat `Stdin
         | ["-wat"; file] -> print_wat (`File file)
-        (* | [ "-" ] -> print_val `Stdin *)
-        (* | [ file ] -> print_val (`File file) *)
+        | ["-"] -> print_val `Stdin
+        | [file] -> print_val (`File file)
         | _ -> usage ()
     in
     aux argv
