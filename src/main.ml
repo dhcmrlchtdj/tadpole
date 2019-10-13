@@ -1,13 +1,13 @@
 open! Containers
 
 let p f = function
-    | `Stdin -> IO.read_all stdin |> f |> ignore
-    | `File file -> IO.File.read_exn file |> f |> ignore
+    | `Stdin -> IO.read_all stdin |> f
+    | `File file -> IO.File.read_exn file |> f
 
 
 let print_token =
     p (fun s ->
-        s |> WatScanner.scan |> List.map Token.show |> List.map print_endline)
+        s |> WatScanner.scan |> List.map Token.show |> List.iter print_endline)
 
 
 let print_ast =
@@ -16,7 +16,16 @@ let print_ast =
         |> WatScanner.scan
         |> Parser.parse
         |> List.map Datum.show
-        |> List.map print_endline)
+        |> List.iter print_endline)
+
+
+let print_wat =
+    p (fun s ->
+        s
+        |> WatScanner.scan
+        |> Parser.parse
+        |> WatPrinter.to_string
+        |> print_endline)
 
 
 let () =
@@ -31,8 +40,8 @@ let () =
         | ["-token"; file] -> print_token (`File file)
         | ["-ast"; "-"] -> print_ast `Stdin
         | ["-ast"; file] -> print_ast (`File file)
-        (* | [ "-wat"; "-" ] -> print_wat `Stdin *)
-        (* | [ "-wat"; file ] -> print_wat (`File file) *)
+        | ["-wat"; "-"] -> print_wat `Stdin
+        | ["-wat"; file] -> print_wat (`File file)
         (* | [ "-" ] -> print_val `Stdin *)
         (* | [ file ] -> print_val (`File file) *)
         | _ -> usage ()
