@@ -4,11 +4,9 @@ let p f = function
     | `Stdin -> IO.read_all stdin |> f
     | `File file -> IO.File.read_exn file |> f
 
-
 let print_token =
     p (fun s ->
         s |> WatScanner.scan |> List.map Token.show |> List.iter print_endline)
-
 
 let print_ast =
     p (fun s ->
@@ -18,7 +16,6 @@ let print_ast =
         |> List.map Datum.show
         |> List.iter print_endline)
 
-
 let print_wat =
     p (fun s ->
         s
@@ -26,7 +23,6 @@ let print_wat =
         |> Parser.parse
         |> WatPrinter.to_string
         |> print_endline)
-
 
 let print_val =
     p (fun s ->
@@ -36,7 +32,6 @@ let print_val =
         |> Evaluator.eval
         |> Evaluator.to_string
         |> print_endline)
-
 
 let () =
     let exe = Sys.argv.(0) in

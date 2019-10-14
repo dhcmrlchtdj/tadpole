@@ -22,14 +22,15 @@ let tokens2datums (tokens : T.t list) : D.t list =
         | T.RIGHT_PAREN :: _ -> Error "[tokens2datum] unexpected ')'"
     and read_list acc = function
         | T.RIGHT_PAREN :: tt -> Ok (Some (D.LIST (List.rev acc)), tt)
-        | t ->
-            (match tokens2datum t with
+        | t -> (
+            match tokens2datum t with
                 | Ok (Some datum, tt) -> read_list (datum :: acc) tt
                 | Ok (None, []) -> Error "[read_list] empty datum"
                 | Ok (None, tt) -> read_list acc tt
-                | Error err -> Error ("[read_list] error | " ^ err))
+                | Error err -> Error ("[read_list] error | " ^ err) )
     in
-    match aux [] tokens with Ok s -> s | Error s -> failwith s
-
+    match aux [] tokens with
+        | Ok s -> s
+        | Error s -> failwith s
 
 let parse (tokens : T.t list) : D.t list = tokens |> tokens2datums

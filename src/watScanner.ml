@@ -25,7 +25,6 @@ let codepoint_to_chars (codepoint : int) : char list =
     in
     aux codepoint |> List.map char_of_int
 
-
 let hex_of_char_list (chars : char list) : int =
     let rec aux (acc : int) = function
         | [] -> acc
@@ -49,30 +48,27 @@ let hex_of_char_list (chars : char list) : int =
     in
     aux 0 chars
 
-
 let str_of_rev_char_list (chars : char list) : string =
     chars |> List.rev |> String.of_list
-
 
 let num_of_string (s : string) : Token.t option =
     match Int.of_string s with
         | Some n -> Some (Token.INT n)
-        | None ->
-            (try
-                let n = Float.of_string_exn s in
-                Some (Token.FLOAT n)
-            with
-                | _ -> None)
+        | None -> (
+            try
+              let n = Float.of_string_exn s in
+              Some (Token.FLOAT n)
+            with _ -> None )
 
-
-let is_digit = function '0' .. '9' -> true | _ -> false
+let is_digit = function
+    | '0' .. '9' -> true
+    | _ -> false
 
 let is_hexdigit = function
     | '0' .. '9' -> true
     | 'a' .. 'f' -> true
     | 'A' .. 'F' -> true
     | _ -> false
-
 
 let is_num_char = function
     | '0' .. '9' -> true
@@ -81,18 +77,38 @@ let is_num_char = function
     | '.' | '+' | '-' | 'p' | 'P' | 'x' -> true
     | _ -> false
 
-
 let is_idchar = function
     | '0' .. '9' -> true
     | 'a' .. 'z' -> true
     | 'A' .. 'Z' -> true
-    | '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '/' | ':'
-    |'<' | '=' | '>' | '?' | '@' | '\\' | '^' | '_' | '`' | '|' | '~' ->
-        true
+    | '!'
+    | '#'
+    | '$'
+    | '%'
+    | '&'
+    | '\''
+    | '*'
+    | '+'
+    | '-'
+    | '.'
+    | '/'
+    | ':'
+    | '<'
+    | '='
+    | '>'
+    | '?'
+    | '@'
+    | '\\'
+    | '^'
+    | '_'
+    | '`'
+    | '|'
+    | '~' -> true
     | _ -> false
 
-
-let is_space = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
+let is_space = function
+    | ' ' | '\t' | '\n' | '\r' -> true
+    | _ -> false
 
 let scan (src : string) : Token.t list =
     let open Token in
@@ -122,9 +138,9 @@ let scan (src : string) : Token.t list =
             | ';' :: ')' :: t ->
                 let lv = nest_level - 1 in
                 if lv = 0
-                then (
-                    let acc2 = ')' :: ';' :: acc in
-                    Ok (Some (COMMENT (acc2 |> str_of_rev_char_list)), t))
+                then
+                  let acc2 = ')' :: ';' :: acc in
+                  Ok (Some (COMMENT (acc2 |> str_of_rev_char_list)), t)
                 else aux lv acc t
             | h :: t -> aux nest_level (h :: acc) t
             | [] -> failwith "never"
@@ -148,16 +164,16 @@ let scan (src : string) : Token.t list =
         | '\\' :: n :: m :: t when is_hexdigit n && is_hexdigit m ->
             let c = [n; m] |> hex_of_char_list |> Char.chr in
             scan_string (c :: acc) t
-        | '\\' :: 'u' :: t ->
+        | '\\' :: 'u' :: t -> (
             let is_valid hex =
                 hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000)
             in
-            (match scan_hexdigit [] t with
+            match scan_hexdigit [] t with
                 | Ok (Some codepoint, tt) when is_valid codepoint ->
                     let chs = codepoint_to_chars codepoint in
                     let chs_rev = List.rev chs in
                     scan_string (chs_rev @ acc) tt
-                | _ -> failwith "[scan_string] invalid codepoint")
+                | _ -> failwith "[scan_string] invalid codepoint" )
         | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t
         | '\\' :: 'n' :: t -> scan_string ('\n' :: acc) t
         | '\\' :: 'r' :: t -> scan_string ('\r' :: acc) t
@@ -172,13 +188,13 @@ let scan (src : string) : Token.t list =
         let rec aux (acc : char list) = function
             | '_' :: t -> aux acc t
             | h :: t when is_num_char h -> aux (h :: acc) t
-            | t ->
+            | t -> (
                 let s = str_of_rev_char_list acc in
-                (match num_of_string s with
+                match num_of_string s with
                     | Some n -> Ok (Some n, t)
-                    | None -> Ok (Some (RESERVED s), t))
+                    | None -> Ok (Some (RESERVED s), t) )
         in
-        let (acc, tt) =
+        let acc, tt =
             match t with
                 | '+' :: tt -> (['+'], tt)
                 | '-' :: tt -> (['-'], tt)
@@ -203,13 +219,13 @@ let scan (src : string) : Token.t list =
         | ('+' :: h :: _ | '-' :: h :: _) as t when is_digit h -> scan_num t
         | h :: _ as t when is_digit h -> scan_num t
         (* keyword or float *)
-        | 'a' .. 'z' :: _ as t ->
-            (match scan_keyword [] t with
+        | 'a' .. 'z' :: _ as t -> (
+            match scan_keyword [] t with
                 | Ok (Some (KEYWORD k), tt) when String.equal k "inf" ->
                     Ok (Some (FLOAT infinity), tt)
                 | Ok (Some (KEYWORD k), tt) when String.equal k "nan" ->
                     Ok (Some (FLOAT nan), tt)
-                | s -> s)
+                | s -> s )
         (* reserved *)
         | h :: t when is_idchar h -> scan_reserved [h] t
         | _ -> failwith "never"
