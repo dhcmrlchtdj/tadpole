@@ -10,7 +10,6 @@ module Doc = struct
       | Concat of doc list
 
   let max_width = 80
-
   let indent_size = 4
 
   let to_string =

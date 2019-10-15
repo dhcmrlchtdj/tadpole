@@ -9,9 +9,7 @@ let to_string (_v : value) : string = ""
 
 (* *** *)
 
-module E = Env.Make (struct
-  type t = value
-end)
+module E = Env.Make (struct type t = value end)
 
 let env = E.create ()
 

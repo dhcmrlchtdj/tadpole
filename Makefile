@@ -32,4 +32,3 @@ clean:
 .PHONY: fmt
 fmt:
 	ocamlformat -i src/*.ml
-	# ocp-indent -i src/*.ml
