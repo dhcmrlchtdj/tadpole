@@ -14,6 +14,14 @@ type globalIdx = int
 type localIdx = int
 type labelIdx = int
 
+(* Addresses *)
+
+type addr = int
+type funcAddr = int
+type tableAddr = int
+type memAddr = int
+type globalAddr = int
+
 (* ---------- *)
 
 (* ## Values *)
@@ -43,7 +51,9 @@ and elemtype = FUNCREF
 
 (* mut ::= const | var *)
 (* globaltype ::= mut valtype *)
-type globaltype = CONST of valtype | VAR of valtype
+type globaltype = mut * valtype
+
+and mut = CONSTANCE | VARIABLE
 
 type externtype =
     | FUNC of functype
@@ -120,7 +130,7 @@ type relop =
     | LE
     | GE
 
-type valval = I32 of int | I64 of int | F32 of float | F64 of float
+type valval = VI32 of int | VI64 of int | VF32 of float | VF64 of float
 
 type instr =
     (* Numeric Instructions *)
@@ -130,7 +140,7 @@ type instr =
     | TestOp of testop * valval
     | RelOp of relop * valval
     | I32WrapI64
-    | I64ExtendI32
+    | I64ExtendI32s
     | I64ExtendI32u
     | Trunc of valval * valval
     | Truncu of valval * valval
@@ -151,11 +161,11 @@ type instr =
     (* Memory Instructions *)
     | Load of memarg * valtype (* inn.load | fnn.load *)
     | Store of memarg * valtype (* inn.store | fnn.store *)
-    | Load8 of memarg * valtype (* inn.load8_sx *)
-    | Load16 of memarg * valtype (* inn.load16_sx *)
-    | Load32 of memarg (* i64.load32_sx *)
+    | Load8s of memarg * valtype (* inn.load8_sx *)
     | Load8u of memarg * valtype (* inn.load8_sx *)
+    | Load16s of memarg * valtype (* inn.load16_sx *)
     | Load16u of memarg * valtype (* inn.load16_sx *)
+    | Load32s of memarg (* i64.load32_sx *)
     | Load32u of memarg (* i64.load32_sx *)
     | Store8 of memarg * valtype (* inn.store8 *)
     | Store16 of memarg * valtype (* inn.store16 *)
@@ -174,6 +184,13 @@ type instr =
     | Return
     | Call of funcIdx
     | CallIndirect of typeIdx
+    (* Administrative Instructions *)
+    | Trap
+    | Invoke of funcAddr
+    | InitElem of tableAddr * int * funcIdx
+    | InitData of memAddr * int * byte
+    | Label of instr list
+    | Frame of instr list
 
 type expr = instr list
 
@@ -234,3 +251,22 @@ type modules =
     (* declare imports and exports *)
     * import list
     * export list
+
+(* ---------- *)
+
+(* Scripts *)
+
+type action =
+    | Invoke of string option * string * expr list
+    | Get of string option * string
+
+type assertion =
+    | AssertReturn of action * expr list
+    | AssertReturnCanonicalNaN of action
+    | AssertReturnArithmeticNaN of action
+    | AssertTrapAction of action * string
+    | AssertExhaustion of action * string
+    | AssertMalformed of modules * string
+    | AssertInvalid of modules * string
+    | AssertUnlinkable of modules * string
+    | AssertTrapModule of modules * string

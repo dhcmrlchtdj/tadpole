@@ -1,22 +1,15 @@
 mlis := $(patsubst %.ml,%,$(wildcard src/*.ml))
 
-.PHONY: main
-main: byte
+.PHONY: build
+build: wat wasm
 
-.PHONY: test
-test: main
-	# @ ./main -token ./test/address.wast
-	@ ./main -ast ./test/address.wast
+.PHONY: wat
+wat: $(mlis)
+	@ ocamlbuild -use-ocamlfind src/wat.byte
 
-.PHONY: byte
-byte: $(mlis)
-	@ ocamlbuild -use-ocamlfind src/main.byte
-	@ ln -sf ./main.byte ./main
-
-.PHONY: native
-native: $(mlis)
-	@ ocamlbuild -use-ocamlfind src/main.native
-	@ ln -sf ./main.native ./main
+.PHONY: wat
+wasm: $(mlis)
+	# @ ocamlbuild -use-ocamlfind src/wasm.native
 
 .PHONY: $(mlis)
 $(mlis):
@@ -25,9 +18,7 @@ $(mlis):
 .PHONY: clean
 clean:
 	@ ocamlbuild -clean
-	@ rm -rf ./main
-	@ rm -rf ./main.byte
-	@ rm -rf ./main.native
+	@ rm -rf ./*.native
 
 .PHONY: fmt
 fmt:
