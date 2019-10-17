@@ -30,13 +30,13 @@ let print_val =
         |> WatScanner.scan
         |> Parser.parse
         |> Evaluator.eval
-        |> Evaluator.to_string
+        |> Evaluator.show_value
         |> print_endline)
 
 let () =
     let exe = Sys.argv.(0) in
     let usage () =
-        Printf.printf "Usage: %s [-token | -ast] [file | -]\n" exe
+        Printf.printf "Usage: %s [-token | -ast | -wat] [file | -]\n" exe
     in
     let argv = Sys.argv |> Array.to_list |> List.tl in
     let aux = function
