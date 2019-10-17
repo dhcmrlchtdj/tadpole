@@ -1,11 +1,4 @@
-(* alias *)
-
-type byte = char
-
-(* ---------- *)
-
 (* Indices *)
-
 type typeIdx = int
 type funcIdx = int
 type tableIdx = int
@@ -15,18 +8,11 @@ type localIdx = int
 type labelIdx = int
 
 (* Addresses *)
-
 type addr = int
 type funcAddr = int
 type tableAddr = int
 type memAddr = int
 type globalAddr = int
-
-(* ---------- *)
-
-(* ## Values *)
-
-type values = Vbyte of byte | Vint of int | Vfloat of float | Vname of string
 
 (* ---------- *)
 
@@ -188,7 +174,7 @@ type instr =
     | Trap
     | Invoke of funcAddr
     | InitElem of tableAddr * int * funcIdx
-    | InitData of memAddr * int * byte
+    | InitData of memAddr * int * char
     | Label of instr list
     | Frame of instr list
 
@@ -214,7 +200,7 @@ type global = globaltype * expr
 type elem = tableIdx * expr * funcIdx list
 
 (* data::={data memidx,offset expr,init vec(byte)} *)
-type data = memIdx * expr * byte list
+type data = memIdx * expr * char list
 
 (* start::={func funcidx} *)
 type start = funcIdx
@@ -251,6 +237,68 @@ type modules =
     (* declare imports and exports *)
     * import list
     * export list
+
+(* ---------- *)
+
+(* ## Runtime *)
+
+type values =
+    | I32 of Int32.t
+    | I64 of Int64.t
+    | F32 of Float.t
+    | F64 of Float.t
+
+type results = Rval of values | Rtrap
+
+(* ---------- *)
+
+(* ## Store *)
+
+type memInst = char list * int option
+
+type tableInst = funcElem list * int option
+
+and funcElem = funcAddr option
+
+type globalInst = values * mut
+
+type exportInst = string * externval
+
+and externval =
+    | FuncAddr of funcAddr
+    | TableAddr of tableAddr
+    | MemAddr of memAddr
+    | GlobalAddr of globalAddr
+
+type moduleInst =
+    functype list
+    * funcAddr list
+    * tableAddr list
+    * memAddr list
+    * globalAddr list
+    * exportInst list
+
+type funcInst =
+    | Func of functype * moduleInst * func
+    | FuncHost of functype * hostFunc
+
+and hostFunc = int
+
+type store = funcInst list * tableInst list * memInst list * globalInst list
+
+(* ---------- *)
+
+(* ## Stack *)
+
+type label = int * instr list
+
+type actiation = int * frame
+
+and frame = values * moduleInst
+
+type stack = stackEntry list
+
+and stackEntry = Value of values | Label of label | Activation of actiation
 
 (* ---------- *)
 
