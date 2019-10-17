@@ -13,7 +13,7 @@ and value =
     | NIL
     | TODO of string
     (* | Func of (param_name * param_type) list * ret_type * env * body *)
-    | Func of (string * val_type) list * val_type * env * string
+    | Func of (string * val_type) list * val_type * env * D.t list
 [@@deriving show]
 
 and env = (string, value) Hashtbl.t [@@deriving show]
