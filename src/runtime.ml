@@ -1,8 +1,9 @@
+open! Containers
+
 type funcAddr = int
 type tableAddr = int
 type memAddr = int
 type globalAddr = int
-
 type results = Val of Ast.value | Trap
 
 (* Store *)

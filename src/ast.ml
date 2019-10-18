@@ -1,7 +1,8 @@
+open! Containers
+
 type funcAddr = int
 type tableAddr = int
 type memAddr = int
-
 type typeIdx = int
 type funcIdx = int
 type tableIdx = int
@@ -13,7 +14,7 @@ type labelIdx = int
 (* ## Types *)
 
 (* valtype::=i32 | i64 | f32 | f64 *)
-type valtype = I32 | I64 | F32 | F64
+type valtype = TI32 | TI64 | TF32 | TF64
 
 (* resulttype::=[valtype?] *)
 type resulttype = valtype option list
@@ -47,66 +48,72 @@ type externtype =
 type memarg = int * int
 
 type unop =
-    (* iunop *)
-    | CLZ
-    | CTZ
-    | POPCONT
-    (* funop *)
-    | ABS
-    | NEG
-    | SQRT
-    | CEIL
-    | FLOOR
-    | TRUNC
-    | NEAREST
+    | I_CLZ
+    | I_CTZ
+    | I_POPCONT
+    | F_ABS
+    | F_NEG
+    | F_SQRT
+    | F_CEIL
+    | F_FLOOR
+    | F_TRUNC
+    | F_NEAREST
 
 type binop =
-    (* ibinop *)
-    (* | ADD *)
-    (* | SUB *)
-    (* | MUL *)
-    (* | DIV *)
-    | DIVu
-    | REM
-    | REMu
-    | AND
-    | OR
-    | XOR
-    | SHL
-    | SHR
-    | SHRu
-    | ROTL
-    | ROTR
-    (* fbinop *)
-    | ADD
-    | SUB
-    | MUL
-    | DIV
-    | MIN
-    | MAX
-    | COPYSIGN
+    | I_ADD
+    | I_SUB
+    | I_MUL
+    | I_DIV_S
+    | I_DIV_U
+    | I_REM_S
+    | I_REM_U
+    | I_AND
+    | I_OR
+    | I_XOR
+    | I_SHL
+    | I_SHR_S
+    | I_SHR_U
+    | I_ROTL
+    | I_ROTR
+    | F_ADD
+    | F_SUB
+    | F_MUL
+    | F_DIV
+    | F_MIN
+    | F_MAX
+    | F_COPYSIGN
 
-type testop = (* itestop *) EQZ
+type testop = I_EQZ
 
 type relop =
-    (* irelop *)
-    (* | EQ *)
-    (* | NE *)
-    (* | LT *)
-    (* | LE *)
-    (* | GT *)
-    (* | GE *)
-    | LTu
-    | GTu
-    | LEu
-    | GEu
-    (* frelop *)
-    | EQ
-    | NE
-    | LT
-    | GT
-    | LE
-    | GE
+    | I_EQ
+    | I_NE
+    | I_LT_S
+    | I_LT_U
+    | I_GT_S
+    | I_GT_U
+    | I_LE_S
+    | I_LE_U
+    | I_GE_S
+    | I_GE_U
+    | F_EQ
+    | F_NE
+    | F_LT
+    | F_GT
+    | F_LE
+    | F_GE
+
+type cvtop =
+    | CVT_WRAP
+    | CVT_EXTEND_S
+    | CVT_EXTEND_U
+    | CVT_TRUNC_S
+    | CVT_TRUNC_U
+    | CVT_CONVERT_S
+    | CVT_CONVERT_U
+    | CVT_DEMOTE
+    | CVT_PROMOTE
+    | CVT_REINTERPRET
 
 type value =
     | I32 of Int32.t
@@ -117,20 +124,11 @@ type value =
 type instr =
     (* Numeric Instructions *)
     | Const of value
-    | UnOp of unop * value
-    | BinOp of binop * value * value
-    | TestOp of testop * value
-    | RelOp of relop * value
-    | I32WrapI64
-    | I64ExtendI32s
-    | I64ExtendI32u
-    | Trunc of value * value
-    | Truncu of value * value
-    | F32DemoteF64
-    | F64PromoteF32
-    | Convert of value * value
-    | Convertu of value * value
-    | Reinterpret of value * value
+    | UnOp of unop * valtype
+    | BinOp of binop * valtype
+    | TestOp of testop * valtype
+    | RelOp of relop * valtype
+    | CvtOp of valtype * cvtop * valtype (*i32.wrap_i64 -> I32.CVT_WRAP_I64*)
     (* Parametric Instructions *)
     | Drop
     | Select
@@ -143,12 +141,12 @@ type instr =
     (* Memory Instructions *)
     | Load of memarg * valtype (* inn.load | fnn.load *)
     | Store of memarg * valtype (* inn.store | fnn.store *)
-    | Load8s of memarg * valtype (* inn.load8_sx *)
-    | Load8u of memarg * valtype (* inn.load8_sx *)
-    | Load16s of memarg * valtype (* inn.load16_sx *)
-    | Load16u of memarg * valtype (* inn.load16_sx *)
-    | Load32s of memarg (* i64.load32_sx *)
-    | Load32u of memarg (* i64.load32_sx *)
+    | Load8S of memarg * valtype (* inn.load8_sx *)
+    | Load8U of memarg * valtype (* inn.load8_sx *)
+    | Load16S of memarg * valtype (* inn.load16_sx *)
+    | Load16U of memarg * valtype (* inn.load16_sx *)
+    | Load32S of memarg (* i64.load32_sx *)
+    | Load32U of memarg (* i64.load32_sx *)
     | Store8 of memarg * valtype (* inn.store8 *)
     | Store16 of memarg * valtype (* inn.store16 *)
     | Store32 of memarg (* i64.store32 *)

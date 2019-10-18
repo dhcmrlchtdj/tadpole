@@ -49,7 +49,8 @@ module Make (Scanner : Scanner) = struct
   let main () =
       let exe = Sys.argv.(0) in
       let usage () =
-          Printf.printf "Usage: %s [-token | -ast | -wat | -wasm] [file | -]\n" exe
+          Printf.printf "Usage: %s [-token | -ast | -wat | -wasm] [file | -]\n"
+            exe
       in
       let argv = Sys.argv |> Array.to_list |> List.tl in
       let aux = function
