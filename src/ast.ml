@@ -1,4 +1,7 @@
-(* Indices *)
+type funcAddr = int
+type tableAddr = int
+type memAddr = int
+
 type typeIdx = int
 type funcIdx = int
 type tableIdx = int
@@ -6,15 +9,6 @@ type memIdx = int
 type globalIdx = int
 type localIdx = int
 type labelIdx = int
-
-(* Addresses *)
-type addr = int
-type funcAddr = int
-type tableAddr = int
-type memAddr = int
-type globalAddr = int
-
-(* ---------- *)
 
 (* ## Types *)
 
@@ -46,8 +40,6 @@ type externtype =
     | TABLE of tabletype
     | MEM of memtype
     | GLOBAL of globaltype
-
-(* ---------- *)
 
 (* ## Instructions *)
 
@@ -116,25 +108,29 @@ type relop =
     | LE
     | GE
 
-type valval = VI32 of int | VI64 of int | VF32 of float | VF64 of float
+type value =
+    | I32 of Int32.t
+    | I64 of Int64.t
+    | F32 of Float.t
+    | F64 of Float.t
 
 type instr =
     (* Numeric Instructions *)
-    | Const of valval
-    | UnOp of unop * valval
-    | BinOp of binop * valval * valval
-    | TestOp of testop * valval
-    | RelOp of relop * valval
+    | Const of value
+    | UnOp of unop * value
+    | BinOp of binop * value * value
+    | TestOp of testop * value
+    | RelOp of relop * value
     | I32WrapI64
     | I64ExtendI32s
     | I64ExtendI32u
-    | Trunc of valval * valval
-    | Truncu of valval * valval
+    | Trunc of value * value
+    | Truncu of value * value
     | F32DemoteF64
     | F64PromoteF32
-    | Convert of valval * valval
-    | Convertu of valval * valval
-    | Reinterpret of valval * valval
+    | Convert of value * value
+    | Convertu of value * value
+    | Reinterpret of value * value
     (* Parametric Instructions *)
     | Drop
     | Select
@@ -179,8 +175,6 @@ type instr =
     | Frame of instr list
 
 type expr = instr list
-
-(* ---------- *)
 
 (* ## Modules *)
 
@@ -237,84 +231,3 @@ type modules =
     (* declare imports and exports *)
     * import list
     * export list
-
-(* ---------- *)
-
-(* ## Runtime *)
-
-type values =
-    | I32 of Int32.t
-    | I64 of Int64.t
-    | F32 of Float.t
-    | F64 of Float.t
-
-type results = Rval of values | Rtrap
-
-(* ---------- *)
-
-(* ## Store *)
-
-type memInst = char list * int option
-
-type tableInst = funcElem list * int option
-
-and funcElem = funcAddr option
-
-type globalInst = values * mut
-
-type exportInst = string * externval
-
-and externval =
-    | FuncAddr of funcAddr
-    | TableAddr of tableAddr
-    | MemAddr of memAddr
-    | GlobalAddr of globalAddr
-
-type moduleInst =
-    functype list
-    * funcAddr list
-    * tableAddr list
-    * memAddr list
-    * globalAddr list
-    * exportInst list
-
-type funcInst =
-    | Func of functype * moduleInst * func
-    | FuncHost of functype * hostFunc
-
-and hostFunc = int
-
-type store = funcInst list * tableInst list * memInst list * globalInst list
-
-(* ---------- *)
-
-(* ## Stack *)
-
-type label = int * instr list
-
-type actiation = int * frame
-
-and frame = values * moduleInst
-
-type stack = stackEntry list
-
-and stackEntry = Value of values | Label of label | Activation of actiation
-
-(* ---------- *)
-
-(* Scripts *)
-
-type action =
-    | Invoke of string option * string * expr list
-    | Get of string option * string
-
-type assertion =
-    | AssertReturn of action * expr list
-    | AssertReturnCanonicalNaN of action
-    | AssertReturnArithmeticNaN of action
-    | AssertTrapAction of action * string
-    | AssertExhaustion of action * string
-    | AssertMalformed of modules * string
-    | AssertInvalid of modules * string
-    | AssertUnlinkable of modules * string
-    | AssertTrapModule of modules * string
