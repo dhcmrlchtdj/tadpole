@@ -238,43 +238,50 @@ let relop = function
     | F_GT, TF64, F64 x, F64 y -> Some (Float64.compare x y > 0)
     | F_GE, TF64, F64 x, F64 y -> Some (Float64.compare x y >= 0)
     (* F32 *)
-    | F_EQ, TF32, F32 x, F32 y -> Some (Float32.equal x y)
-    | F_NE, TF32, F32 x, F32 y -> Some (not (Float32.equal x y))
-    | F_LT, TF32, F32 x, F32 y -> Some (Float32.compare x y < 0)
-    | F_LE, TF32, F32 x, F32 y -> Some (Float32.compare x y <= 0)
-    | F_GT, TF32, F32 x, F32 y -> Some (Float32.compare x y > 0)
-    | F_GE, TF32, F32 x, F32 y -> Some (Float32.compare x y >= 0)
+    | F_EQ, TF32, F32 x, F32 y -> Some (Float32.eq x y)
+    | F_NE, TF32, F32 x, F32 y -> Some (Float32.ne x y)
+    | F_LT, TF32, F32 x, F32 y -> Some (Float32.lt x y)
+    | F_LE, TF32, F32 x, F32 y -> Some (Float32.le x y)
+    | F_GT, TF32, F32 x, F32 y -> Some (Float32.gt x y)
+    | F_GE, TF32, F32 x, F32 y -> Some (Float32.ge x y)
     | _ -> None
 
 let cvtop = function
+    (* FIXME *)
     | TI32, CVT_WRAP, TI64, I64 x ->
         Some (I32 (Int64.rem x (Int64.of_int 32) |> Int64.to_int32))
     | TI64, CVT_EXTEND_S, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
-    | TI64, CVT_EXTEND_U, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
-    | TI32, CVT_TRUNC_S, TF32, F32 x -> None
-    | TI32, CVT_TRUNC_S, TF64, F64 x -> None
-    | TI64, CVT_TRUNC_S, TF32, F32 x -> None
-    | TI64, CVT_TRUNC_S, TF64, F64 x -> None
-    | TI32, CVT_TRUNC_U, TF32, F32 x -> None
-    | TI32, CVT_TRUNC_U, TF64, F64 x -> None
-    | TI64, CVT_TRUNC_U, TF32, F32 x -> None
-    | TI64, CVT_TRUNC_U, TF64, F64 x -> None
-    | TF32, CVT_CONVERT_S, TI32, I32 x -> None
-    | TF32, CVT_CONVERT_S, TI64, I64 x -> None
-    | TF64, CVT_CONVERT_S, TI32, I32 x -> None
-    | TF64, CVT_CONVERT_S, TI64, I64 x -> None
-    | TF32, CVT_CONVERT_U, TI32, I32 x -> None
-    | TF32, CVT_CONVERT_U, TI64, I64 x -> None
-    | TF64, CVT_CONVERT_U, TI32, I32 x -> None
-    | TF64, CVT_CONVERT_U, TI64, I64 x -> None
-    | TF32, CVT_DEMOTE, TF64, F64 x -> None
-    | TF64, CVT_PROMOTE, TF32, F32 x -> None
-    | TI32, CVT_REINTERPRET, TF32, F32 x -> None
-    | TI32, CVT_REINTERPRET, TF64, F64 x -> None
-    | TI64, CVT_REINTERPRET, TF32, F32 x -> None
-    | TI64, CVT_REINTERPRET, TF64, F64 x -> None
-    | TF32, CVT_REINTERPRET, TI32, I32 x -> None
-    | TF32, CVT_REINTERPRET, TI64, I64 x -> None
-    | TF64, CVT_REINTERPRET, TI32, I32 x -> None
-    | TF64, CVT_REINTERPRET, TI64, I64 x -> None
+    | TI64, CVT_EXTEND_U, TI32, I32 _x -> None
+    | TI32, CVT_TRUNC_S, TF32, F32 _x -> None
+    | TI32, CVT_TRUNC_S, TF64, F64 _x -> None
+    | TI64, CVT_TRUNC_S, TF32, F32 _x -> None
+    | TI64, CVT_TRUNC_S, TF64, F64 _x -> None
+    | TI32, CVT_TRUNC_U, TF32, F32 _x -> None
+    | TI32, CVT_TRUNC_U, TF64, F64 _x -> None
+    | TI64, CVT_TRUNC_U, TF32, F32 _x -> None
+    | TI64, CVT_TRUNC_U, TF64, F64 _x -> None
+    | TF32, CVT_CONVERT_S, TI32, I32 x ->
+        Some (F32 (Float32.of_float (Int32.to_float x)))
+    | TF32, CVT_CONVERT_S, TI64, I64 x ->
+        Some (F32 (Float32.of_float (Int64.to_float x)))
+    | TF64, CVT_CONVERT_S, TI32, I32 x -> Some (F64 (Int32.to_float x))
+    | TF64, CVT_CONVERT_S, TI64, I64 x -> Some (F64 (Int64.to_float x))
+    | TF32, CVT_CONVERT_U, TI32, I32 _x -> None
+    | TF32, CVT_CONVERT_U, TI64, I64 _x -> None
+    | TF64, CVT_CONVERT_U, TI32, I32 x -> Some (F64 (Int32.to_float x))
+    | TF64, CVT_CONVERT_U, TI64, I64 x -> Some (F64 (Int64.to_float x))
+    | TF32, CVT_DEMOTE, TF64, F64 _x -> None
+    | TF64, CVT_PROMOTE, TF32, F32 x -> Some (F64 (Float32.to_float x))
+    | TI32, CVT_REINTERPRET, TF32, F32 x ->
+        Some (I32 (Int32.bits_of_float (Float32.to_float x)))
+    | TI32, CVT_REINTERPRET, TF64, F64 x -> Some (I32 (Int32.bits_of_float x))
+    | TI64, CVT_REINTERPRET, TF32, F32 x ->
+        Some (I64 (Int64.bits_of_float (Float32.to_float x)))
+    | TI64, CVT_REINTERPRET, TF64, F64 x -> Some (I64 (Int64.bits_of_float x))
+    | TF32, CVT_REINTERPRET, TI32, I32 x ->
+        Some (F32 (Int32.bits_of_float (Float32.to_float x)))
+    | TF32, CVT_REINTERPRET, TI64, I64 x ->
+        Some (F32 (Float32.of_float (Int64.float_of_bits x)))
+    | TF64, CVT_REINTERPRET, TI32, I32 x -> Some (F64 (Int32.float_of_bits x))
+    | TF64, CVT_REINTERPRET, TI64, I64 x -> Some (F64 (Int64.float_of_bits x))
     | _ -> None

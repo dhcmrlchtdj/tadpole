@@ -1,4 +1,6 @@
-(* copy from https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/float.ml *)
+(* copy from
+ * https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/float.ml
+ *)
 
 type t = Int32.t
 
@@ -9,8 +11,6 @@ let neg_nan = 0xffc00000l
 let bare_nan = 0x7f800000l
 let of_float = Int32.bits_of_float
 let to_float = Int32.float_of_bits
-let of_bits x = x
-let to_bits x = x
 let is_inf x = x = pos_inf || x = neg_inf
 
 let is_nan x =
@@ -131,7 +131,7 @@ let max x y =
 (* abs, neg, and copysign are purely bitwise operations, even on NaN values *)
 let abs x = Int32.logand x Int32.max_int
 let neg x = Int32.logxor x Int32.min_int
-let copysign x y = Int32.logor (abs x) (Int32.logand y Int32.min_int)
+let copy_sign x y = Int32.logor (abs x) (Int32.logand y Int32.min_int)
 let eq x y = to_float x = to_float y
 let ne x y = to_float x <> to_float y
 let lt x y = to_float x < to_float y
@@ -185,5 +185,3 @@ let to_string x =
     else
       (* TODO: use sprintf "%h" once we have upgraded to OCaml 4.03 *)
       string_of_float (to_float (abs x))
-
-
