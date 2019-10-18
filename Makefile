@@ -7,7 +7,7 @@ build: wat wasm
 wat: $(mlis)
 	@ ocamlbuild -use-ocamlfind src/wat.byte
 
-.PHONY: wat
+.PHONY: wasm
 wasm: $(mlis)
 	# @ ocamlbuild -use-ocamlfind src/wasm.native
 
@@ -18,7 +18,6 @@ $(mlis):
 .PHONY: clean
 clean:
 	@ ocamlbuild -clean
-	@ rm -rf ./*.native
 
 .PHONY: fmt
 fmt:
