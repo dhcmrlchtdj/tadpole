@@ -118,7 +118,7 @@ type cvtop =
 type value =
     | I32 of Int32.t
     | I64 of Int64.t
-    | F32 of Float.t
+    | F32 of Float32.t
     | F64 of Float.t
 
 type instr =

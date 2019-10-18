@@ -1,5 +1,3 @@
-open! Containers
-
 type funcAddr = int
 type tableAddr = int
 type memAddr = int

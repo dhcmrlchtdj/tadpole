@@ -1,7 +1,6 @@
 open! Containers
 open Ast
 module Float64 = Stdlib.Float
-module Float32 = Stdlib.Float (* FIXME *)
 
 let unop = function
     (* I32 *)
@@ -111,7 +110,7 @@ let unop = function
     | F_CEIL, TF32, F32 i -> Some (F32 (Float32.ceil i))
     | F_FLOOR, TF32, F32 i -> Some (F32 (Float32.floor i))
     | F_TRUNC, TF32, F32 i -> Some (F32 (Float32.trunc i))
-    | F_NEAREST, TF32, F32 i -> Some (F32 (Float32.round i))
+    | F_NEAREST, TF32, F32 i -> Some (F32 (Float32.nearest i))
     | _ -> None
 
 let binop = function
@@ -248,33 +247,34 @@ let relop = function
     | _ -> None
 
 let cvtop = function
-    | TI32      , CVT_WRAP        , TI64 , I64 x        -> Some(I32 ( (Int64.rem x (Int64.of_int 32)) |> Int64.to_int32))
-    | TI64      , CVT_EXTEND_S    , TI32 , I32 x    -> Some (I64 (Int64.of_int32 x))
-    | TI64      , CVT_EXTEND_U    , TI32 , I32 x    -> Some (I64 (Int64.of_int32 x))
-    | TI32      , CVT_TRUNC_S     , TF32 , F32 x     -> None
-    | TI32      , CVT_TRUNC_S     , TF64 , F64 x     -> None
-    | TI64      , CVT_TRUNC_S     , TF32 , F32 x     -> None
-    | TI64      , CVT_TRUNC_S     , TF64 , F64 x     -> None
-    | TI32      , CVT_TRUNC_U     , TF32 , F32 x     -> None
-    | TI32      , CVT_TRUNC_U     , TF64 , F64 x     -> None
-    | TI64      , CVT_TRUNC_U     , TF32 , F32 x     -> None
-    | TI64      , CVT_TRUNC_U     , TF64 , F64 x     -> None
-    | TF32      , CVT_CONVERT_S   , TI32 , I32 x   -> None
-    | TF32      , CVT_CONVERT_S   , TI64 , I64 x   -> None
-    | TF64      , CVT_CONVERT_S   , TI32 , I32 x   -> None
-    | TF64      , CVT_CONVERT_S   , TI64 , I64 x   -> None
-    | TF32      , CVT_CONVERT_U   , TI32 , I32 x   -> None
-    | TF32      , CVT_CONVERT_U   , TI64 , I64 x   -> None
-    | TF64      , CVT_CONVERT_U   , TI32 , I32 x   -> None
-    | TF64      , CVT_CONVERT_U   , TI64 , I64 x   -> None
-    | TF32      , CVT_DEMOTE      , TF64 , F64 x      -> None
-    | TF64      , CVT_PROMOTE     , TF32 , F32 x     -> None
-    | TI32      , CVT_REINTERPRET , TF32 , F32 x -> None
-    | TI32      , CVT_REINTERPRET , TF64 , F64 x -> None
-    | TI64      , CVT_REINTERPRET , TF32 , F32 x -> None
-    | TI64      , CVT_REINTERPRET , TF64 , F64 x -> None
-    | TF32      , CVT_REINTERPRET , TI32 , I32 x -> None
-    | TF32      , CVT_REINTERPRET , TI64 , I64 x -> None
-    | TF64      , CVT_REINTERPRET , TI32 , I32 x -> None
-    | TF64      , CVT_REINTERPRET , TI64 , I64 x -> None
+    | TI32, CVT_WRAP, TI64, I64 x ->
+        Some (I32 (Int64.rem x (Int64.of_int 32) |> Int64.to_int32))
+    | TI64, CVT_EXTEND_S, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
+    | TI64, CVT_EXTEND_U, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
+    | TI32, CVT_TRUNC_S, TF32, F32 x -> None
+    | TI32, CVT_TRUNC_S, TF64, F64 x -> None
+    | TI64, CVT_TRUNC_S, TF32, F32 x -> None
+    | TI64, CVT_TRUNC_S, TF64, F64 x -> None
+    | TI32, CVT_TRUNC_U, TF32, F32 x -> None
+    | TI32, CVT_TRUNC_U, TF64, F64 x -> None
+    | TI64, CVT_TRUNC_U, TF32, F32 x -> None
+    | TI64, CVT_TRUNC_U, TF64, F64 x -> None
+    | TF32, CVT_CONVERT_S, TI32, I32 x -> None
+    | TF32, CVT_CONVERT_S, TI64, I64 x -> None
+    | TF64, CVT_CONVERT_S, TI32, I32 x -> None
+    | TF64, CVT_CONVERT_S, TI64, I64 x -> None
+    | TF32, CVT_CONVERT_U, TI32, I32 x -> None
+    | TF32, CVT_CONVERT_U, TI64, I64 x -> None
+    | TF64, CVT_CONVERT_U, TI32, I32 x -> None
+    | TF64, CVT_CONVERT_U, TI64, I64 x -> None
+    | TF32, CVT_DEMOTE, TF64, F64 x -> None
+    | TF64, CVT_PROMOTE, TF32, F32 x -> None
+    | TI32, CVT_REINTERPRET, TF32, F32 x -> None
+    | TI32, CVT_REINTERPRET, TF64, F64 x -> None
+    | TI64, CVT_REINTERPRET, TF32, F32 x -> None
+    | TI64, CVT_REINTERPRET, TF64, F64 x -> None
+    | TF32, CVT_REINTERPRET, TI32, I32 x -> None
+    | TF32, CVT_REINTERPRET, TI64, I64 x -> None
+    | TF64, CVT_REINTERPRET, TI32, I32 x -> None
+    | TF64, CVT_REINTERPRET, TI64, I64 x -> None
     | _ -> None
