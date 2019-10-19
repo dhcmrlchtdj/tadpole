@@ -1,26 +1,24 @@
-type u32 = Uint32.t
+type typeidx = int
 
-type typeidx = u32
+type funcidx = int
 
-type funcidx = u32
+type tableidx = int
 
-type tableidx = u32
+type memidx = int
 
-type memidx = u32
+type globalidx = int
 
-type globalidx = u32
+type localidx = int
 
-type localidx = u32
+type labelidx = int
 
-type labelidx = u32
+type funcaddr = int
 
-type funcaddr = u32
+type tableaddr = int
 
-type tableaddr = u32
+type memaddr = int
 
-type memaddr = u32
-
-type globaladdr = u32
+type globaladdr = int
 
 (* type *)
 
@@ -35,8 +33,8 @@ type resulttype = valtype option list
 type functype = valtype list * valtype list
 
 type limits = {
-    min : u32;
-    max : u32 option;
+    min : int;
+    max : int option;
   }
 
 type memtype = limits
@@ -128,8 +126,8 @@ type cvtop =
     | CVT_REINTERPRET
 
 type memarg = {
-    offset : u32;
-    align : u32;
+    offset : int;
+    align : int;
   }
 
 type instr =
@@ -181,8 +179,8 @@ type instr =
     (* Administrative Instructions *)
     | Trap
     | Invoke of funcaddr
-    | InitElem of tableaddr * u32 * funcidx
-    | InitData of memaddr * u32 * char
+    | InitElem of tableaddr * int * funcidx
+    | InitData of memaddr * int * char
     | Label of int * instr list
     | Frame of int * instr list
 

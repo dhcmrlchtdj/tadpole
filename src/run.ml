@@ -49,15 +49,14 @@ type funcinst =
         hostcode : hostfunc;
       }
 
-and hostfunc = Uint32.t
-
 (* XXX *)
+and hostfunc = int
 
 (* --- *)
 
 type tableinst = {
     elem : funcelem list;
-    max : Uint32.t option;
+    max : int option;
   }
 
 and funcelem = S.funcaddr option
@@ -66,7 +65,7 @@ and funcelem = S.funcaddr option
 
 type meminst = {
     data : char list;
-    max : Uint32.t option;
+    max : int option;
   }
 
 (* --- *)
@@ -79,10 +78,10 @@ type globalinst = {
 (* --- *)
 
 type store = {
-    funcs : funcinst;
-    tables : tableinst;
-    mems : meminst;
-    globals : globalinst;
+    funcs : funcinst list;
+    tables : tableinst list;
+    mems : meminst list;
+    globals : globalinst list;
   }
 
 (* --- *)
