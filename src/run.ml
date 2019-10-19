@@ -9,8 +9,8 @@ type val_ =
     | F64 of Float64.t
 
 type result_ =
-    | Val of val_
-    | Trap
+    | Rval of val_
+    | Rtrap
 
 (* --- *)
 
