@@ -31,16 +31,16 @@ let rec eval_instr (env : R.store) (stack : R.stack)
         match stack with
             | R.Value c :: tail -> (
                 match EvalNum.testop (op, t, c) with
-                    | Some true -> (env, R.Value (A.I32 Int32.one) :: tail)
-                    | Some false -> (env, R.Value (A.I32 Int32.zero) :: tail)
+                    | Some true -> (env, R.Value (A.I32 1l) :: tail)
+                    | Some false -> (env, R.Value (A.I32 0l) :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.RelOp (op, t) -> (
         match stack with
             | R.Value c2 :: R.Value c1 :: tail -> (
                 match EvalNum.relop (op, t, c1, c2) with
-                    | Some true -> (env, R.Value (A.I32 Int32.one) :: tail)
-                    | Some false -> (env, R.Value (A.I32 Int32.zero) :: tail)
+                    | Some true -> (env, R.Value (A.I32 1l) :: tail)
+                    | Some false -> (env, R.Value (A.I32 0l) :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.CvtOp (t2, op, t1) -> (
@@ -60,7 +60,7 @@ let rec eval_instr (env : R.store) (stack : R.stack)
     | A.Select -> (
         match stack with
             | R.Value (A.I32 c) :: v2 :: v1 :: t ->
-                let h = if Int32.equal c Int32.zero then v2 else v1 in
+                let h = if Int32.equal c 0l then v2 else v1 in
                 (env, h :: t)
             | _ -> failwith "assert failure" )
     (* Variable Instructions *)

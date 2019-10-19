@@ -5,8 +5,8 @@ module Float64 = Stdlib.Float
 let unop = function
     (* I32 *)
     | I_CLZ, TI32, I32 i ->
-        if Int32.equal i Int32.zero
-        then Some (I32 (Int32.of_int 32))
+        if Int32.equal i 0l
+        then Some (I32 32l)
         else
           let j = ref i in
           let cnt = ref 0 in
@@ -14,7 +14,7 @@ let unop = function
           let loop = ref 0 in
           while Bool.equal !break false && !loop < 32 do
             let r = Int32.logand Int32.min_int !j in
-            if Int32.equal r Int32.zero
+            if Int32.equal r 0l
             then (
               incr cnt ;
               incr loop ;
@@ -23,16 +23,16 @@ let unop = function
           done ;
           Some (I32 (Int32.of_int !cnt))
     | I_CTZ, TI32, I32 i ->
-        if Int32.equal i Int32.zero
-        then Some (I32 (Int32.of_int 32))
+        if Int32.equal i 0l
+        then Some (I32 32l)
         else
           let j = ref i in
           let cnt = ref 0 in
           let break = ref false in
           let loop = ref 0 in
           while Bool.equal !break false && !loop < 32 do
-            let r = Int32.logand Int32.one !j in
-            if Int32.equal r Int32.zero
+            let r = Int32.logand 1l !j in
+            if Int32.equal r 0l
             then (
               incr cnt ;
               incr loop ;
@@ -44,15 +44,15 @@ let unop = function
         let j = ref i in
         let cnt = ref 0 in
         for _ = 0 to 31 do
-          let r = Int32.logand Int32.one !j in
-          if Int32.equal r Int32.one then incr cnt ;
+          let r = Int32.logand 1l !j in
+          if Int32.equal r 1l then incr cnt ;
           j := Int32.shift_right_logical !j 1
         done ;
         Some (I32 (Int32.of_int !cnt))
     (* I64 *)
     | I_CLZ, TI64, I64 i ->
-        if Int64.equal i Int64.zero
-        then Some (I64 (Int64.of_int 64))
+        if Int64.equal i 0L
+        then Some (I64 64L)
         else
           let j = ref i in
           let cnt = ref 0 in
@@ -60,7 +60,7 @@ let unop = function
           let loop = ref 0 in
           while Bool.equal !break false && !loop < 64 do
             let r = Int64.logand Int64.min_int !j in
-            if Int64.equal r Int64.zero
+            if Int64.equal r 0L
             then (
               incr cnt ;
               incr loop ;
@@ -69,16 +69,16 @@ let unop = function
           done ;
           Some (I64 (Int64.of_int !cnt))
     | I_CTZ, TI64, I64 i ->
-        if Int64.equal i Int64.zero
-        then Some (I64 (Int64.of_int 64))
+        if Int64.equal i 0L
+        then Some (I64 64L)
         else
           let j = ref i in
           let cnt = ref 0 in
           let break = ref false in
           let loop = ref 0 in
           while Bool.equal !break false && !loop < 64 do
-            let r = Int64.logand Int64.one !j in
-            if Int64.equal r Int64.zero
+            let r = Int64.logand 1L !j in
+            if Int64.equal r 0L
             then (
               incr cnt ;
               incr loop ;
@@ -90,8 +90,8 @@ let unop = function
         let j = ref i in
         let cnt = ref 0 in
         for _ = 0 to 31 do
-          let r = Int64.logand Int64.one !j in
-          if Int64.equal r Int64.one then incr cnt ;
+          let r = Int64.logand 1L !j in
+          if Int64.equal r 1L then incr cnt ;
           j := Int64.shift_right_logical !j 1
         done ;
         Some (I64 (Int64.of_int !cnt))
@@ -126,25 +126,25 @@ let binop = function
     | I_OR, TI32, I32 x, I32 y -> Some (I32 (Int32.logor x y))
     | I_XOR, TI32, I32 x, I32 y -> Some (I32 (Int32.logxor x y))
     | I_SHL, TI32, I32 x, I32 y ->
-        let k32 = Int32.rem y (Int32.of_int 32) in
+        let k32 = Int32.rem y 32l in
         let k = Int32.to_int k32 in
         Some (I32 (Int32.shift_left x k))
     | I_SHR_S, TI32, I32 x, I32 y ->
-        let k32 = Int32.rem y (Int32.of_int 32) in
+        let k32 = Int32.rem y 32l in
         let k = Int32.to_int k32 in
         Some (I32 (Int32.shift_right_logical x k))
     | I_SHR_U, TI32, I32 x, I32 y ->
-        let k32 = Int32.rem y (Int32.of_int 32) in
+        let k32 = Int32.rem y 32l in
         let k = Int32.to_int k32 in
         Some (I32 (Int32.shift_right x k))
     | I_ROTL, TI32, I32 x, I32 y ->
-        let k32 = Int32.rem y (Int32.of_int 32) in
+        let k32 = Int32.rem y 32l in
         let k = Int32.to_int k32 in
         let l = Int32.shift_left x k in
         let r = Int32.shift_right x (32 - k) in
         Some (I32 (Int32.add l r))
     | I_ROTR, TI32, I32 x, I32 y ->
-        let k32 = Int32.rem y (Int32.of_int 32) in
+        let k32 = Int32.rem y 32l in
         let k = Int32.to_int k32 in
         let l = Int32.shift_left x (32 - k) in
         let r = Int32.shift_right x k in
@@ -161,25 +161,25 @@ let binop = function
     | I_OR, TI64, I64 x, I64 y -> Some (I64 (Int64.logor x y))
     | I_XOR, TI64, I64 x, I64 y -> Some (I64 (Int64.logxor x y))
     | I_SHL, TI64, I64 x, I64 y ->
-        let k64 = Int64.rem y (Int64.of_int 64) in
+        let k64 = Int64.rem y 64L in
         let k = Int64.to_int k64 in
         Some (I64 (Int64.shift_left x k))
     | I_SHR_S, TI64, I64 x, I64 y ->
-        let k64 = Int64.rem y (Int64.of_int 64) in
+        let k64 = Int64.rem y 64L in
         let k = Int64.to_int k64 in
         Some (I64 (Int64.shift_right_logical x k))
     | I_SHR_U, TI64, I64 x, I64 y ->
-        let k64 = Int64.rem y (Int64.of_int 64) in
+        let k64 = Int64.rem y 64L in
         let k = Int64.to_int k64 in
         Some (I64 (Int64.shift_right x k))
     | I_ROTL, TI64, I64 x, I64 y ->
-        let k64 = Int64.rem y (Int64.of_int 64) in
+        let k64 = Int64.rem y 64L in
         let k = Int64.to_int k64 in
         let l = Int64.shift_left x k in
         let r = Int64.shift_right x (64 - k) in
         Some (I64 (Int64.add l r))
     | I_ROTR, TI64, I64 x, I64 y ->
-        let k64 = Int64.rem y (Int64.of_int 64) in
+        let k64 = Int64.rem y 64L in
         let k = Int64.to_int k64 in
         let l = Int64.shift_left x (64 - k) in
         let r = Int64.shift_right x k in
@@ -203,8 +203,8 @@ let binop = function
     | _ -> None
 
 let testop = function
-    | I_EQZ, TI32, I32 i -> Some (Int32.equal i Int32.zero)
-    | I_EQZ, TI64, I64 i -> Some (Int64.equal i Int64.zero)
+    | I_EQZ, TI32, I32 i -> Some (Int32.equal i 0l)
+    | I_EQZ, TI64, I64 i -> Some (Int64.equal i 0L)
     | _ -> None
 
 let relop = function
@@ -249,7 +249,7 @@ let relop = function
 let cvtop = function
     (* FIXME *)
     | TI32, CVT_WRAP, TI64, I64 x ->
-        Some (I32 (Int64.rem x (Int64.of_int 32) |> Int64.to_int32))
+        Some (I32 (Int64.rem x 0x1_0000_0000L |> Int64.to_int32))
     | TI64, CVT_EXTEND_S, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
     | TI64, CVT_EXTEND_U, TI32, I32 _x -> None
     | TI32, CVT_TRUNC_S, TF32, F32 _x -> None
