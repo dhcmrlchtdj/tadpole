@@ -1,7 +1,6 @@
 open! Containers
-open Structure
 open Run
-module R = Run
+open Structure
 
 module Grow = struct
   let mem (minst : meminst) (n : Int32.t) : meminst option =
@@ -212,29 +211,29 @@ and eval_variable_instr ctx = function
 
 and eval_memory_instr ctx = function
     (* Memory Instructions *)
-    | Load (I32, memarg) -> aux_memory_load ctx memarg 32 None
-    | Load (I64, memarg) -> aux_memory_load ctx memarg 64 None
-    | Load (F32, memarg) -> aux_memory_load ctx memarg 32 None
-    | Load (F64, memarg) -> aux_memory_load ctx memarg 64 None
-    | Load8S (I32, memarg) -> aux_memory_load ctx memarg 8 (Some `S)
-    | Load8S (I64, memarg) -> aux_memory_load ctx memarg 8 (Some `U)
-    | Load8U (I32, memarg) -> aux_memory_load ctx memarg 8 (Some `S)
-    | Load8U (I64, memarg) -> aux_memory_load ctx memarg 8 (Some `U)
-    | Load16S (I32, memarg) -> aux_memory_load ctx memarg 16 (Some `S)
-    | Load16S (I64, memarg) -> aux_memory_load ctx memarg 16 (Some `U)
-    | Load16U (I32, memarg) -> aux_memory_load ctx memarg 16 (Some `S)
-    | Load16U (I64, memarg) -> aux_memory_load ctx memarg 16 (Some `U)
-    | Load32S (I64, memarg) -> aux_memory_load ctx memarg 32 (Some `S)
-    | Load32U (I64, memarg) -> aux_memory_load ctx memarg 32 (Some `U)
-    | Store (I32, memarg) -> aux_memory_store ctx memarg 32
-    | Store (I64, memarg) -> aux_memory_store ctx memarg 64
-    | Store (F32, memarg) -> aux_memory_store ctx memarg 32
-    | Store (F64, memarg) -> aux_memory_store ctx memarg 64
-    | Store8 (I32, memarg) -> aux_memory_store ctx memarg 8
-    | Store8 (I64, memarg) -> aux_memory_store ctx memarg 8
-    | Store16 (I32, memarg) -> aux_memory_store ctx memarg 16
-    | Store16 (I64, memarg) -> aux_memory_store ctx memarg 16
-    | Store32 (I64, memarg) -> aux_memory_store ctx memarg 32
+    | Load (TI32, memarg) -> aux_memory_load ctx memarg 32 None
+    | Load (TI64, memarg) -> aux_memory_load ctx memarg 64 None
+    | Load (TF32, memarg) -> aux_memory_load ctx memarg 32 None
+    | Load (TF64, memarg) -> aux_memory_load ctx memarg 64 None
+    | Load8S (TI32, memarg) -> aux_memory_load ctx memarg 8 (Some `S)
+    | Load8S (TI64, memarg) -> aux_memory_load ctx memarg 8 (Some `U)
+    | Load8U (TI32, memarg) -> aux_memory_load ctx memarg 8 (Some `S)
+    | Load8U (TI64, memarg) -> aux_memory_load ctx memarg 8 (Some `U)
+    | Load16S (TI32, memarg) -> aux_memory_load ctx memarg 16 (Some `S)
+    | Load16S (TI64, memarg) -> aux_memory_load ctx memarg 16 (Some `U)
+    | Load16U (TI32, memarg) -> aux_memory_load ctx memarg 16 (Some `S)
+    | Load16U (TI64, memarg) -> aux_memory_load ctx memarg 16 (Some `U)
+    | Load32S (TI64, memarg) -> aux_memory_load ctx memarg 32 (Some `S)
+    | Load32U (TI64, memarg) -> aux_memory_load ctx memarg 32 (Some `U)
+    | Store (TI32, memarg) -> aux_memory_store ctx memarg 32
+    | Store (TI64, memarg) -> aux_memory_store ctx memarg 64
+    | Store (TF32, memarg) -> aux_memory_store ctx memarg 32
+    | Store (TF64, memarg) -> aux_memory_store ctx memarg 64
+    | Store8 (TI32, memarg) -> aux_memory_store ctx memarg 8
+    | Store8 (TI64, memarg) -> aux_memory_store ctx memarg 8
+    | Store16 (TI32, memarg) -> aux_memory_store ctx memarg 16
+    | Store16 (TI64, memarg) -> aux_memory_store ctx memarg 16
+    | Store32 (TI64, memarg) -> aux_memory_store ctx memarg 32
     | MemorySize ->
         let m_addrs = ctx.frame.module_.memaddrs in
         let m_idx = List.get_at_idx_exn 0 m_addrs in
@@ -276,11 +275,11 @@ and aux_memory_load ctx (memarg : memarg) bit_with (sign : [ `S | `U ] option) =
             let ea = Int32.to_int i + memarg.offset in
             let len = bit_with / 8 in
             if ea + len > mem_len
-            then eval_administrative_instr ctx S.Trap
+            then eval_administrative_instr ctx Trap
             else
               (* FIXME *)
               (* let b = mem.data[ea:n/8] in *)
-              let c : R.val_ =
+              let c : val_ =
                   match sign with
                       | None -> I32 1l
                       | Some `U -> I32 1l
@@ -303,7 +302,7 @@ and aux_memory_store ctx (memarg : memarg) bit_with =
             let ea = Int32.to_int i + memarg.offset in
             let len = bit_with / 8 in
             if ea + len > mem_len
-            then eval_administrative_instr ctx S.Trap
+            then eval_administrative_instr ctx Trap
             else (* FIXME *)
                  (* let b = mem.data[ea:n/8] in *)
               ctx
@@ -321,7 +320,7 @@ and eval_control_instr ctx = function
             | Value (I32 c) :: stack ->
                 let n = List.length rtype in
                 (* TODO: howto use l *)
-                let l = R.Label (n, ctx.cont) in
+                let l = Label (n, ctx.cont) in
                 if Int32.equal c 0l
                 then { ctx with stack; cont = instrs2 }
                 else { ctx with stack; cont = instrs1 }
@@ -330,8 +329,8 @@ and eval_control_instr ctx = function
     | BrIf _labelIdx -> failwith "TODO"
     | BrTable (_labelIdx, _labelIdx2) -> failwith "TODO"
     | Return ->
-            let n = ctx.frame.x in
-            failwith "TODO"
+        (* let n = ctx.frame.x in *)
+        failwith "TODO"
     | Call _funcIdx -> failwith "TODO"
     | CallIndirect _typeIdx -> failwith "TODO"
     | _ -> failwith "never"
@@ -343,6 +342,6 @@ and eval_administrative_instr _ctx = function
     | Invoke _funcAddr -> failwith "TODO"
     | InitElem (_tableAddr, _int, _funcIdx) -> failwith "TODO"
     | InitData (_memAddr, _int, _char) -> failwith "TODO"
-    | S.Label (_n, _instr) -> failwith "TODO"
+    | Label (_n, _instr) -> failwith "TODO"
     | Frame (_n, _instr) -> failwith "TODO"
     | _ -> failwith "never"

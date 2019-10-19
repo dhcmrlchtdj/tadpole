@@ -1,4 +1,4 @@
-module S = Structure
+open Structure
 
 (* --- *)
 
@@ -20,19 +20,19 @@ type exportinst = {
   }
 
 and externval =
-    | EV_func of S.funcaddr
-    | EV_table of S.tableaddr
-    | EV_mem of S.memaddr
-    | EV_global of S.globaladdr
+    | EV_func of funcaddr
+    | EV_table of tableaddr
+    | EV_mem of memaddr
+    | EV_global of globaladdr
 
 (* --- *)
 
 type moduleinst = {
-    types : S.functype list;
-    funcaddrs : S.funcaddr list;
-    tableaddrs : S.tableaddr list;
-    memaddrs : S.memaddr list;
-    globaladdrs : S.globaladdr list;
+    types : functype list;
+    funcaddrs : funcaddr list;
+    tableaddrs : tableaddr list;
+    memaddrs : memaddr list;
+    globaladdrs : globaladdr list;
     exports : exportinst list;
   }
 
@@ -40,12 +40,12 @@ type moduleinst = {
 
 type funcinst =
     | Func of {
-        type_ : S.functype;
+        type_ : functype;
         module_ : moduleinst;
-        code : S.func;
+        code : func;
       }
     | HostFunc of {
-        type_ : S.functype;
+        type_ : functype;
         hostcode : hostfunc;
       }
 
@@ -59,7 +59,7 @@ type tableinst = {
     max : int option;
   }
 
-and funcelem = S.funcaddr option
+and funcelem = funcaddr option
 
 (* --- *)
 
@@ -74,7 +74,7 @@ let page_size = 65536
 
 type globalinst = {
     value : val_;
-    mut : S.mut;
+    mut : mut;
   }
 
 (* --- *)
@@ -88,7 +88,7 @@ type store = {
 
 (* --- *)
 
-type label = int * S.instr list
+type label = int * instr list
 
 (* --- *)
 
@@ -105,11 +105,11 @@ type stack = stackEntry list
 
 and stackEntry =
     | Value of val_
-    | Label of label
-    | Activition of activation
+    | SLabel of label
+    | SFrame of activation
 
 (* --- *)
 
 type config = store * thread
 
-and thread = frame * S.instr list
+and thread = frame * instr list
