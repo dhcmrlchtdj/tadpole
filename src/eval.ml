@@ -7,48 +7,48 @@ let rec eval_instr (env : R.store) (stack : R.stack)
   = function
     (* Numeric Instructions *)
     | A.Const v ->
-        let entry = R.Value v in
+        let entry = R.Svalue v in
         (env, entry :: stack)
     | A.UnOp (op, t) -> (
         match stack with
-            | R.Value c :: tail -> (
+            | R.Svalue c :: tail -> (
                 match EvalNum.unop (op, t, c) with
                     | Some v ->
-                        let entry = R.Value v in
+                        let entry = R.Svalue v in
                         (env, entry :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.BinOp (op, t) -> (
         match stack with
-            | R.Value c2 :: R.Value c1 :: tail -> (
+            | R.Svalue c2 :: R.Svalue c1 :: tail -> (
                 match EvalNum.binop (op, t, c1, c2) with
                     | Some v ->
-                        let entry = R.Value v in
+                        let entry = R.Svalue v in
                         (env, entry :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.TestOp (op, t) -> (
         match stack with
-            | R.Value c :: tail -> (
+            | R.Svalue c :: tail -> (
                 match EvalNum.testop (op, t, c) with
-                    | Some true -> (env, R.Value (A.I32 1l) :: tail)
-                    | Some false -> (env, R.Value (A.I32 0l) :: tail)
+                    | Some true -> (env, R.Svalue (A.I32 1l) :: tail)
+                    | Some false -> (env, R.Svalue (A.I32 0l) :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.RelOp (op, t) -> (
         match stack with
-            | R.Value c2 :: R.Value c1 :: tail -> (
+            | R.Svalue c2 :: R.Svalue c1 :: tail -> (
                 match EvalNum.relop (op, t, c1, c2) with
-                    | Some true -> (env, R.Value (A.I32 1l) :: tail)
-                    | Some false -> (env, R.Value (A.I32 0l) :: tail)
+                    | Some true -> (env, R.Svalue (A.I32 1l) :: tail)
+                    | Some false -> (env, R.Svalue (A.I32 0l) :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
     | A.CvtOp (t2, op, t1) -> (
         match stack with
-            | R.Value c :: tail -> (
+            | R.Svalue c :: tail -> (
                 match EvalNum.cvtop (t2, op, t1, c) with
                     | Some v ->
-                        let entry = R.Value v in
+                        let entry = R.Svalue v in
                         (env, entry :: tail)
                     | None -> eval_instr env stack A.Trap )
             | _ -> failwith "assert failure" )
@@ -59,7 +59,7 @@ let rec eval_instr (env : R.store) (stack : R.stack)
             | _ -> failwith "assert failure" )
     | A.Select -> (
         match stack with
-            | R.Value (A.I32 c) :: v2 :: v1 :: t ->
+            | R.Svalue (A.I32 c) :: v2 :: v1 :: t ->
                 let h = if Int32.equal c 0l then v2 else v1 in
                 (env, h :: t)
             | _ -> failwith "assert failure" )

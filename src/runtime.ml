@@ -1,54 +1,90 @@
-type funcAddr = int
-type tableAddr = int
-type memAddr = int
-type globalAddr = int
-type results = Val of Ast.value | Trap
+type val_ = Ast.value
 
-(* Store *)
+(* --- *)
 
-type memInst = char list * int option
+type result_ = Rval of val_ | Rtrap
 
-type tableInst = funcElem list * int option
+(* --- *)
 
-and funcElem = funcAddr option
+type addr = int
+type funcaddr = addr
+type tableaddr = addr
+type memaddr = addr
+type globaladdr = addr
 
-type globalInst = Ast.value * Ast.mut
+(* --- *)
 
-type exportInst = string * externval
+type exportinst = {name: string; value: externval}
 
 and externval =
-    | FuncAddr of funcAddr
-    | TableAddr of tableAddr
-    | MemAddr of memAddr
-    | GlobalAddr of globalAddr
+    | EFunc of funcaddr
+    | ETable of tableaddr
+    | EMem of memaddr
+    | EGlobal of globaladdr
 
-type moduleInst =
-    Ast.functype list
-    * funcAddr list
-    * tableAddr list
-    * memAddr list
-    * globalAddr list
-    * exportInst list
+(* --- *)
 
-type funcInst =
-    | Func of Ast.functype * moduleInst * Ast.func
-    | FuncHost of Ast.functype * hostFunc
+type moduleinst = {
+    types: Ast.functype list;
+    funcaddrs: funcaddr list;
+    tableaddrs: tableaddr list;
+    memaddrs: memaddr list;
+    globaladdrs: globaladdr list;
+    exports: exportinst list;
+  }
 
-and hostFunc = int
+(* --- *)
 
-type store = funcInst list * tableInst list * memInst list * globalInst list
+type funcinst =
+    | Func of {type_: Ast.functype; module_: moduleinst; code: Ast.func}
+    | HostFunc of {type_: Ast.functype; hostcode: hostfunc}
 
-(* Stack *)
+and hostfunc = int
 
-type label = int * Ast.instr list
+(* --- *)
 
-type actiation = int * frame
+type tableinst = {elem: funcelem list; max: Int32.t option}
 
-and frame = Ast.value * moduleInst
+and funcelem = funcaddr option
+
+(* --- *)
+
+type meminst = {data: char list; max: Int32.t option}
+
+(* --- *)
+
+type globalinst = {value: val_; mut: Ast.mut}
+
+(* --- *)
+
+type store = {
+    funcs: funcinst;
+    tables: tableinst;
+    mems: meminst;
+    globals: globalinst;
+  }
+
+(* --- *)
+
+type labels = int * Ast.instr list
+
+(* --- *)
+
+type activations = int * frame
+
+and frame = {locals: val_ list; module_: moduleinst}
+
+(* --- *)
 
 type stack = stackEntry list
 
 and stackEntry =
-    | Value of Ast.value
-    | Label of label
-    | Activation of actiation
+    | Svalue of val_
+    | Slabel of labels
+    | Sactivition of activations
+
+(* --- *)
+
+type config = store * thread
+
+and thread = frame * Ast.instr list
