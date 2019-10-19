@@ -5,17 +5,25 @@
 type t = Int32.t
 
 let pos_inf = Int32.bits_of_float (1.0 /. 0.0)
+
 let neg_inf = Int32.bits_of_float (-.(1.0 /. 0.0))
+
 let pos_nan = 0x7fc00000l
+
 let neg_nan = 0xffc00000l
+
 let bare_nan = 0x7f800000l
+
 let of_float = Int32.bits_of_float
+
 let to_float = Int32.float_of_bits
+
 let is_inf x = x = pos_inf || x = neg_inf
 
 let is_nan x =
     let xf = Int32.float_of_bits x in
     xf <> xf
+
 
 (*
  * When the result of an arithmetic operation is NaN, the most significant
@@ -38,6 +46,7 @@ let determine_binary_nan x y =
     let nan = if is_nan x then x else if is_nan y then y else pos_nan in
     canonicalize_nan nan
 
+
 (*
  * When the result of a unary operation is NaN, the resulting NaN is computed
  * from one of the NaN input, if there it is NaN. Otherwise, we use a default
@@ -52,23 +61,33 @@ let determine_unary_nan x =
     let nan = if is_nan x then x else pos_nan in
     canonicalize_nan nan
 
+
 let binary x op y =
     let xf = to_float x in
     let yf = to_float y in
     let t = op xf yf in
     if t = t then of_float t else determine_binary_nan x y
 
+
 let unary op x =
     let t = op (to_float x) in
     if t = t then of_float t else determine_unary_nan x
 
+
 let zero = of_float 0.0
+
 let add x y = binary x ( +. ) y
+
 let sub x y = binary x ( -. ) y
+
 let mul x y = binary x ( *. ) y
+
 let div x y = binary x ( /. ) y
+
 let sqrt x = unary Stdlib.sqrt x
+
 let ceil x = unary Stdlib.ceil x
+
 let floor x = unary Stdlib.floor x
 
 let trunc x =
@@ -81,6 +100,7 @@ let trunc x =
       let f = if xf < 0.0 then Stdlib.ceil xf else Stdlib.floor xf in
       let result = of_float f in
       if is_nan result then determine_unary_nan result else result
+
 
 let nearest x =
     let xf = to_float x in
@@ -104,6 +124,7 @@ let nearest x =
       let result = of_float f in
       if is_nan result then determine_unary_nan result else result
 
+
 let min x y =
     let xf = to_float x in
     let yf = to_float y in
@@ -115,6 +136,7 @@ let min x y =
     else if xf > yf
     then y
     else determine_binary_nan x y
+
 
 let max x y =
     let xf = to_float x in
@@ -128,15 +150,24 @@ let max x y =
     then y
     else determine_binary_nan x y
 
+
 (* abs, neg, and copysign are purely bitwise operations, even on NaN values *)
 let abs x = Int32.logand x Int32.max_int
+
 let neg x = Int32.logxor x Int32.min_int
+
 let copy_sign x y = Int32.logor (abs x) (Int32.logand y Int32.min_int)
+
 let eq x y = to_float x = to_float y
+
 let ne x y = to_float x <> to_float y
+
 let lt x y = to_float x < to_float y
+
 let gt x y = to_float x > to_float y
+
 let le x y = to_float x <= to_float y
+
 let ge x y = to_float x >= to_float y
 
 let of_signless_string s =
@@ -166,6 +197,7 @@ let of_signless_string s =
       let x = of_float (float_of_string s') in
       if is_inf x then failwith "of_string" else x
 
+
 let of_string s =
     if s = ""
     then failwith "of_string"
@@ -174,6 +206,7 @@ let of_string s =
       let x = of_signless_string (String.sub s 1 (String.length s - 1)) in
       if s.[0] = '+' then x else neg x
     else of_signless_string s
+
 
 let to_string x =
     (if x < Int32.zero then "-" else "")

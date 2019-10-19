@@ -1,4 +1,4 @@
-profile=compact
+profile=sparse
 
 break-before-in=fit-or-vertical
 break-cases=fit-or-vertical

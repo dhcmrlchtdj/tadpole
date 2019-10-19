@@ -3,7 +3,12 @@ module D = Datum
 
 (* *** *)
 
-type val_type = I32 | I64 | F32 | F64 [@@deriving show]
+type val_type =
+    | I32
+    | I64
+    | F32
+    | F64
+[@@deriving show]
 
 and value =
     | TRUE
@@ -25,6 +30,7 @@ let env_create () : env = Hashtbl.create 32
 let env_add (env : env) (key : string) (value : value) =
     Hashtbl.add env key value
 
+
 let env_get (env : env) (key : string) : value option = Hashtbl.get env key
 
 (* *** *)
@@ -44,11 +50,11 @@ let rec evaluate (env : env) (datum : D.t) : value =
         | h :: _ -> failwith (sprintf "m_list | unknown | %s" (D.show h))
         | [] -> failwith "m_list | empty"
     and m_memory = function
-        | [D.INT 0] -> INT 0
+        | [ D.INT 0 ] -> INT 0
         | _ -> failwith "[m_memory] never"
     and m_func = function
         | [] -> TODO "empty function"
-        | D.LIST [D.KEYWORD "export"; D.STRING func_name] :: ds ->
+        | D.LIST [ D.KEYWORD "export"; D.STRING func_name ] :: ds ->
             let f = m_func ds in
             let _ = env_add env func_name f in
             f
@@ -56,7 +62,7 @@ let rec evaluate (env : env) (datum : D.t) : value =
     and m_assert_malformed = function
         | [
             D.LIST
-              [D.KEYWORD "module"; D.KEYWORD "quote"; D.STRING module_string];
+              [ D.KEYWORD "module"; D.KEYWORD "quote"; D.STRING module_string ];
             D.STRING error_message;
           ] -> (
             let ret =
@@ -69,6 +75,7 @@ let rec evaluate (env : env) (datum : D.t) : value =
         | _ -> TODO ""
     in
     m_datum datum
+
 
 and eval (datums : D.t list) : value =
     let env = env_create () in

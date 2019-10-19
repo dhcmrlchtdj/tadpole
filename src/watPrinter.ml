@@ -10,6 +10,7 @@ module Doc = struct
       | Concat of doc list
 
   let max_width = 80
+
   let indent_size = 4
 
   let to_string =
@@ -31,7 +32,8 @@ module Doc = struct
                               | _ -> w + String.length s
                       in
                       (r, s :: prev))
-                    (used, []) ds
+                    (used, [])
+                    ds
               in
               dss |> List.rev |> String.concat ""
       and to_string_group = function
@@ -41,6 +43,7 @@ module Doc = struct
           | Concat ds -> List.map to_string_group ds |> String.concat ""
       in
       aux 0
+
 
   let of_datum =
       let open Datum in
@@ -57,12 +60,12 @@ module Doc = struct
                   let len = List.length doc - 1 in
                   doc
                   |> List.mapi (fun i x ->
-                         if i = len then [x] else [x; Newline 0])
+                         if i = len then [ x ] else [ x; Newline 0 ])
                   |> List.flatten
                   |> List.map add_indent
                   |> fun x -> Concat x
               in
-              let doc = Concat [Text "("; sub; Text ")"] |> simplify in
+              let doc = Concat [ Text "("; sub; Text ")" ] |> simplify in
               Group (Concat doc)
       and add_indent = function
           | Group d -> Group (add_indent d)
@@ -71,9 +74,10 @@ module Doc = struct
           | Text s -> Text s
       and simplify = function
           | Concat doc -> doc |> List.map simplify |> List.flatten
-          | x -> [x]
+          | x -> [ x ]
       in
       aux
+
 
   let pretty datum = datum |> of_datum |> to_string
 end

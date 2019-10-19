@@ -113,6 +113,7 @@ let unop = function
     | F_NEAREST, TF32, F32 i -> Some (F32 (Float32.nearest i))
     | _ -> None
 
+
 let binop = function
     (* I32 *)
     | I_ADD, TI32, I32 x, I32 y -> Some (I32 (Int32.add x y))
@@ -202,10 +203,12 @@ let binop = function
     | F_COPYSIGN, TF32, F32 x, F32 y -> Some (F32 (Float32.copy_sign x y))
     | _ -> None
 
+
 let testop = function
     | I_EQZ, TI32, I32 i -> Some (Int32.equal i 0l)
     | I_EQZ, TI64, I64 i -> Some (Int64.equal i 0L)
     | _ -> None
+
 
 let relop = function
     (* I32 *)
@@ -245,6 +248,7 @@ let relop = function
     | F_GT, TF32, F32 x, F32 y -> Some (Float32.gt x y)
     | F_GE, TF32, F32 x, F32 y -> Some (Float32.ge x y)
     | _ -> None
+
 
 let cvtop = function
     (* FIXME *)

@@ -1,20 +1,33 @@
 open! Containers
 
 type funcAddr = int
+
 type tableAddr = int
+
 type memAddr = int
+
 type typeIdx = int
+
 type funcIdx = int
+
 type tableIdx = int
+
 type memIdx = int
+
 type globalIdx = int
+
 type localIdx = int
+
 type labelIdx = int
 
 (* ## Types *)
 
 (* valtype::=i32 | i64 | f32 | f64 *)
-type valtype = TI32 | TI64 | TF32 | TF64
+type valtype =
+    | TI32
+    | TI64
+    | TF32
+    | TF64
 
 (* resulttype::=[valtype?] *)
 type resulttype = valtype option list
@@ -34,7 +47,9 @@ and elemtype = FUNCREF
 (* globaltype ::= mut valtype *)
 type globaltype = mut * valtype
 
-and mut = CONSTANCE | VARIABLE
+and mut =
+    | CONSTANCE
+    | VARIABLE
 
 type externtype =
     | FUNC of functype
