@@ -1,112 +1,113 @@
 open! Containers
-module A = Ast
-module R = Runtime
+module S = Structure
+module R = Run
 
 let rec eval_instr (env : R.store) (stack : R.stack)
-    : A.instr -> R.store * R.stack
+    : S.instr -> R.store * R.stack
   = function
     (* Numeric Instructions *)
-    | A.Const v ->
-        let entry = R.Svalue v in
-        (env, entry :: stack)
-    | A.UnOp (op, t) -> (
+    | S.I32Const i -> (env, R.Value (R.I32 i) :: stack)
+    | S.I64Const i -> (env, R.Value (R.I64 i) :: stack)
+    | S.F32Const i -> (env, R.Value (R.F32 i) :: stack)
+    | S.F64Const i -> (env, R.Value (R.F64 i) :: stack)
+    | S.UnOp (t, op) -> (
         match stack with
-            | R.Svalue c :: tail -> (
-                match EvalNum.unop (op, t, c) with
+            | R.Value c :: tail -> (
+                match EvalNum.unop (t, op, c) with
                     | Some v ->
-                        let entry = R.Svalue v in
+                        let entry = R.Value v in
                         (env, entry :: tail)
-                    | None -> eval_instr env stack A.Trap )
+                    | None -> eval_instr env stack S.Trap )
             | _ -> failwith "assert failure" )
-    | A.BinOp (op, t) -> (
+    | S.BinOp (t, op) -> (
         match stack with
-            | R.Svalue c2 :: R.Svalue c1 :: tail -> (
-                match EvalNum.binop (op, t, c1, c2) with
+            | R.Value c2 :: R.Value c1 :: tail -> (
+                match EvalNum.binop (t, op, c1, c2) with
                     | Some v ->
-                        let entry = R.Svalue v in
+                        let entry = R.Value v in
                         (env, entry :: tail)
-                    | None -> eval_instr env stack A.Trap )
+                    | None -> eval_instr env stack S.Trap )
             | _ -> failwith "assert failure" )
-    | A.TestOp (op, t) -> (
+    | S.TestOp (t, op) -> (
         match stack with
-            | R.Svalue c :: tail -> (
-                match EvalNum.testop (op, t, c) with
-                    | Some true -> (env, R.Svalue (A.I32 1l) :: tail)
-                    | Some false -> (env, R.Svalue (A.I32 0l) :: tail)
-                    | None -> eval_instr env stack A.Trap )
+            | R.Value c :: tail -> (
+                match EvalNum.testop (t, op, c) with
+                    | Some true -> (env, R.Value (R.I32 1l) :: tail)
+                    | Some false -> (env, R.Value (R.I32 0l) :: tail)
+                    | None -> eval_instr env stack S.Trap )
             | _ -> failwith "assert failure" )
-    | A.RelOp (op, t) -> (
+    | S.RelOp (t, op) -> (
         match stack with
-            | R.Svalue c2 :: R.Svalue c1 :: tail -> (
-                match EvalNum.relop (op, t, c1, c2) with
-                    | Some true -> (env, R.Svalue (A.I32 1l) :: tail)
-                    | Some false -> (env, R.Svalue (A.I32 0l) :: tail)
-                    | None -> eval_instr env stack A.Trap )
+            | R.Value c2 :: R.Value c1 :: tail -> (
+                match EvalNum.relop (t, op, c1, c2) with
+                    | Some true -> (env, R.Value (R.I32 1l) :: tail)
+                    | Some false -> (env, R.Value (R.I32 0l) :: tail)
+                    | None -> eval_instr env stack S.Trap )
             | _ -> failwith "assert failure" )
-    | A.CvtOp (t2, op, t1) -> (
+    | S.CvtOp (t2, op, t1) -> (
         match stack with
-            | R.Svalue c :: tail -> (
+            | R.Value c :: tail -> (
                 match EvalNum.cvtop (t2, op, t1, c) with
                     | Some v ->
-                        let entry = R.Svalue v in
+                        let entry = R.Value v in
                         (env, entry :: tail)
-                    | None -> eval_instr env stack A.Trap )
+                    | None -> eval_instr env stack S.Trap )
             | _ -> failwith "assert failure" )
     (* Parametric Instructions *)
-    | A.Drop -> (
+    | S.Drop -> (
         match stack with
             | _ :: t -> (env, t)
             | _ -> failwith "assert failure" )
-    | A.Select -> (
+    | S.Select -> (
         match stack with
-            | R.Svalue (A.I32 c) :: v2 :: v1 :: t ->
+            | R.Value (R.I32 c) :: v2 :: v1 :: t ->
                 let h = if Int32.equal c 0l then v2 else v1 in
                 (env, h :: t)
             | _ -> failwith "assert failure" )
     (* Variable Instructions *)
-    | A.LocalGet x -> failwith "TODO"
-    | A.LocalSet x -> failwith "TODO"
-    | A.LocalTee x -> (
+    | S.LocalGet x -> failwith "TODO"
+    | S.LocalSet x -> failwith "TODO"
+    | S.LocalTee x -> (
         match stack with
-            | h :: _ -> eval_instr env (h :: stack) (A.LocalSet x)
+            | h :: _ -> eval_instr env (h :: stack) (S.LocalSet x)
             | _ -> failwith "assert failure" )
-    | A.GlobalGet x -> failwith "TODO"
-    | A.GlobalSet x -> failwith "TODO"
+    | S.GlobalGet x -> failwith "TODO"
+    | S.GlobalSet x -> failwith "TODO"
     (* Memory Instructions *)
-    | A.Load (memarg, valtype) -> failwith "TODO"
-    | A.Load8S (memarg, valtype) -> failwith "TODO"
-    | A.Load8U (memarg, valtype) -> failwith "TODO"
-    | A.Load16S (memarg, valtype) -> failwith "TODO"
-    | A.Load16U (memarg, valtype) -> failwith "TODO"
-    | A.Load32S memarg -> failwith "TODO"
-    | A.Load32U memarg -> failwith "TODO"
-    | A.Store (memarg, valtype) -> failwith "TODO"
-    | A.Store8 (memarg, valtype) -> failwith "TODO"
-    | A.Store16 (memarg, valtype) -> failwith "TODO"
-    | A.Store32 memarg -> failwith "TODO"
-    | A.MemortSize -> failwith "TODO"
-    | A.MemortGrow -> failwith "TODO"
+    | S.Load (memarg, valtype) -> failwith "TODO"
+    | S.Load8S (memarg, valtype) -> failwith "TODO"
+    | S.Load8U (memarg, valtype) -> failwith "TODO"
+    | S.Load16S (memarg, valtype) -> failwith "TODO"
+    | S.Load16U (memarg, valtype) -> failwith "TODO"
+    | S.Load32S (_, memarg) -> failwith "TODO"
+    | S.Load32U (_, memarg) -> failwith "TODO"
+    | S.Store (memarg, valtype) -> failwith "TODO"
+    | S.Store8 (memarg, valtype) -> failwith "TODO"
+    | S.Store16 (memarg, valtype) -> failwith "TODO"
+    | S.Store32 (_, memarg) -> failwith "TODO"
+    | S.MemortSize -> failwith "TODO"
+    | S.MemortGrow -> failwith "TODO"
     (* Control Instructions *)
-    | A.Nop -> (env, stack)
-    | A.Unreachable -> eval_instr env stack A.Trap
-    | A.Block (resulttype, instrs) -> failwith "TODO"
-    | A.Loop (resulttype, instrs) -> failwith "TODO"
-    | A.If (resulttype, instrs, instr2) -> failwith "TODO"
-    | A.Br labelIdx -> failwith "TODO"
-    | A.BrIf labelIdx -> failwith "TODO"
-    | A.BrTable (labelIdx, labelIdx2) -> failwith "TODO"
-    | A.Return -> failwith "TODO"
-    | A.Call funcIdx -> failwith "TODO"
-    | A.CallIndirect typeIdx -> failwith "TODO"
+    | S.Nop -> (env, stack)
+    | S.Unreachable -> eval_instr env stack S.Trap
+    | S.Block (resulttype, instrs) -> failwith "TODO"
+    | S.Loop (resulttype, instrs) -> failwith "TODO"
+    | S.If (resulttype, instrs, instr2) -> failwith "TODO"
+    | S.Br labelIdx -> failwith "TODO"
+    | S.BrIf labelIdx -> failwith "TODO"
+    | S.BrTable (labelIdx, labelIdx2) -> failwith "TODO"
+    | S.Return -> failwith "TODO"
+    | S.Call funcIdx -> failwith "TODO"
+    | S.CallIndirect typeIdx -> failwith "TODO"
     (* Administrative Instructions *)
-    | A.Trap -> failwith "TODO"
-    | A.Invoke funcAddr -> failwith "TODO"
-    | A.InitElem (tableAddr, int, funcIdx) -> failwith "TODO"
-    | A.InitData (memAddr, int, char) -> failwith "TODO"
-    | A.Label instr -> failwith "TODO"
-    | A.Frame instr -> failwith "TODO"
+    | S.Trap -> failwith "TODO"
+    | S.Invoke funcAddr -> failwith "TODO"
+    | S.InitElem (tableAddr, int, funcIdx) -> failwith "TODO"
+    | S.InitData (memAddr, int, char) -> failwith "TODO"
+    | S.Label (n, instr) -> failwith "TODO"
+    | S.Frame (n, instr) -> failwith "TODO"
 
 
-let eval_expr (store : R.store) (stack : R.stack) : A.expr -> R.store * R.stack
+let eval_expr (store : R.store) (stack : R.stack) : S.expr -> R.store * R.stack
   = function
     | _ -> (store, stack)
