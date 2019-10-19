@@ -64,9 +64,11 @@ and funcelem = S.funcaddr option
 (* --- *)
 
 type meminst = {
-    data : char list;
+    data : char array;
     max : int option;
   }
+
+let page_size = 65536
 
 (* --- *)
 

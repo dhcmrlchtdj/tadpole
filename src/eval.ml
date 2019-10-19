@@ -2,6 +2,22 @@ open! Containers
 open Run
 module S = Structure
 
+module Grow = struct
+  let mem (minst : meminst) (n : int) : meminst option =
+      let size = Array.length minst.data in
+      let curr_len = size / page_size in
+      let len = curr_len + n in
+      if len <= 0x10000 (* 2^16 *)
+      then None
+      else
+        match minst.max with
+            | Some limit when limit < len -> None
+            | _ ->
+                let empty = Array.make n '\000' in
+                let data = Array.append minst.data empty in
+                Some { minst with data }
+end
+
 type context = {
     frame : frame;
     store : store;
@@ -42,8 +58,8 @@ let rec eval_instr (context : context) (instr : S.instr) : context =
             | S.Store8 _ -> eval_memory_instr
             | S.Store16 _ -> eval_memory_instr
             | S.Store32 _ -> eval_memory_instr
-            | S.MemortSize -> eval_memory_instr
-            | S.MemortGrow -> eval_memory_instr
+            | S.MemorySize -> eval_memory_instr
+            | S.MemoryGrow -> eval_memory_instr
             (* Control Instructions *)
             | S.Nop -> eval_control_instr
             | S.Unreachable -> eval_control_instr
@@ -193,19 +209,58 @@ and eval_variable_instr ctx = function
 
 and eval_memory_instr ctx = function
     (* Memory Instructions *)
-    | S.Load (memarg, valtype) -> failwith "TODO"
-    | S.Load8S (memarg, valtype) -> failwith "TODO"
-    | S.Load8U (memarg, valtype) -> failwith "TODO"
-    | S.Load16S (memarg, valtype) -> failwith "TODO"
-    | S.Load16U (memarg, valtype) -> failwith "TODO"
-    | S.Load32S (_, memarg) -> failwith "TODO"
-    | S.Load32U (_, memarg) -> failwith "TODO"
-    | S.Store (memarg, valtype) -> failwith "TODO"
-    | S.Store8 (memarg, valtype) -> failwith "TODO"
-    | S.Store16 (memarg, valtype) -> failwith "TODO"
-    | S.Store32 (_, memarg) -> failwith "TODO"
-    | S.MemortSize -> failwith "TODO"
-    | S.MemortGrow -> failwith "TODO"
+    | S.Load (S.I32, memarg) -> failwith "TODO"
+    | S.Load (S.I64, memarg) -> failwith "TODO"
+    | S.Load (S.F32, memarg) -> failwith "TODO"
+    | S.Load (S.F64, memarg) -> failwith "TODO"
+    | S.Load8S (S.I32, memarg) -> failwith "TODO"
+    | S.Load8S (S.I64, memarg) -> failwith "TODO"
+    | S.Load8U (S.I32, memarg) -> failwith "TODO"
+    | S.Load8U (S.I64, memarg) -> failwith "TODO"
+    | S.Load16S (S.I32, memarg) -> failwith "TODO"
+    | S.Load16S (S.I64, memarg) -> failwith "TODO"
+    | S.Load16U (S.I32, memarg) -> failwith "TODO"
+    | S.Load16U (S.I64, memarg) -> failwith "TODO"
+    | S.Load32S (S.I64, memarg) -> failwith "TODO"
+    | S.Load32U (S.I64, memarg) -> failwith "TODO"
+    | S.Store (S.I32, memarg) -> failwith "TODO"
+    | S.Store (S.I64, memarg) -> failwith "TODO"
+    | S.Store (S.F32, memarg) -> failwith "TODO"
+    | S.Store (S.F64, memarg) -> failwith "TODO"
+    | S.Store8 (S.I32, memarg) -> failwith "TODO"
+    | S.Store8 (S.I64, memarg) -> failwith "TODO"
+    | S.Store16 (S.I32, memarg) -> failwith "TODO"
+    | S.Store16 (S.I64, memarg) -> failwith "TODO"
+    | S.Store32 (S.I64, memarg) -> failwith "TODO"
+    | S.MemorySize ->
+        let m_addrs = ctx.frame.module_.memaddrs in
+        let m_idx = List.get_at_idx_exn 0 m_addrs in
+        let mem = List.get_at_idx_exn m_idx ctx.store.mems in
+        let len = Array.length mem.data in
+        let sz = len / page_size in
+        let stack = Value (I32 (Int32.of_int sz)) :: ctx.stack in
+        { ctx with stack }
+    | S.MemoryGrow -> (
+        let m_addrs = ctx.frame.module_.memaddrs in
+        let m_idx = List.get_at_idx_exn 0 m_addrs in
+        let m_insts = ctx.store.mems in
+        let mem = List.get_at_idx_exn m_idx m_insts in
+        let len = Array.length mem.data in
+        let sz = len / page_size in
+        match ctx.stack with
+            | Value (I32 n) :: stack -> (
+                match Grow.mem mem sz with
+                    | Some m2 ->
+                        let mems = List.set_at_idx m_idx m2 m_insts in
+                        let store = { ctx.store with mems } in
+                        let stack =
+                            Value (I32 (Int32.of_int sz)) :: ctx.stack
+                        in
+                        { ctx with store; stack }
+                    | None ->
+                        let stack = Value (I32 (-1l)) :: ctx.stack in
+                        { ctx with stack } )
+            | _ -> failwith "assert failure" )
     | _ -> failwith "never"
 
 

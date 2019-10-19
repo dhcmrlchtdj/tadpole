@@ -162,8 +162,8 @@ type instr =
     | Store8 of valtype * memarg
     | Store16 of valtype * memarg
     | Store32 of valtype * memarg
-    | MemortSize
-    | MemortGrow
+    | MemorySize
+    | MemoryGrow
     (* Control Instructions *)
     | Nop
     | Unreachable
