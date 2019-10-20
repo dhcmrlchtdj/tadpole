@@ -1,7 +1,7 @@
 open! Containers
 open Types
 
-let alloc_func (s : store) (func : func) (module_ : moduleinst)
+let alloc_func (s : store) (module_ : moduleinst) (func : func)
     : store * funcaddr
   =
     let a = List.length s.funcs in
@@ -79,3 +79,66 @@ let grow_mem (mem : meminst) (n : int) : meminst option =
               Some { mem with data }
 
 
+let alloc_module
+    (s : store)
+    (m : module_)
+    (ext : externval list)
+    (values : val_ list)
+    : store * moduleinst
+  =
+    let mod_inst =
+        {
+          types = [];
+          funcaddrs = [];
+          tableaddrs = [];
+          memaddrs = [];
+          globaladdrs = [];
+          exports = [];
+        }
+    in
+    let _ = List.map (alloc_func s mod_inst) m.funcs in
+    let _ = List.map (fun t -> alloc_table s t.ttype) m.tables in
+    let _ = List.map (fun t -> alloc_mem s t.mtype) m.mems in
+    let _ = List.map2 (fun g v -> alloc_global s g.gtype v) m.globals values in
+    (s, mod_inst)
+
+
+let instantiate (s : store) (m : module_) (externs : externval list)
+    : store * frame * instr list
+  =
+    (* TODO valid module *)
+    let m = List.length m.imports in
+    let n = List.length externs in
+    if m <> n then failwith "assert failure" else failwith "TODO"
+
+
+let invoke (s : store) (f : funcaddr) (values : val_ list)
+    : (resulttype, string) result
+  =
+    let funcinst = List.get_at_idx_exn f s.funcs in
+    let param, res =
+        match funcinst with
+            | Func f -> f.type_
+            | HostFunc f -> f.type_
+    in
+    if List.length values <> List.length param
+    then Error "length(arguments) != length(parameters)"
+    else
+      (* TODO: check arguments *)
+      let module_ =
+          {
+            types = [];
+            funcaddrs = [];
+            tableaddrs = [];
+            memaddrs = [];
+            globaladdrs = [];
+            exports = [];
+          }
+      in
+      let frame = { locals = []; module_ } in
+      let stack = values |> List.map (fun v -> Value v) |> List.rev in
+      let stack = Invoke f :: stack in
+      let r = eval_instr ctx in
+      failwith "TODO"
+
+(* let t = funcinst.type *)

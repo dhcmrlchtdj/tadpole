@@ -291,12 +291,12 @@ and externval =
 
 (* --- *)
 and moduleinst = {
-    types : functype list;
-    funcaddrs : funcaddr list;
-    tableaddrs : tableaddr list;
-    memaddrs : memaddr list;
-    globaladdrs : globaladdr list;
-    exports : exportinst list;
+    mutable types : functype list;
+    mutable funcaddrs : funcaddr list;
+    mutable tableaddrs : tableaddr list;
+    mutable memaddrs : memaddr list;
+    mutable globaladdrs : globaladdr list;
+    mutable exports : exportinst list;
   }
 
 (* --- *)
