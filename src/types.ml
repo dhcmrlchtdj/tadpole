@@ -1,65 +1,108 @@
-open! Containers
+type u32 = int
 
-let page_size = 65536
+(* ******** *)
 
-type typeidx = int
+type idx = u32
 
-and funcidx = int
+and typeidx = idx
 
-and tableidx = int
+and funcidx = idx
 
-and memidx = int
+and tableidx = idx
 
-and globalidx = int
+and memidx = idx
 
-and localidx = int
+and globalidx = idx
 
-and labelidx = int
+and localidx = idx
 
-and funcaddr = int
+and labelidx = idx
 
-and tableaddr = int
+(* ******** *)
 
-and memaddr = int
+type addr = u32
 
-and globaladdr = int
+and funcaddr = addr
 
-(* type *)
+and tableaddr = addr
+
+and memaddr = addr
+
+and globaladdr = addr
+
+(* ******** *)
+
+type value =
+    | I32 of Int32.t
+    | I64 of Int64.t
+    | F32 of Float32.t
+    | F64 of Float64.t
+
 and valtype =
-    | TI32
-    | TI64
-    | TF32
-    | TF64
+    | I32
+    | I64
+    | F32
+    | F64
 
-and resulttype = valtype option list
+type resulttype = valtype option list
 
-and functype = valtype list * valtype list
+type functype = valtype list * valtype list
 
-and limits = {
-    min : int;
-    max : int option;
+type limits = {
+    min : u32;
+    max : u32 option;
   }
 
-and memtype = limits
+type memtype = limits
 
-and tabletype = limits * elemtype
+type tabletype = limits * elemtype
 
 and elemtype = FUNCREF
 
-and globaltype = mut * valtype
-
-and mut =
+type mut =
     | CONST
     | VAR
 
-and externtype =
+type globaltype = mut * valtype
+
+type externtype =
     | ET_func of functype
     | ET_table of tabletype
     | ET_mem of memtype
     | ET_global of globaltype
 
-(* instruction *)
-and unop =
+(* ******** *)
+
+type table = { ttype : tabletype }
+
+type mem = { mtype : memtype }
+
+type export = {
+    name : string;
+    desc : exportdesc;
+  }
+
+and exportdesc =
+    | ED_func of funcidx
+    | ED_table of tableidx
+    | ED_mem of memidx
+    | ED_global of globalidx
+
+type import = {
+    modname : string;
+    name : string;
+    desc : importdesc;
+  }
+
+and importdesc =
+    | ID_func of funcidx
+    | ID_table of tabletype
+    | ID_mem of memtype
+    | ID_global of globaltype
+
+(* ******** *)
+
+type unop =
     | I_CLZ
     | I_CTZ
     | I_POPCONT
@@ -127,23 +170,120 @@ and cvtop =
     | CVT_PROMOTE
     | CVT_REINTERPRET
 
-and memarg = {
-    offset : int;
-    align : int;
+(* ******** *)
+
+type memarg = {
+    offset : u32;
+    align : u32;
   }
 
+(* ******** *)
+
+type exportinst = {
+    name : string;
+    value : externval;
+  }
+
+and externval =
+    | EV_func of funcaddr
+    | EV_table of tableaddr
+    | EV_mem of memaddr
+    | EV_global of globaladdr
+
+type tableinst = {
+    elem : funcaddr option array;
+    max : u32 option;
+  }
+
+type meminst = {
+    data : char array;
+    max : u32 option;
+  }
+
+type globalinst = {
+    value : value;
+    mut : mut;
+  }
+
+type moduleinst = {
+    mutable types : functype array;
+    mutable funcaddrs : funcaddr array;
+    mutable tableaddrs : tableaddr array;
+    mutable memaddrs : memaddr array;
+    mutable globaladdrs : globaladdr array;
+    mutable exports : exportinst array;
+  }
+
+type module_ = {
+    types : functype array;
+    funcs : func array;
+    tables : table array;
+    mems : mem array;
+    globals : global array;
+    elem : elem array;
+    data : data array;
+    start : start option;
+    imports : import array;
+    exports : export array;
+  }
+
+and global = {
+    gtype : globaltype;
+    init : expr;
+  }
+
+and elem = {
+    table : tableidx;
+    offset : expr;
+    init : funcidx list;
+  }
+
+and data = {
+    data : memidx;
+    offset : expr;
+    init : char list;
+  }
+
+and start = { func : funcidx }
+
+(* FIXME *)
+and hostfunc = int
+
+and func = {
+    typei : typeidx;
+    locals : valtype list;
+    body : expr;
+  }
+
+and funcinst =
+    | Func of {
+        functype : functype;
+        moduleinst : moduleinst;
+        func : func;
+      }
+    | HostFunc of {
+        functype : functype;
+        hostfunc : hostfunc;
+      }
+
+(* ******** *)
+and instr =
+    | Inumeric of numeric_instr
+    | Iparametric of parametric_instr
+    | Ivariable of variable_instr
+    | Imemory of memory_instr
+    | Icontrol of control_instr
+    | Iadmin of admin_instr
+
 and numeric_instr =
-    | I32Const of Int32.t
-    | I64Const of Int64.t
-    | F32Const of Float32.t
-    | F64Const of Float64.t
+    | ConstOp of value
     | UnOp of valtype * unop
     | BinOp of valtype * binop
     | TestOp of valtype * testop
     | RelOp of valtype * relop
+    (*i32.wrap_i64 -> t1.op_t2 *)
     | CvtOp of valtype * cvtop * valtype
 
-(*i32.wrap_i64 -> t1.op_t2 *)
 and parametric_instr =
     | Drop
     | Select
@@ -186,182 +326,40 @@ and control_instr =
 and admin_instr =
     | Trap
     | Invoke of funcaddr
-    | InitElem of tableaddr * int * funcidx
-    | InitData of memaddr * int * char
+    | InitElem of tableaddr * int * funcidx list
+    | InitData of memaddr * int * char list
     | Label of int * instr list * instr list
     | Frame of int * frame * instr list
 
-and instr =
-    | Inumeric of numeric_instr
-    | Iparametric of parametric_instr
-    | Ivariable of variable_instr
-    | Imemory of memory_instr
-    | Icontrol of control_instr
-    | Iadmin of admin_instr
-
 and expr = instr list
 
-(* module *)
-and func = {
-    type_ : typeidx;
-    locals : valtype list;
-    body : expr;
-  }
-
-and table = { ttype : tabletype }
-
-and mem = { mtype : memtype }
-
-and global = {
-    gtype : globaltype;
-    init : expr;
-  }
-
-and elem = {
-    table : tableidx;
-    offset : expr;
-    init : funcidx list;
-  }
-
-and data = {
-    data : memidx;
-    offset : expr;
-    init : char list;
-  }
-
-and start = { func : funcidx }
-
-and export = {
-    name : string;
-    desc : exportdesc;
-  }
-
-and exportdesc =
-    | ED_func of funcidx
-    | ED_table of tableidx
-    | ED_mem of memidx
-    | ED_global of globalidx
-
-and import = {
-    module_ : string;
-    name : string;
-    desc : importdesc;
-  }
-
-and importdesc =
-    | ID_func of funcidx
-    | ID_table of tabletype
-    | ID_mem of memtype
-    | ID_global of globaltype
-
-and module_ = {
-    types : functype list;
-    funcs : func list;
-    tables : table list;
-    mems : mem list;
-    globals : global list;
-    elem : elem list;
-    data : data list;
-    start : start option;
-    imports : import list;
-    exports : export list;
-  }
-
-and val_ =
-    | I32 of Int32.t
-    | I64 of Int64.t
-    | F32 of Float32.t
-    | F64 of Float64.t
-
-and result_ =
-    | Rval of val_
-    | Rtrap
-
-(* --- *)
-and exportinst = {
-    name : string;
-    value : externval;
-  }
-
-and externval =
-    | EV_func of funcaddr
-    | EV_table of tableaddr
-    | EV_mem of memaddr
-    | EV_global of globaladdr
-
-(* --- *)
-and moduleinst = {
-    mutable types : functype list;
-    mutable funcaddrs : funcaddr list;
-    mutable tableaddrs : tableaddr list;
-    mutable memaddrs : memaddr list;
-    mutable globaladdrs : globaladdr list;
-    mutable exports : exportinst list;
-  }
-
-(* --- *)
-and funcinst =
-    | Func of {
-        type_ : functype;
-        module_ : moduleinst;
-        func : func;
-      }
-    | HostFunc of {
-        type_ : functype;
-        hostfunc : hostfunc;
-      }
-
-(* XXX *)
-and hostfunc = int
-
-(* --- *)
-and tableinst = {
-    elem : funcelem list;
-    max : int option;
-  }
-
-and funcelem = funcaddr option
-
-(* --- *)
-and meminst = {
-    data : char array;
-    max : int option;
-  }
-
-(* --- *)
-and globalinst = {
-    value : val_;
-    mut : mut;
-  }
-
-(* --- *)
-and store = {
-    funcs : funcinst list;
-    tables : tableinst list;
-    mems : meminst list;
-    globals : globalinst list;
-  }
-
-(* --- *)
-and label = int * instr list
-
-(* --- *)
-and activation = int * frame
-
+(* ******** *)
 and frame = {
-    locals : val_ list;
-    module_ : moduleinst;
+    locals : value list;
+    moduleinst : moduleinst;
   }
 
-(* --- *)
-and stack = stackEntry list
+(* ******** *)
 
-and stackEntry =
-    | Value of val_
-    | SLabel of label
-    | SFrame of activation
+type store = {
+    funcs : funcinst array;
+    tables : tableinst array;
+    mems : meminst array;
+    globals : globalinst array;
+  }
 
-(* --- *)
-and config = store * thread
+(* ******** *)
 
-and thread = frame * instr list
+type stack = stack_entry list
+
+and stack_entry =
+    | Value of value
+    | Instr of instr
+
+(* ******** *)
+
+type context = {
+    store : store;
+    frame : frame;
+    stack : stack;
+  }
