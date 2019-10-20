@@ -1,88 +1,20 @@
 open! Containers
-open Run
-open Structure
-
-module Grow = struct
-  let mem (minst : meminst) (n : Int32.t) : meminst option =
-      let n = Int32.to_int n in
-      let size = Array.length minst.data in
-      let curr_len = size / page_size in
-      let len = curr_len + n in
-      if len <= 0x10000 (* 2^16 *)
-      then None
-      else
-        match minst.max with
-            | Some limit when limit < len -> None
-            | _ ->
-                let empty = Array.make n '\000' in
-                let data = Array.append minst.data empty in
-                Some { minst with data }
-end
+open Types
 
 type context = {
-    frame : frame;
-    store : store;
     stack : stack;
+    store : store;
+    frame : frame;
     cont : instr list;
   }
 
-let rec eval_instr (context : context) (instr : instr) : context =
-    let e : context -> instr -> context =
-        match instr with
-            (* Numeric Instructions *)
-            | I32Const _ -> eval_numeric_instr
-            | I64Const _ -> eval_numeric_instr
-            | F32Const _ -> eval_numeric_instr
-            | F64Const _ -> eval_numeric_instr
-            | UnOp _ -> eval_numeric_instr
-            | BinOp _ -> eval_numeric_instr
-            | TestOp _ -> eval_numeric_instr
-            | RelOp _ -> eval_numeric_instr
-            | CvtOp _ -> eval_numeric_instr
-            (* Parametric Instructions *)
-            | Drop -> eval_parametric_instr
-            | Select -> eval_parametric_instr
-            (* Variable Instructions *)
-            | LocalGet _ -> eval_variable_instr
-            | LocalSet _ -> eval_variable_instr
-            | LocalTee _ -> eval_variable_instr
-            | GlobalGet _ -> eval_variable_instr
-            | GlobalSet _ -> eval_variable_instr
-            (* Memory Instructions *)
-            | Load _ -> eval_memory_instr
-            | Load8S _ -> eval_memory_instr
-            | Load8U _ -> eval_memory_instr
-            | Load16S _ -> eval_memory_instr
-            | Load16U _ -> eval_memory_instr
-            | Load32S _ -> eval_memory_instr
-            | Load32U _ -> eval_memory_instr
-            | Store _ -> eval_memory_instr
-            | Store8 _ -> eval_memory_instr
-            | Store16 _ -> eval_memory_instr
-            | Store32 _ -> eval_memory_instr
-            | MemorySize -> eval_memory_instr
-            | MemoryGrow -> eval_memory_instr
-            (* Control Instructions *)
-            | Nop -> eval_control_instr
-            | Unreachable -> eval_control_instr
-            | Block _ -> eval_control_instr
-            | Loop _ -> eval_control_instr
-            | If _ -> eval_control_instr
-            | Br _ -> eval_control_instr
-            | BrIf _ -> eval_control_instr
-            | BrTable _ -> eval_control_instr
-            | Return -> eval_control_instr
-            | Call _ -> eval_control_instr
-            | CallIndirect _ -> eval_control_instr
-            (* Administrative Instructions *)
-            | Trap -> eval_administrative_instr
-            | Invoke _ -> eval_administrative_instr
-            | InitElem _ -> eval_administrative_instr
-            | InitData _ -> eval_administrative_instr
-            | Label _ -> eval_administrative_instr
-            | Frame _ -> eval_administrative_instr
-    in
-    e context instr
+let rec eval_instr (ctx : context) = function
+    | Inumeric i -> eval_numeric_instr ctx i
+    | Iparametric i -> eval_parametric_instr ctx i
+    | Ivariable i -> eval_variable_instr ctx i
+    | Imemory i -> eval_memory_instr ctx i
+    | Icontrol i -> eval_control_instr ctx i
+    | Iadmin i -> eval_admin_instr ctx i
 
 
 and eval_numeric_instr ctx = function
@@ -105,7 +37,7 @@ and eval_numeric_instr ctx = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> eval_instr ctx Trap )
+                    | None -> eval_admin_instr ctx Trap )
             | _ -> failwith "assert failure" )
     | BinOp (t, op) -> (
         match ctx.stack with
@@ -114,7 +46,7 @@ and eval_numeric_instr ctx = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> eval_instr ctx Trap )
+                    | None -> eval_admin_instr ctx Trap )
             | _ -> failwith "assert failure" )
     | TestOp (t, op) -> (
         match ctx.stack with
@@ -126,7 +58,7 @@ and eval_numeric_instr ctx = function
                     | Some false ->
                         let stack = Value (I32 0l) :: tail in
                         { ctx with stack }
-                    | None -> eval_instr ctx Trap )
+                    | None -> eval_admin_instr ctx Trap )
             | _ -> failwith "assert failure" )
     | RelOp (t, op) -> (
         match ctx.stack with
@@ -138,7 +70,7 @@ and eval_numeric_instr ctx = function
                     | Some false ->
                         let stack = Value (I32 0l) :: tail in
                         { ctx with stack }
-                    | None -> eval_instr ctx Trap )
+                    | None -> eval_admin_instr ctx Trap )
             | _ -> failwith "assert failure" )
     | CvtOp (t2, op, t1) -> (
         match ctx.stack with
@@ -147,9 +79,8 @@ and eval_numeric_instr ctx = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> eval_instr ctx Trap )
+                    | None -> eval_admin_instr ctx Trap )
             | _ -> failwith "assert failure" )
-    | _ -> failwith "never"
 
 
 and eval_parametric_instr ctx = function
@@ -164,7 +95,6 @@ and eval_parametric_instr ctx = function
                 let stack = h :: t in
                 { ctx with stack }
             | _ -> failwith "assert failure" )
-    | _ -> failwith "never"
 
 
 and eval_variable_instr ctx = function
@@ -206,9 +136,9 @@ and eval_variable_instr ctx = function
                 let store = { ctx.store with globals } in
                 { ctx with store; stack }
             | _ -> failwith "assert failure" )
-    | _ -> failwith "never"
 
 
+(* TODO *)
 and eval_memory_instr ctx = function
     (* Memory Instructions *)
     | Load (TI32, memarg) -> aux_memory_load ctx memarg 32 None
@@ -251,7 +181,7 @@ and eval_memory_instr ctx = function
         let sz = Int32.of_int (len / page_size) in
         match ctx.stack with
             | Value (I32 n) :: stack -> (
-                match Grow.mem mem n with
+                match Alloc.grow_mem mem (Int32.to_int n) with
                     | Some m2 ->
                         let mems = List.set_at_idx m_idx m2 m_insts in
                         let store = { ctx.store with mems } in
@@ -275,7 +205,7 @@ and aux_memory_load ctx (memarg : memarg) bit_with (sign : [ `S | `U ] option) =
             let ea = Int32.to_int i + memarg.offset in
             let len = bit_with / 8 in
             if ea + len > mem_len
-            then eval_administrative_instr ctx Trap
+            then eval_admin_instr ctx Trap
             else
               (* FIXME *)
               (* let b = mem.data[ea:n/8] in *)
@@ -302,7 +232,7 @@ and aux_memory_store ctx (memarg : memarg) bit_with =
             let ea = Int32.to_int i + memarg.offset in
             let len = bit_with / 8 in
             if ea + len > mem_len
-            then eval_administrative_instr ctx Trap
+            then eval_admin_instr ctx Trap
             else (* FIXME *)
                  (* let b = mem.data[ea:n/8] in *)
               ctx
@@ -312,15 +242,20 @@ and aux_memory_store ctx (memarg : memarg) bit_with =
 and eval_control_instr ctx = function
     (* Control Instructions *)
     | Nop -> ctx
-    | Unreachable -> eval_administrative_instr ctx Trap
-    | Block (_resulttype, _instrs) -> failwith "TODO"
-    | Loop (_resulttype, _instrs) -> failwith "TODO"
-    | If (rtype, instrs1, instrs2) -> (
+    | Unreachable -> eval_admin_instr ctx Trap
+    | Block (rtypes, instrs) ->
+        let n = List.length rtypes in
+        let l = Label (n, [], instrs) in
+        failwith "TODO"
+    | Loop (rtypes, instrs) ->
+        let sub = Loop (rtypes, instrs) in
+        (* let l = Label (0, [ sub ], instrs) in *)
+        failwith "TODO"
+    | If (rtypes, instrs1, instrs2) -> (
         match ctx.stack with
             | Value (I32 c) :: stack ->
-                let n = List.length rtype in
-                (* TODO: howto use l *)
-                let l = Label (n, ctx.cont) in
+                let n = List.length rtypes in
+                (* let l = Label (n, ctx.cont) in *)
                 if Int32.equal c 0l
                 then { ctx with stack; cont = instrs2 }
                 else { ctx with stack; cont = instrs1 }
@@ -333,15 +268,13 @@ and eval_control_instr ctx = function
         failwith "TODO"
     | Call _funcIdx -> failwith "TODO"
     | CallIndirect _typeIdx -> failwith "TODO"
-    | _ -> failwith "never"
 
 
-and eval_administrative_instr _ctx = function
+and eval_admin_instr _ctx = function
     (* Administrative Instructions *)
     | Trap -> failwith "TODO"
     | Invoke _funcAddr -> failwith "TODO"
     | InitElem (_tableAddr, _int, _funcIdx) -> failwith "TODO"
     | InitData (_memAddr, _int, _char) -> failwith "TODO"
-    | Label (_n, _instr) -> failwith "TODO"
-    | Frame (_n, _instr) -> failwith "TODO"
-    | _ -> failwith "never"
+    | Label (_n, _, _instr) -> failwith "TODO"
+    | Frame (_n, _, _instr) -> failwith "TODO"

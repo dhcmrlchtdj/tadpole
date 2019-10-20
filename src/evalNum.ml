@@ -1,6 +1,5 @@
 open! Containers
-open Run
-open Structure
+open Types
 
 let unop = function
     (* TI32 *)
