@@ -3,7 +3,7 @@ open Types
 let rec eval_expressions (ctx : context) : value * context =
     let ctx2 = eval_instr ctx in
     match ctx2.stack with
-        | Value v :: t -> (v, ctx2)
+        | Value v :: _ -> (v, ctx2)
         | _ -> failwith "assert failure"
 
 
@@ -22,17 +22,31 @@ and eval_instr (ctx : context) : context =
         | _ -> failwith ""
 
 
-and eval_numeric_instr (ctx : context) = ctx
+and eval_numeric_instr (ctx : context) = function
+    | _ -> ctx
 
-and eval_parametric_instr (ctx : context) = ctx
 
-and eval_variable_instr (ctx : context) = ctx
+and eval_parametric_instr (ctx : context) = function
+    | _ -> ctx
 
-and eval_memory_instr (ctx : context) = ctx
 
-and eval_control_instr (ctx : context) = ctx
+and eval_variable_instr (ctx : context) = function
+    | _ -> ctx
 
-and eval_admin_instr (ctx : context) = ctx
+
+and eval_memory_instr (ctx : context) = function
+    | _ -> ctx
+
+
+and eval_control_instr (ctx : context) = function
+    | _ -> ctx
+
+
+and eval_admin_instr (ctx : context) = function
+    | _ -> ctx
+
+
+(* ******** *)
 
 let rec invoke (store : store) (f : funcaddr) (values : value list)
     : value list
@@ -58,19 +72,17 @@ let rec invoke (store : store) (f : funcaddr) (values : value list)
           }
       in
       let frame = { locals = []; moduleinst } in
-      let stack = values |> List.map (fun v -> Value v) |> List.rev in
-      let stack = Instr (Iadmin (Invoke f)) :: stack in
-      let ctx = { store; frame; stack } in
-      let ctx2 = eval_instr ctx in
-      let vs = aux_take_m [] (List.length rets) ctx2.stack in
-      vs
+      let stack_values = values |> List.map (fun v -> Value v) |> List.rev in
+      let stack = Instr (Iadmin (Invoke f)) :: stack_values in
+      let ctx = eval_instr { store; frame; stack } in
+      aux_take_m [] (List.length rets) ctx.stack
     else failwith "TODO: argument error"
 
 
 and aux_type_eq params args =
     let test (p : valtype) (a : value) =
         match (p, a) with
-            | I32, I32 _ | I64, I64 _ | F32, F32 _ | F64, F64 _ -> true
+            | TI32, I32 _ | TI64, I64 _ | TF32, F32 _ | TF64, F64 _ -> true
             | _ -> false
     in
     List.for_all2 test params args

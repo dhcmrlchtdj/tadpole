@@ -39,10 +39,10 @@ type value =
     | F64 of Float64.t
 
 and valtype =
-    | I32
-    | I64
-    | F32
-    | F64
+    | TI32
+    | TI64
+    | TF32
+    | TF64
 
 type resulttype = valtype option list
 

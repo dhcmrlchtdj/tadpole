@@ -1,7 +1,7 @@
 open! Containers
 open Types
 
-let page_size = 0x10000
+let page_size = 0x1_0000 (* 64K *)
 
 let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
     : store * funcaddr
@@ -54,30 +54,33 @@ let alloc_global (s : store) ((mut, _) : globaltype) (value : value)
 
 let grow_table (tbl : tableinst) (n : int) : tableinst option =
     let len = n + Array.length tbl.elem in
-    if len >= 0xFFFFFFFF (* 2^32*)
+    let limit =
+        match tbl.max with
+            | Some l -> l
+            | None -> (* 2^32 *) 0xFFFF_FFFF
+    in
+    if len >= limit
     then None
     else
-      match tbl.max with
-          | Some limit when limit < len -> None
-          | _ ->
-              let empty = Array.make n None in
-              let elem = Array.append tbl.elem empty in
-              Some { tbl with elem }
+      let empty = Array.make n None in
+      let elem = Array.append tbl.elem empty in
+      Some { tbl with elem }
 
 
 let grow_mem (mem : meminst) (n : int) : meminst option =
     let size = Array.length mem.data in
-    let curr_len = size / page_size in
-    let len = curr_len + n in
-    if len <= 0x10000 (* 2^16 *)
+    let len = (size / page_size) + n in
+    let limit =
+        match mem.max with
+            | Some l -> l
+            | None -> (* 2^16 *) 0x1_0000
+    in
+    if len >= limit
     then None
     else
-      match mem.max with
-          | Some limit when limit < len -> None
-          | _ ->
-              let empty = Array.make n '\000' in
-              let data = Array.append mem.data empty in
-              Some { mem with data }
+      let empty = Array.make n '\000' in
+      let data = Array.append mem.data empty in
+      Some { mem with data }
 
 
 let alloc_module
