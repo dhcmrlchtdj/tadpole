@@ -38,11 +38,12 @@ type value =
     | F32 of Float32.t
     | F64 of Float64.t
 
-and valtype =
+type valtype =
     | TI32
     | TI64
     | TF32
     | TF64
+[@@deriving eq]
 
 type resulttype = valtype option list
 
@@ -206,7 +207,7 @@ type globalinst = {
   }
 
 type moduleinst = {
-    types : functype array;
+    mutable types : functype array;
     mutable funcaddrs : funcaddr array;
     mutable tableaddrs : tableaddr array;
     mutable memaddrs : memaddr array;
@@ -318,7 +319,7 @@ and control_instr =
     | If of resulttype * instr list * instr list
     | Br of labelidx
     | BrIf of labelidx
-    | BrTable of labelidx list * labelidx
+    | BrTable of labelidx array * labelidx
     | Return
     | Call of funcidx
     | CallIndirect of typeidx
@@ -335,7 +336,7 @@ and expr = instr list
 
 (* ******** *)
 and frame = {
-    locals : value list;
+    locals : value array;
     moduleinst : moduleinst;
   }
 
