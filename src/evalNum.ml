@@ -126,26 +126,21 @@ let binop = function
     | TI32, I_OR, I32 x, I32 y -> Some (I32 (Int32.logor x y))
     | TI32, I_XOR, I32 x, I32 y -> Some (I32 (Int32.logxor x y))
     | TI32, I_SHL, I32 x, I32 y ->
-        let k32 = Int32.rem y 32l in
-        let k = Int32.to_int k32 in
+        let k = Int32.to_int y in
         Some (I32 (Int32.shift_left x k))
     | TI32, I_SHR_S, I32 x, I32 y ->
-        let k32 = Int32.rem y 32l in
-        let k = Int32.to_int k32 in
+        let k = Int32.to_int y in
         Some (I32 (Int32.shift_right_logical x k))
     | TI32, I_SHR_U, I32 x, I32 y ->
-        let k32 = Int32.rem y 32l in
-        let k = Int32.to_int k32 in
+        let k = Int32.to_int y in
         Some (I32 (Int32.shift_right x k))
     | TI32, I_ROTL, I32 x, I32 y ->
-        let k32 = Int32.rem y 32l in
-        let k = Int32.to_int k32 in
+        let k = Int32.to_int y in
         let l = Int32.shift_left x k in
         let r = Int32.shift_right x (32 - k) in
         Some (I32 (Int32.add l r))
     | TI32, I_ROTR, I32 x, I32 y ->
-        let k32 = Int32.rem y 32l in
-        let k = Int32.to_int k32 in
+        let k = Int32.to_int y in
         let l = Int32.shift_left x (32 - k) in
         let r = Int32.shift_right x k in
         Some (I32 (Int32.add l r))
@@ -161,26 +156,21 @@ let binop = function
     | TI64, I_OR, I64 x, I64 y -> Some (I64 (Int64.logor x y))
     | TI64, I_XOR, I64 x, I64 y -> Some (I64 (Int64.logxor x y))
     | TI64, I_SHL, I64 x, I64 y ->
-        let k64 = Int64.rem y 64L in
-        let k = Int64.to_int k64 in
+        let k = Int64.to_int y in
         Some (I64 (Int64.shift_left x k))
     | TI64, I_SHR_S, I64 x, I64 y ->
-        let k64 = Int64.rem y 64L in
-        let k = Int64.to_int k64 in
+        let k = Int64.to_int y in
         Some (I64 (Int64.shift_right_logical x k))
     | TI64, I_SHR_U, I64 x, I64 y ->
-        let k64 = Int64.rem y 64L in
-        let k = Int64.to_int k64 in
+        let k = Int64.to_int y in
         Some (I64 (Int64.shift_right x k))
     | TI64, I_ROTL, I64 x, I64 y ->
-        let k64 = Int64.rem y 64L in
-        let k = Int64.to_int k64 in
+        let k = Int64.to_int y in
         let l = Int64.shift_left x k in
         let r = Int64.shift_right x (64 - k) in
         Some (I64 (Int64.add l r))
     | TI64, I_ROTR, I64 x, I64 y ->
-        let k64 = Int64.rem y 64L in
-        let k = Int64.to_int k64 in
+        let k = Int64.to_int y in
         let l = Int64.shift_left x (64 - k) in
         let r = Int64.shift_right x k in
         Some (I64 (Int64.add l r))
@@ -250,39 +240,44 @@ let relop = function
 
 
 let cvtop = function
-    (* FIXME *)
     | TI32, CVT_WRAP, TI64, I64 x ->
         Some (I32 (Int64.rem x 0x1_0000_0000L |> Int64.to_int32))
     | TI64, CVT_EXTEND_S, TI32, I32 x -> Some (I64 (Int64.of_int32 x))
-    | TI64, CVT_EXTEND_U, TI32, I32 _x -> None
-    | TI32, CVT_TRUNC_S, TF32, F32 _x -> None
-    | TI32, CVT_TRUNC_S, TF64, F64 _x -> None
-    | TI64, CVT_TRUNC_S, TF32, F32 _x -> None
-    | TI64, CVT_TRUNC_S, TF64, F64 _x -> None
-    | TI32, CVT_TRUNC_U, TF32, F32 _x -> None
-    | TI32, CVT_TRUNC_U, TF64, F64 _x -> None
-    | TI64, CVT_TRUNC_U, TF32, F32 _x -> None
-    | TI64, CVT_TRUNC_U, TF64, F64 _x -> None
+    | TI64, CVT_EXTEND_U, TI32, I32 x ->
+        if Int32.compare x 0l >= 0
+        then Some (I64 (Int64.of_int32 x))
+        else
+          let xx = Int32.logand 0x7FFF_FFFFl x in
+          let i64 = Int64.of_int32 xx in
+          Some (I64 (Int64.neg i64))
+    | TI32, CVT_TRUNC_S, TF32, F32 _x -> failwith "TODO"
+    | TI32, CVT_TRUNC_S, TF64, F64 _x -> failwith "TODO"
+    | TI64, CVT_TRUNC_S, TF32, F32 _x -> failwith "TODO"
+    | TI64, CVT_TRUNC_S, TF64, F64 _x -> failwith "TODO"
+    | TI32, CVT_TRUNC_U, TF32, F32 _x -> failwith "TODO"
+    | TI32, CVT_TRUNC_U, TF64, F64 _x -> failwith "TODO"
+    | TI64, CVT_TRUNC_U, TF32, F32 _x -> failwith "TODO"
+    | TI64, CVT_TRUNC_U, TF64, F64 _x -> failwith "TODO"
     | TF32, CVT_CONVERT_S, TI32, I32 x ->
         Some (F32 (Float32.of_float (Int32.to_float x)))
     | TF32, CVT_CONVERT_S, TI64, I64 x ->
         Some (F32 (Float32.of_float (Int64.to_float x)))
     | TF64, CVT_CONVERT_S, TI32, I32 x -> Some (F64 (Int32.to_float x))
     | TF64, CVT_CONVERT_S, TI64, I64 x -> Some (F64 (Int64.to_float x))
-    | TF32, CVT_CONVERT_U, TI32, I32 _x -> None
-    | TF32, CVT_CONVERT_U, TI64, I64 _x -> None
-    | TF64, CVT_CONVERT_U, TI32, I32 x -> Some (F64 (Int32.to_float x))
-    | TF64, CVT_CONVERT_U, TI64, I64 x -> Some (F64 (Int64.to_float x))
-    | TF32, CVT_DEMOTE, TF64, F64 _x -> None
+    | TF32, CVT_CONVERT_U, TI32, I32 _x -> failwith "TODO"
+    | TF32, CVT_CONVERT_U, TI64, I64 _x -> failwith "TODO"
+    | TF64, CVT_CONVERT_U, TI32, I32 _x -> failwith "TODO"
+    | TF64, CVT_CONVERT_U, TI64, I64 _x -> failwith "TODO"
+    | TF32, CVT_DEMOTE, TF64, F64 x -> Some (F32 (Float32.of_float x))
     | TF64, CVT_PROMOTE, TF32, F32 x -> Some (F64 (Float32.to_float x))
     | TI32, CVT_REINTERPRET, TF32, F32 x ->
-        Some (I32 (Int32.bits_of_float (Float32.to_float x)))
+        Some (I32 (Float32.int32_of_bits x))
     | TI32, CVT_REINTERPRET, TF64, F64 x -> Some (I32 (Int32.bits_of_float x))
     | TI64, CVT_REINTERPRET, TF32, F32 x ->
         Some (I64 (Int64.bits_of_float (Float32.to_float x)))
     | TI64, CVT_REINTERPRET, TF64, F64 x -> Some (I64 (Int64.bits_of_float x))
     | TF32, CVT_REINTERPRET, TI32, I32 x ->
-        Some (F32 (Int32.bits_of_float (Float32.to_float x)))
+        Some (F32 (Float32.bits_of_int32 x))
     | TF32, CVT_REINTERPRET, TI64, I64 x ->
         Some (F32 (Float32.of_float (Int64.float_of_bits x)))
     | TF64, CVT_REINTERPRET, TI32, I32 x -> Some (F64 (Int32.float_of_bits x))

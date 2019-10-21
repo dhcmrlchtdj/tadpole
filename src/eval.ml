@@ -299,7 +299,7 @@ and eval_memory_instr =
                   { ctx with stack }
             | _ -> failwith "assert failure"
     and aux_char8_to_int64 arr =
-        if Sys.big_endian then failwith "TODO: deal with big_endian" ;
+        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
         let x = ref 0L in
         for i = 0 to 7 do
           let n = arr.(i) |> Char.code |> Int64.of_int in
@@ -307,6 +307,7 @@ and eval_memory_instr =
         done ;
         !x
     and aux_char8_to_int64_s n arr =
+        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
         let pos =
             match n with
                 | 8 -> 7
@@ -317,7 +318,7 @@ and eval_memory_instr =
         let sign = Char.code arr.(pos) in
         if sign lsr 7 = 1
         then (
-          arr.(pos) <- Char.chr (sign land 127) ;
+          arr.(pos) <- Char.chr (sign land 0x7F) ;
           let x = aux_char8_to_int64 arr in
           Int64.neg x )
         else aux_char8_to_int64 arr
@@ -339,7 +340,7 @@ and eval_memory_instr =
                   { ctx with stack }
             | _ -> failwith "assert failure"
     and aux_bytes len value =
-        if Sys.big_endian then failwith "TODO: deal with big_endian" ;
+        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
         let i64 =
             match value with
                 | I32 x -> Int64.of_int32 x
@@ -350,7 +351,7 @@ and eval_memory_instr =
         let arr = Array.make 8 '\000' in
         let x = ref i64 in
         for i = 7 downto 0 do
-          let data = !x |> Int64.logand 0xffL |> Int64.to_int |> Char.chr in
+          let data = !x |> Int64.logand 0xFFL |> Int64.to_int |> Char.chr in
           arr.(i) <- data ;
           x := Int64.shift_right_logical !x 8
         done ;
@@ -569,7 +570,7 @@ let rec invoke (store : store) (f : funcaddr) (values : value list)
       let stack = Instr (Iadmin (Invoke f)) :: stack_values in
       let ctx = eval_instr { store; frame; stack } in
       aux_take_m [] (List.length rets) ctx.stack
-    else failwith "TODO: argument error"
+    else failwith "argument error"
 
 
 and aux_type_eq params args =
