@@ -10,7 +10,7 @@ FLG -keep-docs
 FLG -principal
 FLG -bin-annot
 
-FLG -w +a-4-42-30-26-27
+FLG -w +a-4-42-30
 FLG -warn-error -a+31
 
 PKG alcotest

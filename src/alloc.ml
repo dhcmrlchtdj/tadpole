@@ -3,7 +3,7 @@ open Types
 
 let page_size = 0x10000
 
-let alloc_func (s : store) (moduleinst : moduleinst) (func : func)
+let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
     : store * funcaddr
   =
     let a = Array.length s.funcs in
@@ -82,14 +82,14 @@ let grow_mem (mem : meminst) (n : int) : meminst option =
 
 let alloc_module
     (s : store)
-    (m : module_)
-    (ext : externval list)
-    (values : value list)
+    (m : moduledef)
+    (values : value array)
+    (externs : externval list)
     : store * moduleinst
   =
     let mod_inst =
         {
-          types = [||];
+          types = m.types;
           funcaddrs = [||];
           tableaddrs = [||];
           memaddrs = [||];
@@ -97,59 +97,58 @@ let alloc_module
           exports = [||];
         }
     in
-    failwith "TODO"
+    let aux_alloc_addr store alloc arr =
+        let aux (store, addrs) elem =
+            let s, addr = alloc store elem in
+            (s, addr :: addrs)
+        in
+        arr |> Array.fold_left aux (store, [])
+    in
+    let s1, faddrs = aux_alloc_addr s (alloc_func mod_inst) m.funcs in
+    let s2, taddrs =
+        aux_alloc_addr s1 alloc_table (Array.map (fun x -> x.ttype) m.tables)
+    in
+    let s3, maddrs =
+        aux_alloc_addr s2 alloc_mem (Array.map (fun x -> x.mtype) m.mems)
+    in
+    let s4, gaddrs =
+        aux_alloc_addr
+          s3
+          (fun s (g, v) -> alloc_global s g v)
+          (Array.map2 (fun x v -> (x.gtype, v)) m.globals values)
+    in
+    let faddrs, taddrs, maddrs, gaddrs =
+        let aux (f, t, m, g) = function
+            | EV_func i -> (i :: f, t, m, g)
+            | EV_table i -> (f, i :: t, m, g)
+            | EV_mem i -> (f, t, i :: m, g)
+            | EV_global i -> (f, t, m, i :: g)
+        in
+        externs |> List.fold_left aux (faddrs, taddrs, maddrs, gaddrs)
+    in
+    let exports =
+        let aux ({ name; desc } : export) =
+            let value =
+                match desc with
+                    | ED_func i -> EV_func i
+                    | ED_table i -> EV_table i
+                    | ED_mem i -> EV_mem i
+                    | ED_global i -> EV_global i
+            in
+            { name; value }
+        in
+        Array.map aux m.exports
+    in
+    let revlist l = l |> List.rev |> Array.of_list in
+    mod_inst.funcaddrs <- revlist faddrs ;
+    mod_inst.tableaddrs <- revlist taddrs ;
+    mod_inst.memaddrs <- revlist maddrs ;
+    mod_inst.globaladdrs <- revlist gaddrs ;
+    mod_inst.exports <- exports ;
+    (s4, mod_inst)
 
 
-let instantiate (s : store) (m : module_) (externs : externval list) : context =
-    failwith "TODO"
-
-
-let rec invoke (store : store) (f : funcaddr) (values : value list)
-    : value list
+let instantiate (s : store) (m : moduledef) (externs : externval list)
+    : context
   =
-    let func_inst = store.funcs.(f) in
-    let params, rets =
-        match func_inst with
-            | Func f -> f.functype
-            | HostFunc f -> f.functype
-    in
-    let len_eq = List.length params = List.length values in
-    let type_eq = aux_type_eq params values in
-    if len_eq && type_eq
-    then
-      let moduleinst =
-          {
-            types = [||];
-            funcaddrs = [||];
-            tableaddrs = [||];
-            memaddrs = [||];
-            globaladdrs = [||];
-            exports = [||];
-          }
-      in
-      let frame = { locals = []; moduleinst } in
-      let stack = values |> List.map (fun v -> Value v) |> List.rev in
-      let stack = Instr (Iadmin (Invoke f)) :: stack in
-      let ctx = { store; frame; stack } in
-      let ctx2 = Wa.eval_instr ctx in
-      let vs = aux_take_m [] (List.length rets) ctx2.stack in
-      vs
-    else failwith "TODO: argument error"
-
-
-and aux_type_eq params args =
-    let test (p : valtype) (a : value) =
-        match (p, a) with
-            | I32, I32 _ | I64, I64 _ | F32, F32 _ | F64, F64 _ -> true
-            | _ -> false
-    in
-    List.for_all2 test params args
-
-
-and aux_take_m acc m stack =
-    if m = 0
-    then List.rev acc
-    else
-      match stack with
-          | Value v :: t -> aux_take_m (v :: acc) (m - 1) t
-          | _ -> failwith "assert failure"
+    failwith "TODO"

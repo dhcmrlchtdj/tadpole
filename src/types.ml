@@ -206,7 +206,7 @@ type globalinst = {
   }
 
 type moduleinst = {
-    mutable types : functype array;
+    types : functype array;
     mutable funcaddrs : funcaddr array;
     mutable tableaddrs : tableaddr array;
     mutable memaddrs : memaddr array;
@@ -214,7 +214,9 @@ type moduleinst = {
     mutable exports : exportinst array;
   }
 
-type module_ = {
+type start = { func : funcidx }
+
+type moduledef = {
     types : functype array;
     funcs : func array;
     tables : table array;
@@ -243,8 +245,6 @@ and data = {
     offset : expr;
     init : char list;
   }
-
-and start = { func : funcidx }
 
 (* FIXME *)
 and hostfunc = int

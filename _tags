@@ -6,7 +6,7 @@ true: safe_string
 true: short_paths
 true: strict_sequence
 true: color(always)
-true: warn(+a-4-42-30-26-27)
+true: warn(+a-4-42-30)
 true: warn_error(-a+31)
 true: package(containers)
 true: package(ppx_deriving.std)
