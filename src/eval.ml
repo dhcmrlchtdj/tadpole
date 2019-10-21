@@ -153,6 +153,22 @@ let alloc_module
 
 (* ******** *)
 
+let rec aux_stack_pop_n acc n stack =
+    if n = 0
+    then List.rev acc
+    else
+      match stack with
+          | Value v :: t -> aux_stack_pop_n (v :: acc) (n - 1) t
+          | _ -> failwith "assert failure"
+
+
+let aux_trap (ctx : context) (t : stack) =
+    let stack = Instr (Iadmin Trap) :: t in
+    { ctx with stack }
+
+
+(* ******** *)
+
 let rec eval_expr (ctx : context) : value * context =
     let ctx2 = eval_instr ctx in
     match ctx2.stack with
@@ -173,11 +189,6 @@ and eval_instr (ctx : context) : context =
             eval_control_instr { ctx with stack } i
         | Instr (Iadmin i) :: stack -> eval_admin_instr { ctx with stack } i
         | _ -> failwith ""
-
-
-and aux_trap (ctx : context) (t : stack) =
-    let stack = Instr (Iadmin Trap) :: t in
-    { ctx with stack }
 
 
 and eval_numeric_instr (ctx : context) = function
@@ -526,64 +537,82 @@ and eval_control_instr (ctx : context) = function
             | _ -> failwith "assert failure" )
 
 
-and eval_admin_instr (_ctx : context) = function
+and eval_admin_instr (ctx : context) = function
     | Trap -> failwith "TODO"
-    | Invoke _ -> failwith "TODO"
+    | Label _ -> failwith "TODO"
+    | Invoke a -> (
+        let f = ctx.store.funcs.(a) in
+        match f with
+            | Func func ->
+                let params, rets = func.functype in
+                let val0 =
+                    List.map
+                      (function
+                            | TI32 -> I32 0l
+                            | TI64 -> I64 0L
+                            | TF32 -> F32 Float32.zero
+                            | TF64 -> F64 0.0)
+                      func.func.locals
+                in
+                let vals = aux_stack_pop_n [] (List.length params) ctx.stack in
+                let locals = Array.of_list (vals @ val0) in
+                let frame = { moduleinst = func.moduleinst; locals } in
+                let instrs = func.func.body in
+                let block =
+                    Icontrol (Block (List.map (fun x -> Some x) rets, instrs))
+                in
+                let iframe =
+                    Instr (Iadmin (Frame (List.length rets, frame, [ block ])))
+                in
+                let stack = iframe :: ctx.stack in
+                (* TODO: execute block *)
+                { ctx with stack }
+            | HostFunc _ -> failwith "TODO" )
+    | Frame _ -> failwith "TODO"
     | InitElem _ -> failwith "TODO"
     | InitData _ -> failwith "TODO"
-    | Label _ -> failwith "TODO"
-    | Frame _ -> failwith "TODO"
 
 
 (* ******** *)
 
-let rec invoke (store : store) (f : funcaddr) (values : value list)
-    : value list
-  =
-    let func_inst = store.funcs.(f) in
-    let params, rets =
-        match func_inst with
-            | Func f -> f.functype
-            | HostFunc f -> f.functype
+let invoke =
+    let aux_type_eq params args =
+        let test (p : valtype) (a : value) =
+            match (p, a) with
+                | TI32, I32 _ | TI64, I64 _ | TF32, F32 _ | TF64, F64 _ -> true
+                | _ -> false
+        in
+        List.for_all2 test params args
     in
-    let len_eq = List.length params = List.length values in
-    let type_eq = aux_type_eq params values in
-    if len_eq && type_eq
-    then
-      let moduleinst =
-          {
-            types = [||];
-            funcaddrs = [||];
-            tableaddrs = [||];
-            memaddrs = [||];
-            globaladdrs = [||];
-            exports = [||];
-          }
-      in
-      let frame = { locals = [||]; moduleinst } in
-      let stack_values = values |> List.map (fun v -> Value v) |> List.rev in
-      let stack = Instr (Iadmin (Invoke f)) :: stack_values in
-      let ctx = eval_instr { store; frame; stack } in
-      aux_take_m [] (List.length rets) ctx.stack
-    else failwith "argument error"
-
-
-and aux_type_eq params args =
-    let test (p : valtype) (a : value) =
-        match (p, a) with
-            | TI32, I32 _ | TI64, I64 _ | TF32, F32 _ | TF64, F64 _ -> true
-            | _ -> false
-    in
-    List.for_all2 test params args
-
-
-and aux_take_m acc m stack =
-    if m = 0
-    then List.rev acc
-    else
-      match stack with
-          | Value v :: t -> aux_take_m (v :: acc) (m - 1) t
-          | _ -> failwith "assert failure"
+    fun (store : store) (f : funcaddr) (values : value list) ->
+        let func_inst = store.funcs.(f) in
+        let params, rets =
+            match func_inst with
+                | Func f -> f.functype
+                | HostFunc f -> f.functype
+        in
+        let len_eq = List.length params = List.length values in
+        let type_eq = aux_type_eq params values in
+        if len_eq && type_eq
+        then
+          let moduleinst =
+              {
+                types = [||];
+                funcaddrs = [||];
+                tableaddrs = [||];
+                memaddrs = [||];
+                globaladdrs = [||];
+                exports = [||];
+              }
+          in
+          let frame = { locals = [||]; moduleinst } in
+          let stack_values =
+              values |> List.map (fun v -> Value v) |> List.rev
+          in
+          let stack = Instr (Iadmin (Invoke f)) :: stack_values in
+          let ctx = eval_instr { store; frame; stack } in
+          aux_stack_pop_n [] (List.length rets) ctx.stack
+        else failwith "argument error"
 
 
 (* ******** *)
