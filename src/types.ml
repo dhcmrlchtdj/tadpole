@@ -277,7 +277,7 @@ and instr =
     | Iadmin of admin_instr
 
 and numeric_instr =
-    | ConstOp of value
+    | Const of value
     | UnOp of valtype * unop
     | BinOp of valtype * binop
     | TestOp of valtype * testop
