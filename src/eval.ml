@@ -153,14 +153,6 @@ let alloc_module
 
 (* ******** *)
 
-let instantiate (_s : store) (_m : moduledef) (_externs : externval list)
-    : context
-  =
-    failwith "TODO"
-
-
-(* ******** *)
-
 let rec eval_expr (ctx : context) : value * context =
     let ctx2 = eval_instr ctx in
     match ctx2.stack with
@@ -287,99 +279,162 @@ and eval_variable_instr (ctx : context) = function
             | _ -> failwith "assert failure" )
 
 
-and eval_memory_instr (ctx : context) = function
-    (* | Load (TI32, memarg) -> aux_memory_load ctx memarg 32 None *)
-    (* | Load (TI64, memarg) -> aux_memory_load ctx memarg 64 None *)
-    (* | Load (TF32, memarg) -> aux_memory_load ctx memarg 32 None *)
-    (* | Load (TF64, memarg) -> aux_memory_load ctx memarg 64 None *)
-    (* | Load8S (TI32, memarg) -> aux_memory_load ctx memarg 8 (Some `S) *)
-    (* | Load8S (TI64, memarg) -> aux_memory_load ctx memarg 8 (Some `U) *)
-    (* | Load8U (TI32, memarg) -> aux_memory_load ctx memarg 8 (Some `S) *)
-    (* | Load8U (TI64, memarg) -> aux_memory_load ctx memarg 8 (Some `U) *)
-    (* | Load16S (TI32, memarg) -> aux_memory_load ctx memarg 16 (Some `S) *)
-    (* | Load16S (TI64, memarg) -> aux_memory_load ctx memarg 16 (Some `U) *)
-    (* | Load16U (TI32, memarg) -> aux_memory_load ctx memarg 16 (Some `S) *)
-    (* | Load16U (TI64, memarg) -> aux_memory_load ctx memarg 16 (Some `U) *)
-    (* | Load32S (TI64, memarg) -> aux_memory_load ctx memarg 32 (Some `S) *)
-    (* | Load32U (TI64, memarg) -> aux_memory_load ctx memarg 32 (Some `U) *)
-    (* | Store (TI32, memarg) -> aux_memory_store ctx memarg 32 *)
-    (* | Store (TI64, memarg) -> aux_memory_store ctx memarg 64 *)
-    (* | Store (TF32, memarg) -> aux_memory_store ctx memarg 32 *)
-    (* | Store (TF64, memarg) -> aux_memory_store ctx memarg 64 *)
-    (* | Store8 (TI32, memarg) -> aux_memory_store ctx memarg 8 *)
-    (* | Store8 (TI64, memarg) -> aux_memory_store ctx memarg 8 *)
-    (* | Store16 (TI32, memarg) -> aux_memory_store ctx memarg 16 *)
-    (* | Store16 (TI64, memarg) -> aux_memory_store ctx memarg 16 *)
-    (* | Store32 (TI64, memarg) -> aux_memory_store ctx memarg 32 *)
-    | MemorySize ->
+and eval_memory_instr =
+    let rec aux_memory_load ctx (memarg : memarg) len to_value =
         let addr = ctx.frame.moduleinst.memaddrs.(0) in
         let mem = ctx.store.mems.(addr) in
-        let sz = Array.length mem.data / page_size in
-        let stack = Value (I32 (Int32.of_int sz)) :: ctx.stack in
-        { ctx with stack }
-    | MemoryGrow -> (
-        let addr = ctx.frame.moduleinst.memaddrs.(0) in
-        let mem = ctx.store.mems.(addr) in
-        let sz = Array.length mem.data / page_size in
         match ctx.stack with
-            | Value (I32 n) :: t ->
-                let stack =
-                    match grow_mem mem (Int32.to_int n) with
-                        | Some m ->
-                            let () = ctx.store.mems.(addr) <- m in
-                            Value (I32 (Int32.of_int sz)) :: t
-                        | None -> Value (I32 (-1l)) :: t
-                in
-                { ctx with stack }
-            | _ -> failwith "assert failure" )
-    | _ -> failwith "never"
+            | Value (I32 i) :: stack ->
+                let ii = Int32.to_int i in
+                let ea = ii + memarg.offset in
+                if ea + len <= Array.length mem.data
+                then
+                  let b = Array.make 8 '\000' in
+                  let () = Array.blit mem.data ea b (8 - len) 8 in
+                  let value = to_value b in
+                  let stack = Value value :: stack in
+                  { ctx with stack }
+                else
+                  let stack = Instr (Iadmin Trap) :: stack in
+                  { ctx with stack }
+            | _ -> failwith "assert failure"
+    and aux_char8_to_int64 arr =
+        if Sys.big_endian then failwith "TODO: deal with big_endian" ;
+        let x = ref 0L in
+        for i = 0 to 7 do
+          let n = arr.(i) |> Char.code |> Int64.of_int in
+          x := Int64.add n (Int64.shift_left !x 8)
+        done ;
+        !x
+    and aux_char8_to_int64_s n arr =
+        let pos =
+            match n with
+                | 8 -> 7
+                | 16 -> 6
+                | 32 -> 4
+                | _ -> failwith "never"
+        in
+        let sign = Char.code arr.(pos) in
+        if sign lsr 7 = 1
+        then (
+          arr.(pos) <- Char.chr (sign land 127) ;
+          let x = aux_char8_to_int64 arr in
+          Int64.neg x )
+        else aux_char8_to_int64 arr
+    in
+    let rec aux_memory_store ctx (memarg : memarg) len =
+        let addr = ctx.frame.moduleinst.memaddrs.(0) in
+        let mem = ctx.store.mems.(addr) in
+        match ctx.stack with
+            | Value c :: Value (I32 i) :: stack ->
+                let ii = Int32.to_int i in
+                let ea = memarg.offset + ii in
+                if ea + len <= Array.length mem.data
+                then
+                  let b = aux_bytes len c in
+                  let () = Array.blit b 0 mem.data ea len in
+                  { ctx with stack }
+                else
+                  let stack = Instr (Iadmin Trap) :: stack in
+                  { ctx with stack }
+            | _ -> failwith "assert failure"
+    and aux_bytes len value =
+        if Sys.big_endian then failwith "TODO: deal with big_endian" ;
+        let i64 =
+            match value with
+                | I32 x -> Int64.of_int32 x
+                | I64 x -> x
+                | F32 x -> x |> Float32.int32_of_bits |> Int64.of_int32
+                | F64 x -> Int64.bits_of_float x
+        in
+        let arr = Array.make 8 '\000' in
+        let x = ref i64 in
+        for i = 7 downto 0 do
+          let data = !x |> Int64.logand 0xffL |> Int64.to_int |> Char.chr in
+          arr.(i) <- data ;
+          x := Int64.shift_right_logical !x 8
+        done ;
+        Array.sub arr (8 - len) len
+    in
+    fun (ctx : context) -> function
+        | Load (TI32, memarg) ->
+            aux_memory_load ctx memarg 4 (fun arr ->
+                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
+        | Load (TI64, memarg) ->
+            aux_memory_load ctx memarg 8 (fun arr ->
+                I64 (aux_char8_to_int64 arr))
+        | Load (TF32, memarg) ->
+            aux_memory_load ctx memarg 4 (fun arr ->
+                F32
+                  ( aux_char8_to_int64 arr
+                  |> Int64.to_int32
+                  |> Float32.bits_of_int32 ))
+        | Load (TF64, memarg) ->
+            aux_memory_load ctx memarg 8 (fun arr ->
+                F64 (aux_char8_to_int64 arr |> Int64.float_of_bits))
+        | Load8S (TI32, memarg) ->
+            aux_memory_load ctx memarg 1 (fun arr ->
+                I32 (aux_char8_to_int64_s 8 arr |> Int64.to_int32))
+        | Load8S (TI64, memarg) ->
+            aux_memory_load ctx memarg 1 (fun arr ->
+                I64 (aux_char8_to_int64_s 8 arr))
+        | Load8U (TI32, memarg) ->
+            aux_memory_load ctx memarg 1 (fun arr ->
+                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
+        | Load8U (TI64, memarg) ->
+            aux_memory_load ctx memarg 1 (fun arr ->
+                I64 (aux_char8_to_int64 arr))
+        | Load16S (TI32, memarg) ->
+            aux_memory_load ctx memarg 2 (fun arr ->
+                I32 (aux_char8_to_int64_s 16 arr |> Int64.to_int32))
+        | Load16S (TI64, memarg) ->
+            aux_memory_load ctx memarg 2 (fun arr ->
+                I64 (aux_char8_to_int64_s 16 arr))
+        | Load16U (TI32, memarg) ->
+            aux_memory_load ctx memarg 2 (fun arr ->
+                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
+        | Load16U (TI64, memarg) ->
+            aux_memory_load ctx memarg 2 (fun arr ->
+                I64 (aux_char8_to_int64 arr))
+        | Load32S (TI64, memarg) ->
+            aux_memory_load ctx memarg 4 (fun arr ->
+                I64 (aux_char8_to_int64_s 32 arr))
+        | Load32U (TI64, memarg) ->
+            aux_memory_load ctx memarg 4 (fun arr ->
+                I64 (aux_char8_to_int64 arr))
+        | Store (TI32, memarg) -> aux_memory_store ctx memarg 4
+        | Store (TI64, memarg) -> aux_memory_store ctx memarg 8
+        | Store (TF32, memarg) -> aux_memory_store ctx memarg 4
+        | Store (TF64, memarg) -> aux_memory_store ctx memarg 8
+        | Store8 (TI32, memarg) -> aux_memory_store ctx memarg 1
+        | Store8 (TI64, memarg) -> aux_memory_store ctx memarg 1
+        | Store16 (TI32, memarg) -> aux_memory_store ctx memarg 2
+        | Store16 (TI64, memarg) -> aux_memory_store ctx memarg 2
+        | Store32 (TI64, memarg) -> aux_memory_store ctx memarg 4
+        | MemorySize ->
+            let addr = ctx.frame.moduleinst.memaddrs.(0) in
+            let mem = ctx.store.mems.(addr) in
+            let sz = Array.length mem.data / page_size in
+            let stack = Value (I32 (Int32.of_int sz)) :: ctx.stack in
+            { ctx with stack }
+        | MemoryGrow -> (
+            let addr = ctx.frame.moduleinst.memaddrs.(0) in
+            let mem = ctx.store.mems.(addr) in
+            let sz = Array.length mem.data / page_size in
+            match ctx.stack with
+                | Value (I32 n) :: t ->
+                    let stack =
+                        match grow_mem mem (Int32.to_int n) with
+                            | Some m ->
+                                let () = ctx.store.mems.(addr) <- m in
+                                Value (I32 (Int32.of_int sz)) :: t
+                            | None -> Value (I32 (-1l)) :: t
+                    in
+                    { ctx with stack }
+                | _ -> failwith "assert failure" )
+        | _ -> failwith "never"
 
 
-(*  *)
-(* and aux_memory_load ctx (memarg : memarg) bit_with (sign : [ `S | `U ] option) = *)
-(*     let m_addrs = ctx.frame.module_.memaddrs in *)
-(*     let m_idx = List.get_at_idx_exn 0 m_addrs in *)
-(*     let m_insts = ctx.store.mems in *)
-(*     let mem = List.get_at_idx_exn m_idx m_insts in *)
-(*     let mem_len = Array.length mem.data in *)
-(*     match ctx.stack with *)
-(*         | Value (I32 i) :: s2 -> *)
-(*             let ea = Int32.to_int i + memarg.offset in *)
-(*             let len = bit_with / 8 in *)
-(*             if ea + len > mem_len *)
-(*             then eval_admin_instr ctx Trap *)
-(*             else *)
-(*               (* FIXME *) *)
-(*               (* let b = mem.data[ea:n/8] in *) *)
-(*               let c : val_ = *)
-(*                   match sign with *)
-(*                       | None -> I32 1l *)
-(*                       | Some `U -> I32 1l *)
-(*                       | Some `S -> I32 1l *)
-(*               in *)
-(*               let stack = Value c :: s2 in *)
-(*               { ctx with stack } *)
-(*         | _ -> failwith "assert failure" *)
-(*  *)
-(*  *)
-(* and aux_memory_store ctx (memarg : memarg) bit_with = *)
-(*     let m_addrs = ctx.frame.module_.memaddrs in *)
-(*     let m_idx = List.get_at_idx_exn 0 m_addrs in *)
-(*     let m_insts = ctx.store.mems in *)
-(*     let mem = List.get_at_idx_exn m_idx m_insts in *)
-(*     let mem_len = Array.length mem.data in *)
-(*     (* FIXME read c *) *)
-(*     match ctx.stack with *)
-(*         | Value (I32 i) :: s2 -> *)
-(*             let ea = Int32.to_int i + memarg.offset in *)
-(*             let len = bit_with / 8 in *)
-(*             if ea + len > mem_len *)
-(*             then eval_admin_instr ctx Trap *)
-(*             else (* FIXME *) *)
-(*                  (* let b = mem.data[ea:n/8] in *) *)
-(*               ctx *)
-(*         | _ -> failwith "assert failure" *)
-(*  *)
 and eval_control_instr (ctx : context) = function
     | Nop -> ctx
     | Unreachable ->
@@ -533,3 +588,11 @@ and aux_take_m acc m stack =
       match stack with
           | Value v :: t -> aux_take_m (v :: acc) (m - 1) t
           | _ -> failwith "assert failure"
+
+
+(* ******** *)
+
+let instantiate (s : store) (m : moduledef) (externs : externval list)
+    : context
+  =
+    failwith "TODO"

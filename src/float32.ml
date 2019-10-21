@@ -14,6 +14,10 @@ let neg_nan = 0xffc00000l
 
 let bare_nan = 0x7f800000l
 
+let bits_of_int32 (x : Int32.t) : t = x
+
+let int32_of_bits (x : t) : Int32.t = x
+
 let of_float = Int32.bits_of_float
 
 let to_float = Int32.float_of_bits
