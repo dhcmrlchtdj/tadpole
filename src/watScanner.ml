@@ -204,7 +204,7 @@ let scan (src : string) : Token.t list =
                     | Some n -> Ok (Some n, t)
                     | None -> Ok (Some (RESERVED s), t) )
         in
-        let acc, tt =
+        let (acc, tt) =
             match t with
                 | '+' :: tt -> ([ '+' ], tt)
                 | '-' :: tt -> ([ '-' ], tt)

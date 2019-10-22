@@ -102,25 +102,25 @@ let alloc_module
     in
     let aux_alloc_addr store alloc arr =
         let aux (store, addrs) elem =
-            let s, addr = alloc store elem in
+            let (s, addr) = alloc store elem in
             (s, addr :: addrs)
         in
         arr |> Array.fold_left aux (store, [])
     in
-    let s1, faddrs = aux_alloc_addr s (alloc_func mod_inst) m.funcs in
-    let s2, taddrs =
+    let (s1, faddrs) = aux_alloc_addr s (alloc_func mod_inst) m.funcs in
+    let (s2, taddrs) =
         aux_alloc_addr s1 alloc_table (Array.map (fun x -> x.ttype) m.tables)
     in
-    let s3, maddrs =
+    let (s3, maddrs) =
         aux_alloc_addr s2 alloc_mem (Array.map (fun x -> x.mtype) m.mems)
     in
-    let s4, gaddrs =
+    let (s4, gaddrs) =
         aux_alloc_addr
           s3
           (fun s (g, v) -> alloc_global s g v)
           (Array.map2 (fun x v -> (x.gtype, v)) m.globals values)
     in
-    let faddrs, taddrs, maddrs, gaddrs =
+    let (faddrs, taddrs, maddrs, gaddrs) =
         let aux (f, t, m, g) = function
             | EV_func i -> (i :: f, t, m, g)
             | EV_table i -> (f, i :: t, m, g)
@@ -502,8 +502,8 @@ and eval_control_instr (ctx : context) = function
         { ctx with stack }
     | CallIndirect x -> (
         let aux_ft_eq (expect : functype) (actual : functype) : bool =
-            let e_param, e_arg = expect in
-            let a_param, a_arg = actual in
+            let (e_param, e_arg) = expect in
+            let (a_param, a_arg) = actual in
             let p = List.for_all2 equal_valtype e_param a_param in
             let a = List.for_all2 equal_valtype e_arg a_arg in
             p && a
@@ -537,7 +537,7 @@ and eval_admin_instr (ctx : context) = function
         let f = ctx.store.funcs.(a) in
         match f with
             | Func func ->
-                let params, rets = func.functype in
+                let (params, rets) = func.functype in
                 let val0 =
                     List.map
                       (function
@@ -573,14 +573,15 @@ let invoke =
     let aux_type_eq params args =
         let test (p : valtype) (a : value) =
             match (p, a) with
-                | TI32, I32 _ | TI64, I64 _ | TF32, F32 _ | TF64, F64 _ -> true
+                | (TI32, I32 _) | (TI64, I64 _) | (TF32, F32 _) | (TF64, F64 _)
+                  -> true
                 | _ -> false
         in
         List.for_all2 test params args
     in
     fun (store : store) (f : funcaddr) (values : value list) ->
         let func_inst = store.funcs.(f) in
-        let params, rets = aux_get_functype func_inst in
+        let (params, rets) = aux_get_functype func_inst in
         let len_eq = List.length params = List.length values in
         let type_eq = aux_type_eq params values in
         if len_eq && type_eq

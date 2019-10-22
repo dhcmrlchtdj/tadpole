@@ -1,4 +1,3 @@
-_build/
-*.byte
-*.native
-main
+/_build/
+/.merlin
+/*.install

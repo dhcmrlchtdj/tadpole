@@ -22,7 +22,7 @@ module Doc = struct
               let len = String.length s in
               if len + used <= max_width then s else aux used d
           | Concat ds ->
-              let _, dss =
+              let (_, dss) =
                   List.fold_left
                     (fun (w, prev) next ->
                       let s = aux w next in

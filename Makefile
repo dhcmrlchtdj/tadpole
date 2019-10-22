@@ -1,23 +1,10 @@
-mlis := $(patsubst %.ml,%,$(wildcard src/*.ml))
-
 .PHONY: build
-build: wat wasm
-
-.PHONY: wat
-wat: $(mlis)
-	@ ocamlbuild -use-ocamlfind src/wat.byte
-
-.PHONY: wasm
-wasm: $(mlis)
-	# @ ocamlbuild -use-ocamlfind src/wasm.native
-
-.PHONY: $(mlis)
-$(mlis):
-	-@ ocamlbuild -use-ocamlfind $@.inferred.mli
+build:
+	dune build @all
 
 .PHONY: clean
 clean:
-	@ ocamlbuild -clean
+	dune clean
 
 .PHONY: fmt
 fmt:
