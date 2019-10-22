@@ -162,8 +162,8 @@ let rec aux_stack_pop_n acc n stack =
           | _ -> failwith "assert failure"
 
 
-let aux_trap (ctx : context) (t : stack) =
-    let stack = Instr (Iadmin Trap) :: t in
+let aux_trap (ctx : context) =
+    let stack = [ Instr (Iadmin Trap) ] in
     { ctx with stack }
 
 
@@ -202,7 +202,7 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> aux_trap ctx tail )
+                    | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | BinOp (t, op) -> (
         match ctx.stack with
@@ -211,7 +211,7 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> aux_trap ctx tail )
+                    | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | TestOp (t, op) -> (
         match ctx.stack with
@@ -223,7 +223,7 @@ and eval_numeric_instr (ctx : context) = function
                     | Some false ->
                         let stack = Value (I32 0l) :: tail in
                         { ctx with stack }
-                    | None -> aux_trap ctx tail )
+                    | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | RelOp (t, op) -> (
         match ctx.stack with
@@ -235,7 +235,7 @@ and eval_numeric_instr (ctx : context) = function
                     | Some false ->
                         let stack = Value (I32 0l) :: tail in
                         { ctx with stack }
-                    | None -> aux_trap ctx tail )
+                    | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | CvtOp (t2, op, t1) -> (
         match ctx.stack with
@@ -244,7 +244,7 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let stack = Value v :: tail in
                         { ctx with stack }
-                    | None -> aux_trap ctx tail )
+                    | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
 
 
@@ -310,7 +310,7 @@ and eval_memory_instr =
                   let value = to_value b in
                   let stack = Value value :: stack in
                   { ctx with stack }
-                else aux_trap ctx stack
+                else aux_trap ctx
             | _ -> failwith "assert failure"
     and aux_char8_to_int64 arr =
         if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
@@ -349,7 +349,7 @@ and eval_memory_instr =
                   let b = aux_bytes len c in
                   let () = Array.blit b 0 mem.data ea len in
                   { ctx with stack }
-                else aux_trap ctx stack
+                else aux_trap ctx
             | _ -> failwith "assert failure"
     and aux_bytes len value =
         if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
@@ -450,7 +450,7 @@ and eval_memory_instr =
 
 and eval_control_instr (ctx : context) = function
     | Nop -> ctx
-    | Unreachable -> aux_trap ctx ctx.stack
+    | Unreachable -> aux_trap ctx
     | Block (rtypes, instrs) ->
         let n = List.length rtypes in
         let l = Instr (Iadmin (Label (n, [], instrs))) in
@@ -531,15 +531,14 @@ and eval_control_instr (ctx : context) = function
                             let stack = Instr (Iadmin (Invoke faddr)) :: t in
                             (* TODO: invoke func *)
                             { ctx with stack }
-                          else aux_trap ctx t
-                      | None -> aux_trap ctx t
-                else aux_trap ctx t
+                          else aux_trap ctx
+                      | None -> aux_trap ctx
+                else aux_trap ctx
             | _ -> failwith "assert failure" )
 
 
 and eval_admin_instr (ctx : context) = function
     | Trap -> failwith "TODO"
-    | Label _ -> failwith "TODO"
     | Invoke a -> (
         let f = ctx.store.funcs.(a) in
         match f with
@@ -568,6 +567,7 @@ and eval_admin_instr (ctx : context) = function
                 (* TODO: execute block *)
                 { ctx with stack }
             | HostFunc _ -> failwith "TODO" )
+    | Label _ -> failwith "TODO"
     | Frame _ -> failwith "TODO"
     | InitElem _ -> failwith "TODO"
     | InitData _ -> failwith "TODO"
