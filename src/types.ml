@@ -197,7 +197,7 @@ type tableinst = {
   }
 
 type meminst = {
-    data : char array;
+    data : bytes;
     max : u32 option;
   }
 
@@ -244,7 +244,7 @@ and elem = {
 and data = {
     data : memidx;
     offset : expr;
-    init : char list;
+    init : bytes;
   }
 
 (* FIXME *)
@@ -328,7 +328,7 @@ and admin_instr =
     | Trap
     | Invoke of funcaddr
     | InitElem of tableaddr * int * funcidx list
-    | InitData of memaddr * int * char list
+    | InitData of memaddr * int * bytes
     | Label of int * instr list * instr list
     | Frame of int * frame * instr list
 

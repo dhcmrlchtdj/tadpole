@@ -19,7 +19,7 @@ let grow_table (tbl : tableinst) (n : int) : tableinst option =
 
 
 let grow_mem (mem : meminst) (n : int) : meminst option =
-    let size = Array.length mem.data in
+    let size = Bytes.length mem.data in
     let len = (size / page_size) + n in
     let limit =
         match mem.max with
@@ -29,8 +29,8 @@ let grow_mem (mem : meminst) (n : int) : meminst option =
     if len >= limit
     then None
     else
-      let empty = Array.make n '\000' in
-      let data = Array.append mem.data empty in
+      let empty = Bytes.make n '\000' in
+      let data = Bytes.cat mem.data empty in
       Some { mem with data }
 
 
@@ -66,7 +66,7 @@ let alloc_table (s : store) ((limit, _) : tabletype) : store * tableaddr =
 
 let alloc_mem (s : store) ({ min; max } : memtype) : store * memaddr =
     let a = Array.length s.mems in
-    let data = Array.make min '\000' in
+    let data = Bytes.make min '\000' in
     let mem_inst = { data; max } in
     let mems = Array.append s.mems [| mem_inst |] in
     let s2 = { s with mems } in
@@ -165,6 +165,11 @@ let rec aux_stack_pop_n acc n stack =
 let aux_trap (ctx : context) =
     let stack = [ Instr (Iadmin Trap) ] in
     { ctx with stack }
+
+
+let aux_get_functype = function
+    | Func { functype; _ } -> functype
+    | HostFunc { functype; _ } -> functype
 
 
 (* ******** *)
@@ -303,23 +308,16 @@ and eval_memory_instr =
             | Value (I32 i) :: stack ->
                 let ii = Int32.to_int i in
                 let ea = ii + memarg.offset in
-                if ea + len <= Array.length mem.data
+                if ea + len <= Bytes.length mem.data
                 then
-                  let b = Array.make 8 '\000' in
-                  let () = Array.blit mem.data ea b (8 - len) 8 in
+                  let b = Bytes.make 8 '\000' in
+                  let () = Bytes.blit mem.data ea b (8 - len) 8 in
                   let value = to_value b in
                   let stack = Value value :: stack in
                   { ctx with stack }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
-    and aux_char8_to_int64 arr =
-        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
-        let x = ref 0L in
-        for i = 0 to 7 do
-          let n = arr.(i) |> Char.code |> Int64.of_int in
-          x := Int64.add n (Int64.shift_left !x 8)
-        done ;
-        !x
+    and aux_char8_to_int64 b = Bytes.get_int64_le b 0
     and aux_char8_to_int64_s n arr =
         if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
         let pos =
@@ -329,10 +327,10 @@ and eval_memory_instr =
                 | 32 -> 4
                 | _ -> failwith "never"
         in
-        let sign = Char.code arr.(pos) in
+        let sign = Char.code (Bytes.get arr pos) in
         if sign lsr 7 = 1
         then (
-          arr.(pos) <- Char.chr (sign land 0x7F) ;
+          Bytes.set arr pos (Char.chr (sign land 0x7F)) ;
           let x = aux_char8_to_int64 arr in
           Int64.neg x )
         else aux_char8_to_int64 arr
@@ -344,10 +342,10 @@ and eval_memory_instr =
             | Value c :: Value (I32 i) :: stack ->
                 let ii = Int32.to_int i in
                 let ea = memarg.offset + ii in
-                if ea + len <= Array.length mem.data
+                if ea + len <= Bytes.length mem.data
                 then
                   let b = aux_bytes len c in
-                  let () = Array.blit b 0 mem.data ea len in
+                  let () = Bytes.blit b 0 mem.data ea len in
                   { ctx with stack }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
@@ -360,14 +358,14 @@ and eval_memory_instr =
                 | F32 x -> x |> Float32.int32_of_bits |> Int64.of_int32
                 | F64 x -> Int64.bits_of_float x
         in
-        let arr = Array.make 8 '\000' in
+        let arr = Bytes.make 8 '\000' in
         let x = ref i64 in
         for i = 7 downto 0 do
           let data = !x |> Int64.logand 0xFFL |> Int64.to_int |> Char.chr in
-          arr.(i) <- data ;
+          Bytes.set arr i data ;
           x := Int64.shift_right_logical !x 8
         done ;
-        Array.sub arr (8 - len) len
+        Bytes.sub arr (8 - len) len
     in
     fun (ctx : context) -> function
         | Load (TI32, memarg) ->
@@ -427,13 +425,13 @@ and eval_memory_instr =
         | MemorySize ->
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
-            let sz = Array.length mem.data / page_size in
+            let sz = Bytes.length mem.data / page_size in
             let stack = Value (I32 (Int32.of_int sz)) :: ctx.stack in
             { ctx with stack }
         | MemoryGrow -> (
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
-            let sz = Array.length mem.data / page_size in
+            let sz = Bytes.length mem.data / page_size in
             match ctx.stack with
                 | Value (I32 n) :: t ->
                     let stack =
@@ -521,11 +519,7 @@ and eval_control_instr (ctx : context) = function
                   match tab.elem.(ii) with
                       | Some faddr ->
                           let f = ctx.store.funcs.(faddr) in
-                          let ft_actual =
-                              match f with
-                                  | Func { functype; _ } -> functype
-                                  | HostFunc { functype; _ } -> functype
-                          in
+                          let ft_actual = aux_get_functype f in
                           if aux_ft_eq ft_expect ft_actual
                           then
                             let stack = Instr (Iadmin (Invoke faddr)) :: t in
@@ -586,11 +580,7 @@ let invoke =
     in
     fun (store : store) (f : funcaddr) (values : value list) ->
         let func_inst = store.funcs.(f) in
-        let params, rets =
-            match func_inst with
-                | Func f -> f.functype
-                | HostFunc f -> f.functype
-        in
+        let params, rets = aux_get_functype func_inst in
         let len_eq = List.length params = List.length values in
         let type_eq = aux_type_eq params values in
         if len_eq && type_eq
@@ -609,8 +599,8 @@ let invoke =
           let stack_values =
               values |> List.map (fun v -> Value v) |> List.rev
           in
-          let stack = Instr (Iadmin (Invoke f)) :: stack_values in
-          let ctx = eval_instr { store; frame; stack } in
+          let cont = Instr (Iadmin (Invoke f)) :: stack_values in
+          let ctx = eval_instr { store; frame; stack = []; cont } in
           aux_stack_pop_n [] (List.length rets) ctx.stack
         else failwith "argument error"
 
