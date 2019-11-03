@@ -327,8 +327,8 @@ and control_instr =
 and admin_instr =
     | Trap
     | Invoke of funcaddr
-    | InitElem of tableaddr * int * funcidx list
-    | InitData of memaddr * int * bytes
+    (* | InitElem of tableaddr * int * funcidx list *)
+    (* | InitData of memaddr * int * bytes *)
     | Label of int * instr list * instr list
     | Frame of int * frame * instr list
 

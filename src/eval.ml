@@ -581,7 +581,7 @@ let invoke =
     in
     fun (store : store) (f : funcaddr) (values : value list) ->
         let func_inst = store.funcs.(f) in
-        let (params, rets) = aux_get_functype func_inst in
+        let (params, _rets) = aux_get_functype func_inst in
         let len_eq = List.length params = List.length values in
         let type_eq = aux_type_eq params values in
         if len_eq && type_eq
@@ -601,8 +601,9 @@ let invoke =
               values |> List.map (fun v -> Value v) |> List.rev
           in
           let cont = Instr (Iadmin (Invoke f)) :: stack_values in
-          let ctx = eval_instr { store; frame; stack = []; cont } in
-          aux_stack_pop_n [] (List.length rets) ctx.stack
+          (* let ctx = eval_instr { store; frame; stack = []; cont } in *)
+          (* aux_stack_pop_n [] (List.length rets) ctx.stack *)
+          eval_instr { store; frame; stack = []; cont }
         else failwith "argument error"
 
 
@@ -611,4 +612,95 @@ let invoke =
 let instantiate (s : store) (m : moduledef) (externs : externval list)
     : context
   =
-    failwith "TODO"
+    let expr2stack expr = List.map (fun i -> Instr i) expr in
+    (* let _ = validate m in *)
+    (* assert (Array.length m.imports = List.length externs) ; *)
+    let vals =
+        let global_externs =
+            externs
+            |> List.filter (function
+                   | EV_global _ -> true
+                   | _ -> false)
+            |> List.map (function
+                   | EV_global addr -> addr
+                   | _ -> failwith "never")
+            |> Array.of_list
+        in
+        let moduleinst =
+            {
+              types = [||];
+              funcaddrs = [||];
+              tableaddrs = [||];
+              memaddrs = [||];
+              globaladdrs = global_externs;
+              exports = [||];
+            }
+        in
+        let frame = { locals = [||]; moduleinst } in
+        let f (g : global) =
+            let stack = expr2stack g.init in
+            let ctx = { store = s; frame; stack; cont = [] } in
+            let (v, _) = eval_expr ctx in
+            v
+        in
+        Array.map f m.globals
+    in
+    let (store, moduleinst) = alloc_module s m vals externs in
+    let frame = { locals = [||]; moduleinst } in
+    let ctx0 = { store; frame; stack = []; cont = [] } in
+    let ctx1 =
+        let f (ctx : context) (el : elem) =
+            let stack = expr2stack el.offset in
+            let (v, ctx_r) = eval_expr { ctx with stack } in
+            let offset =
+                match v with
+                    | I32 x -> Int32.to_int x
+                    | _ -> failwith "assert failure"
+            in
+            let tableaddr = moduleinst.tableaddrs.(el.table) in
+            let table_inst = ctx_r.store.tables.(tableaddr) in
+            (* let eend = o + List.length el.init in *)
+            (* if eend > Array.length table_inst.elem then fail () ; *)
+            let _ =
+                List.iteri
+                  (fun i funcidx ->
+                    table_inst.elem.(offset + i) <- Some funcidx)
+                  el.init
+            in
+            ctx_r
+        in
+        Array.fold_left f ctx0 m.elem
+    in
+    let ctx2 =
+        let f (ctx : context) (dat : data) =
+            let stack = expr2stack dat.offset in
+            let (v, ctx_r) = eval_expr { ctx with stack } in
+            let offset =
+                match v with
+                    | I32 x -> Int32.to_int x
+                    | _ -> failwith "assert failure"
+            in
+            let memaddr = moduleinst.memaddrs.(dat.data) in
+            let mem_inst = ctx_r.store.mems.(memaddr) in
+            (* let dend = o + List.length dat.init in *)
+            (* if dend > Bytes.length mem_inst.data then fail () ; *)
+            let _ =
+                Bytes.blit
+                  dat.init
+                  0
+                  mem_inst.data
+                  offset
+                  (Bytes.length dat.init)
+            in
+            ctx_r
+        in
+        Array.fold_left f ctx1 m.data
+    in
+    let ctx3 =
+        match m.start with
+            | None -> ctx2
+            | Some { func } ->
+                let funcaddr = moduleinst.funcaddrs.(func) in
+                invoke ctx2.store funcaddr []
+    in
+    ctx3
