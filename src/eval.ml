@@ -153,20 +153,17 @@ let alloc_module
 
 (* ******** *)
 
-let aux_trap (ctx : context) = { ctx with cont = [ Instr (Iadmin Trap) ] }
+let aux_trap (ctx : context) = { ctx with cont = [ Iadmin Trap ] }
 
 let aux_get_functype = function
     | Func { functype; _ } -> functype
     | HostFunc { functype; _ } -> functype
 
 
-let aux_instrs_to_stack instrs = List.map (fun i -> Instr i) instrs
-
 (* ******** *)
 
 let rec eval_expr (context : context) : value * context =
     let ctx = eval_instr context in
-    (* TODO: trap *)
     match ctx.evaluated with
         | v :: evaluated -> (v, { ctx with evaluated })
         | _ -> failwith "assert failure"
@@ -174,16 +171,27 @@ let rec eval_expr (context : context) : value * context =
 
 and eval_instr (ctx : context) : context =
     match ctx.cont with
-        | Instr (Inumeric i) :: cont -> eval_numeric_instr { ctx with cont } i
-        | Instr (Iparametric i) :: cont ->
-            eval_parametric_instr { ctx with cont } i
-        | Instr (Ivariable i) :: cont ->
-            eval_variable_instr { ctx with cont } i
-        | Instr (Imemory i) :: cont -> eval_memory_instr { ctx with cont } i
-        | Instr (Icontrol i) :: cont -> eval_control_instr { ctx with cont } i
-        | Instr (Iadmin i) :: cont -> eval_admin_instr { ctx with cont } i
         | [] -> ctx
-        | _ -> failwith "eval_instr | invalid instr"
+        | Icontrol Return :: _ -> { ctx with cont = [ Icontrol Return ] }
+        | Icontrol (Br 0) :: _ -> { ctx with cont = [ Icontrol (Br 0) ] }
+        | Icontrol (Br l) :: _ -> { ctx with cont = [ Icontrol (Br (l - 1)) ] }
+        | _ ->
+            let next =
+                match ctx.cont with
+                    | [] -> ctx
+                    | Inumeric i :: cont ->
+                        eval_numeric_instr { ctx with cont } i
+                    | Iparametric i :: cont ->
+                        eval_parametric_instr { ctx with cont } i
+                    | Ivariable i :: cont ->
+                        eval_variable_instr { ctx with cont } i
+                    | Imemory i :: cont ->
+                        eval_memory_instr { ctx with cont } i
+                    | Icontrol i :: cont ->
+                        eval_control_instr { ctx with cont } i
+                    | Iadmin i :: cont -> eval_admin_instr { ctx with cont } i
+            in
+            eval_instr next
 
 
 and eval_numeric_instr (ctx : context) = function
@@ -271,7 +279,7 @@ and eval_variable_instr (ctx : context) = function
     | LocalTee x -> (
         match ctx.evaluated with
             | h :: t ->
-                let cont = Instr (Ivariable (LocalSet x)) :: ctx.cont in
+                let cont = Ivariable (LocalSet x) :: ctx.cont in
                 let evaluated = h :: h :: t in
                 { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
@@ -443,11 +451,11 @@ and eval_control_instr (ctx : context) = function
     | Unreachable -> aux_trap ctx
     | Block (rtypes, instrs) ->
         let n = List.length rtypes in
-        let l = Instr (Iadmin (Label (n, [], instrs))) in
+        let l = Iadmin (Label (n, [], instrs)) in
         let cont = l :: ctx.cont in
         { ctx with cont }
     | Loop (_, instrs) as sub ->
-        let l = Instr (Iadmin (Label (0, [ Icontrol sub ], instrs))) in
+        let l = Iadmin (Label (0, [ Icontrol sub ], instrs)) in
         let cont = l :: ctx.cont in
         { ctx with cont }
     | If (rtypes, instrs1, instrs2) -> (
@@ -455,18 +463,18 @@ and eval_control_instr (ctx : context) = function
             | I32 c :: evaluated ->
                 let n = List.length rtypes in
                 let cont = if Int32.equal c 0l then instrs2 else instrs1 in
-                let l = Instr (Iadmin (Label (n, [], cont))) in
+                let l = Iadmin (Label (n, [], cont)) in
                 let cont = l :: ctx.cont in
                 { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
-    | Br _l -> failwith "TODO"
+    | Br _ as sub -> { ctx with cont = [ Icontrol sub ] }
     | BrIf l -> (
         match ctx.evaluated with
             | I32 c :: evaluated ->
                 let cont =
                     if Int32.equal c 0l
                     then ctx.cont
-                    else Instr (Icontrol (Br l)) :: ctx.cont
+                    else Icontrol (Br l) :: ctx.cont
                 in
                 { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
@@ -476,16 +484,16 @@ and eval_control_instr (ctx : context) = function
                 let ii = Int32.to_int i in
                 let br =
                     if ii < Array.length ls
-                    then Instr (Icontrol (Br ls.(ii)))
-                    else Instr (Icontrol (Br l))
+                    then Icontrol (Br ls.(ii))
+                    else Icontrol (Br l)
                 in
                 let cont = br :: ctx.cont in
                 { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
-    | Return -> failwith "TODO"
+    | Return -> { ctx with cont = [ Icontrol Return ] }
     | Call x ->
         let addr = ctx.frame.moduleinst.funcaddrs.(x) in
-        let cont = Instr (Iadmin (Invoke addr)) :: ctx.cont in
+        let cont = Iadmin (Invoke addr) :: ctx.cont in
         { ctx with cont }
     | CallIndirect x -> (
         let aux_ft_eq (expect : functype) (actual : functype) : bool =
@@ -509,9 +517,7 @@ and eval_control_instr (ctx : context) = function
                           let ft_actual = aux_get_functype f in
                           if aux_ft_eq ft_expect ft_actual
                           then
-                            let cont =
-                                Instr (Iadmin (Invoke faddr)) :: ctx.cont
-                            in
+                            let cont = Iadmin (Invoke faddr) :: ctx.cont in
                             { ctx with evaluated; cont }
                           else aux_trap ctx
                       | None -> aux_trap ctx
@@ -520,7 +526,8 @@ and eval_control_instr (ctx : context) = function
 
 
 and eval_admin_instr (ctx : context) = function
-    | Trap -> failwith "TODO: trap"
+    (* TODO *)
+    | Trap -> failwith "trap"
     | Invoke a -> (
         let f = ctx.store.funcs.(a) in
         match f with
@@ -546,14 +553,13 @@ and eval_admin_instr (ctx : context) = function
                 in
                 let iframe =
                     let m = List.length rets in
-                    Instr (Iadmin (Frame (m, frame, [ block ])))
+                    Iadmin (Frame (m, frame, [ block ]))
                 in
                 let cont = iframe :: ctx.cont in
                 { ctx with evaluated; cont }
             | HostFunc _ -> failwith "TODO" )
     | InitElem (tableaddr, offset_expr, funcs) ->
-        let cont = aux_instrs_to_stack offset_expr in
-        let (v, ctx2) = eval_expr { ctx with cont } in
+        let (v, ctx2) = eval_expr { ctx with cont = offset_expr } in
         let offset =
             match v with
                 | I32 x -> Int32.to_int x
@@ -567,8 +573,7 @@ and eval_admin_instr (ctx : context) = function
         in
         ctx2
     | InitData (memaddr, offset_expr, data) ->
-        let cont = aux_instrs_to_stack offset_expr in
-        let (v, ctx2) = eval_expr { ctx with cont } in
+        let (v, ctx2) = eval_expr { ctx with cont = offset_expr } in
         let offset =
             match v with
                 | I32 x -> Int32.to_int x
@@ -577,8 +582,22 @@ and eval_admin_instr (ctx : context) = function
         let mem_inst = ctx2.store.mems.(memaddr) in
         let _ = Bytes.blit data 0 mem_inst.data offset (Bytes.length data) in
         ctx2
-    | Label _ -> failwith "TODO"
-    | Frame _ -> failwith "TODO"
+    | Label (n, next_instrs, inner_instrs) -> (
+        let new_ctx = eval_instr { ctx with cont = inner_instrs } in
+        match new_ctx.cont with
+            | [] | [ Icontrol (Br 0) ] ->
+                let evaluated =
+                    List.append (List.take n new_ctx.evaluated) ctx.evaluated
+                in
+                let cont = List.append next_instrs ctx.cont in
+                { ctx with store = new_ctx.store; evaluated; cont }
+            | [ Icontrol Return ] -> new_ctx
+            | _ -> new_ctx )
+    | Frame (n, frame, instrs) ->
+        let new_ctx = eval_instr { ctx with frame; cont = instrs } in
+        let vals = List.take n new_ctx.evaluated in
+        let evaluated = List.append vals ctx.evaluated in
+        { ctx with store = new_ctx.store; evaluated }
 
 
 (* ******** *)
@@ -611,11 +630,9 @@ let invoke =
               }
           in
           let frame = { locals = [||]; moduleinst } in
-          let stack_values =
-              values |> List.map (fun v -> Value v) |> List.rev
-          in
-          let cont = Instr (Iadmin (Invoke f)) :: stack_values in
-          let ctx = { store; frame; evaluated = []; cont } in
+          let evaluated = List.rev values in
+          let cont = [ Iadmin (Invoke f) ] in
+          let ctx = { store; frame; evaluated; cont } in
           eval_instr ctx
         else failwith "argument error"
 
@@ -648,8 +665,7 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
         in
         let frame = { locals = [||]; moduleinst } in
         let f (g : global) =
-            let cont = aux_instrs_to_stack g.init in
-            let ctx = { store = s; frame; evaluated = []; cont } in
+            let ctx = { store = s; frame; evaluated = []; cont = g.init } in
             let (v, _) = eval_expr ctx in
             v
         in
@@ -663,16 +679,14 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
             | None -> []
             | Some { func } ->
                 let funcaddr = moduleinst.funcaddrs.(func) in
-                let instr = Instr (Iadmin (Invoke funcaddr)) in
+                let instr = Iadmin (Invoke funcaddr) in
                 [ instr ]
     in
     (* init_data *)
     let cont =
         let f (d : data) k =
             let memaddr = moduleinst.memaddrs.(d.data) in
-            let instr =
-                Instr (Iadmin (InitData (memaddr, d.offset, d.init)))
-            in
+            let instr = Iadmin (InitData (memaddr, d.offset, d.init)) in
             instr :: k
         in
         Array.fold_right f m.data cont
@@ -681,9 +695,7 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
     let cont =
         let f (e : elem) k =
             let tableaddr = moduleinst.tableaddrs.(e.table) in
-            let instr =
-                Instr (Iadmin (InitElem (tableaddr, e.offset, e.init)))
-            in
+            let instr = Iadmin (InitElem (tableaddr, e.offset, e.init)) in
             instr :: k
         in
         Array.fold_right f m.elem cont

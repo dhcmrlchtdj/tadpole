@@ -351,17 +351,9 @@ type store = {
 
 (* ******** *)
 
-type stack = stack_entry list
-
-and stack_entry =
-    | Value of value
-    | Instr of instr
-
-(* ******** *)
-
 type context = {
     store : store;
     frame : frame;
     evaluated : value list;
-    cont : stack;
+    cont : instr list;
   }
