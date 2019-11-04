@@ -50,13 +50,18 @@ module RelOp = struct
   let ge x y = Float.compare x y >= 0
 end
 
-
 module CvtOp = struct
-    let convert_s_i32 _x = failwith ""
-    let convert_s_i64 _x = failwith ""
-    let convert_u_i32 _x = failwith ""
-    let convert_u_i64 _x = failwith ""
-    let promote_f32 _x = failwith ""
-    let reinterpret_i32 _x = failwith ""
-    let reinterpret_i64 _x = failwith ""
+  let convert_s_i32 _x = failwith ""
+
+  let convert_s_i64 _x = failwith ""
+
+  let convert_u_i32 _x = failwith ""
+
+  let convert_u_i64 _x = failwith ""
+
+  let promote_f32 _x = failwith ""
+
+  let reinterpret_i32 _x = failwith ""
+
+  let reinterpret_i64 _x = failwith ""
 end

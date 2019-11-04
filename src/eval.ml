@@ -259,7 +259,7 @@ and eval_parametric_instr (ctx : context) = function
     | Select -> (
         match ctx.evaluated with
             | I32 c :: v2 :: v1 :: tail ->
-                let h = if Int32.equal c 0l then v2 else v1 in
+                let h = if Nint32.equal c 0l then v2 else v1 in
                 let evaluated = h :: tail in
                 { ctx with evaluated }
             | _ -> failwith "assert failure" )
@@ -305,7 +305,7 @@ and eval_memory_instr =
         let mem = ctx.store.mems.(addr) in
         match ctx.evaluated with
             | I32 i :: tail ->
-                let ii = Int32.to_int i in
+                let ii = Nint32.to_int i in
                 let ea = ii + memarg.offset in
                 if ea + len <= Bytes.length mem.data
                 then
@@ -339,7 +339,7 @@ and eval_memory_instr =
         let mem = ctx.store.mems.(addr) in
         match ctx.evaluated with
             | c :: I32 i :: evaluated ->
-                let ii = Int32.to_int i in
+                let ii = Nint32.to_int i in
                 let ea = memarg.offset + ii in
                 if ea + len <= Bytes.length mem.data
                 then
@@ -352,15 +352,15 @@ and eval_memory_instr =
         if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
         let i64 =
             match value with
-                | I32 x -> Int64.of_int32 x
+                | I32 x -> Nint64.of_int32 x
                 | I64 x -> x
-                | F32 x -> x |> Float32.int32_of_bits |> Int64.of_int32
-                | F64 x -> Int64.bits_of_float x
+                | F32 x -> x |> Float32.int32_of_bits |> Nint64.of_int32
+                | F64 x -> Nint64.bits_of_float x
         in
         let arr = Bytes.make 8 '\000' in
         let x = ref i64 in
         for i = 7 downto 0 do
-          let data = !x |> Int64.logand 0xFFL |> Int64.to_int |> Char.chr in
+          let data = !x |> Int64.logand 0xFFL |> Nint64.to_int |> Char.chr in
           Bytes.set arr i data ;
           x := Int64.shift_right_logical !x 8
         done ;
@@ -369,7 +369,7 @@ and eval_memory_instr =
     fun (ctx : context) -> function
         | Load (TI32, memarg) ->
             aux_memory_load ctx memarg 4 (fun arr ->
-                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
+                I32 (aux_char8_to_int64 arr |> Nint64.to_int32))
         | Load (TI64, memarg) ->
             aux_memory_load ctx memarg 8 (fun arr ->
                 I64 (aux_char8_to_int64 arr))
@@ -377,7 +377,7 @@ and eval_memory_instr =
             aux_memory_load ctx memarg 4 (fun arr ->
                 F32
                   ( aux_char8_to_int64 arr
-                  |> Int64.to_int32
+                  |> Nint64.to_int32
                   |> Float32.bits_of_int32 ))
         | Load (TF64, memarg) ->
             aux_memory_load ctx memarg 8 (fun arr ->
@@ -425,7 +425,7 @@ and eval_memory_instr =
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
             let sz = Bytes.length mem.data / page_size in
-            let evaluated = I32 (Int32.of_int sz) :: ctx.evaluated in
+            let evaluated = I32 (Nint32.of_int sz) :: ctx.evaluated in
             { ctx with evaluated }
         | MemoryGrow -> (
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
@@ -434,10 +434,10 @@ and eval_memory_instr =
             match ctx.evaluated with
                 | I32 n :: tail ->
                     let nsz =
-                        match grow_mem mem (Int32.to_int n) with
+                        match grow_mem mem (Nint32.to_int n) with
                             | Some m ->
                                 let () = ctx.store.mems.(addr) <- m in
-                                I32 (Int32.of_int sz)
+                                I32 (Nint32.of_int sz)
                             | None -> I32 (-1l)
                     in
                     let evaluated = nsz :: tail in
@@ -462,7 +462,7 @@ and eval_control_instr (ctx : context) = function
         match ctx.evaluated with
             | I32 c :: evaluated ->
                 let n = List.length rtypes in
-                let cont = if Int32.equal c 0l then instrs2 else instrs1 in
+                let cont = if Nint32.equal c 0l then instrs2 else instrs1 in
                 let l = Iadmin (Label (n, [], cont)) in
                 let cont = l :: ctx.cont in
                 { ctx with evaluated; cont }
@@ -472,7 +472,7 @@ and eval_control_instr (ctx : context) = function
         match ctx.evaluated with
             | I32 c :: evaluated ->
                 let cont =
-                    if Int32.equal c 0l
+                    if Nint32.equal c 0l
                     then ctx.cont
                     else Icontrol (Br l) :: ctx.cont
                 in
@@ -481,7 +481,7 @@ and eval_control_instr (ctx : context) = function
     | BrTable (ls, l) -> (
         match ctx.evaluated with
             | I32 i :: evaluated ->
-                let ii = Int32.to_int i in
+                let ii = Nint32.to_int i in
                 let br =
                     if ii < Array.length ls
                     then Icontrol (Br ls.(ii))
@@ -508,7 +508,7 @@ and eval_control_instr (ctx : context) = function
         let ft_expect = ctx.frame.moduleinst.types.(x) in
         match ctx.evaluated with
             | I32 i :: evaluated ->
-                let ii = Int32.to_int i in
+                let ii = Nint32.to_int i in
                 if ii < Array.length tab.elem
                 then
                   match tab.elem.(ii) with
@@ -561,7 +561,7 @@ and eval_admin_instr (ctx : context) = function
         let (v, ctx2) = eval_expr { ctx with cont = offset_expr } in
         let offset =
             match v with
-                | I32 x -> Int32.to_int x
+                | I32 x -> Nint32.to_int x
                 | _ -> failwith "assert failure"
         in
         let table_inst = ctx2.store.tables.(tableaddr) in
@@ -575,7 +575,7 @@ and eval_admin_instr (ctx : context) = function
         let (v, ctx2) = eval_expr { ctx with cont = offset_expr } in
         let offset =
             match v with
-                | I32 x -> Int32.to_int x
+                | I32 x -> Nint32.to_int x
                 | _ -> failwith "assert failure"
         in
         let mem_inst = ctx2.store.mems.(memaddr) in

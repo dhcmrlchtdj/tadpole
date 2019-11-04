@@ -4,6 +4,14 @@ type t = Int64.t
 
 let equal = Int64.equal
 
+let to_int = Int64.to_int
+
+let of_int = Int64.of_int
+
+let to_int32 = Int64.to_int32
+
+let of_int32 = Int64.of_int32
+
 module UnOp = struct
   let clz i =
       if Int64.equal i 0L

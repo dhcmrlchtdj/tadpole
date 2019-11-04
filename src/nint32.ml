@@ -4,6 +4,10 @@ type t = Int32.t
 
 let equal = Int32.equal
 
+let to_int = Int32.to_int
+
+let of_int = Int32.of_int
+
 module UnOp = struct
   let clz i =
       if Int32.equal i 0l
