@@ -173,7 +173,7 @@ and eval_instr (ctx : context) : context =
     match ctx.cont with
         | [] -> ctx
         | Icontrol Return :: _ -> { ctx with cont = [ Icontrol Return ] }
-        | Icontrol (Br 0) :: _ -> { ctx with cont = [ Icontrol (Br 0) ] }
+        | Icontrol (Br 0) :: _ -> { ctx with cont = [] }
         | Icontrol (Br l) :: _ -> { ctx with cont = [ Icontrol (Br (l - 1)) ] }
         | _ ->
             let next =
@@ -526,7 +526,6 @@ and eval_control_instr (ctx : context) = function
 
 
 and eval_admin_instr (ctx : context) = function
-    (* TODO *)
     | Trap -> failwith "trap"
     | Invoke a -> (
         let f = ctx.store.funcs.(a) in
@@ -538,7 +537,7 @@ and eval_admin_instr (ctx : context) = function
                       (function
                             | TI32 -> I32 0l
                             | TI64 -> I64 0L
-                            | TF32 -> F32 Float32.zero
+                            | TF32 -> F32 Nfloat32.zero
                             | TF64 -> F64 0.0)
                       func.func.locals
                 in
@@ -585,13 +584,13 @@ and eval_admin_instr (ctx : context) = function
     | Label (n, next_instrs, inner_instrs) -> (
         let new_ctx = eval_instr { ctx with cont = inner_instrs } in
         match new_ctx.cont with
-            | [] | [ Icontrol (Br 0) ] ->
+            | [ Icontrol Return ] -> new_ctx
+            | [] ->
                 let evaluated =
                     List.append (List.take n new_ctx.evaluated) ctx.evaluated
                 in
                 let cont = List.append next_instrs ctx.cont in
-                { ctx with store = new_ctx.store; evaluated; cont }
-            | [ Icontrol Return ] -> new_ctx
+                { new_ctx with evaluated; cont }
             | _ -> new_ctx )
     | Frame (n, frame, instrs) ->
         let new_ctx = eval_instr { ctx with frame; cont = instrs } in

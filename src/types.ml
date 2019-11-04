@@ -33,10 +33,10 @@ and globaladdr = addr
 (* ******** *)
 
 type value =
-    | I32 of Int32.t
-    | I64 of Int64.t
-    | F32 of Float32.t
-    | F64 of Float64.t
+    | I32 of Nint32.t
+    | I64 of Nint64.t
+    | F32 of Nfloat32.t
+    | F64 of Nfloat64.t
 
 type valtype =
     | TI32
