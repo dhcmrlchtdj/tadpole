@@ -86,8 +86,8 @@ let alloc_global (s : store) ((mut, _) : globaltype) (value : value)
 let alloc_module
     (s : store)
     (m : moduledef)
-    (values : value array)
     (externs : externval list)
+    (values : value array)
     : store * moduleinst
   =
     let mod_inst =
@@ -164,11 +164,11 @@ let aux_instrs_to_stack instrs = List.map (fun i -> Instr i) instrs
 
 (* ******** *)
 
-let rec eval_expr (ctx : context) : value * context =
-    let ctx2 = eval_instr ctx in
+let rec eval_expr (context : context) : value * context =
+    let ctx = eval_instr context in
     (* TODO: trap *)
-    match ctx2.evaluated with
-        | v :: _ -> (v, ctx2)
+    match ctx.evaluated with
+        | v :: evaluated -> (v, { ctx with evaluated })
         | _ -> failwith "assert failure"
 
 
@@ -182,7 +182,8 @@ and eval_instr (ctx : context) : context =
         | Instr (Imemory i) :: cont -> eval_memory_instr { ctx with cont } i
         | Instr (Icontrol i) :: cont -> eval_control_instr { ctx with cont } i
         | Instr (Iadmin i) :: cont -> eval_admin_instr { ctx with cont } i
-        | _ -> failwith ""
+        | [] -> ctx
+        | _ -> failwith "eval_instr | invalid instr"
 
 
 and eval_numeric_instr (ctx : context) = function
@@ -519,7 +520,7 @@ and eval_control_instr (ctx : context) = function
 
 
 and eval_admin_instr (ctx : context) = function
-    | Trap -> failwith "TODO"
+    | Trap -> failwith "TODO: trap"
     | Invoke a -> (
         let f = ctx.store.funcs.(a) in
         match f with
@@ -550,8 +551,32 @@ and eval_admin_instr (ctx : context) = function
                 let cont = iframe :: ctx.cont in
                 { ctx with evaluated; cont }
             | HostFunc _ -> failwith "TODO" )
-    (* | InitElem _ -> failwith "TODO" *)
-    (* | InitData _ -> failwith "TODO" *)
+    | InitElem (tableaddr, offset_expr, funcs) ->
+        let cont = aux_instrs_to_stack offset_expr in
+        let (v, ctx2) = eval_expr { ctx with cont } in
+        let offset =
+            match v with
+                | I32 x -> Int32.to_int x
+                | _ -> failwith "assert failure"
+        in
+        let table_inst = ctx2.store.tables.(tableaddr) in
+        let _ =
+            List.iteri
+              (fun i funcidx -> table_inst.elem.(offset + i) <- Some funcidx)
+              funcs
+        in
+        ctx2
+    | InitData (memaddr, offset_expr, data) ->
+        let cont = aux_instrs_to_stack offset_expr in
+        let (v, ctx2) = eval_expr { ctx with cont } in
+        let offset =
+            match v with
+                | I32 x -> Int32.to_int x
+                | _ -> failwith "assert failure"
+        in
+        let mem_inst = ctx2.store.mems.(memaddr) in
+        let _ = Bytes.blit data 0 mem_inst.data offset (Bytes.length data) in
+        ctx2
     | Label _ -> failwith "TODO"
     | Frame _ -> failwith "TODO"
 
@@ -630,62 +655,38 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
         in
         Array.map f m.globals
     in
-    let (store, moduleinst) = alloc_module s m vals externs in
+    let (store, moduleinst) = alloc_module s m externs vals in
     let frame = { locals = [||]; moduleinst } in
-    let ctx0 = { store; frame; evaluated = []; cont = [] } in
-    let ctx1 =
-        let f (ctx : context) (el : elem) =
-            let cont = aux_instrs_to_stack el.offset in
-            let (v, ctx_r) = eval_expr { ctx with cont } in
-            let offset =
-                match v with
-                    | I32 x -> Int32.to_int x
-                    | _ -> failwith "assert failure"
-            in
-            let tableaddr = moduleinst.tableaddrs.(el.table) in
-            let table_inst = ctx_r.store.tables.(tableaddr) in
-            (* let eend = o + List.length el.init in *)
-            (* if eend > Array.length table_inst.elem then fail () ; *)
-            let _ =
-                List.iteri
-                  (fun i funcidx ->
-                    table_inst.elem.(offset + i) <- Some funcidx)
-                  el.init
-            in
-            ctx_r
-        in
-        Array.fold_left f ctx0 m.elem
-    in
-    let ctx2 =
-        let f (ctx : context) (dat : data) =
-            let cont = aux_instrs_to_stack dat.offset in
-            let (v, ctx_r) = eval_expr { ctx with cont } in
-            let offset =
-                match v with
-                    | I32 x -> Int32.to_int x
-                    | _ -> failwith "assert failure"
-            in
-            let memaddr = moduleinst.memaddrs.(dat.data) in
-            let mem_inst = ctx_r.store.mems.(memaddr) in
-            (* let dend = o + List.length dat.init in *)
-            (* if dend > Bytes.length mem_inst.data then fail () ; *)
-            let _ =
-                Bytes.blit
-                  dat.init
-                  0
-                  mem_inst.data
-                  offset
-                  (Bytes.length dat.init)
-            in
-            ctx_r
-        in
-        Array.fold_left f ctx1 m.data
-    in
-    let ctx3 =
+    (* invoke *)
+    let cont =
         match m.start with
-            | None -> ctx2
+            | None -> []
             | Some { func } ->
                 let funcaddr = moduleinst.funcaddrs.(func) in
-                invoke ctx2.store funcaddr []
+                let instr = Instr (Iadmin (Invoke funcaddr)) in
+                [ instr ]
     in
-    ctx3
+    (* init_data *)
+    let cont =
+        let f (d : data) k =
+            let memaddr = moduleinst.memaddrs.(d.data) in
+            let instr =
+                Instr (Iadmin (InitData (memaddr, d.offset, d.init)))
+            in
+            instr :: k
+        in
+        Array.fold_right f m.data cont
+    in
+    (* init_elem *)
+    let cont =
+        let f (e : elem) k =
+            let tableaddr = moduleinst.tableaddrs.(e.table) in
+            let instr =
+                Instr (Iadmin (InitElem (tableaddr, e.offset, e.init)))
+            in
+            instr :: k
+        in
+        Array.fold_right f m.elem cont
+    in
+    let ctx = { store; frame; evaluated = []; cont } in
+    eval_instr ctx
