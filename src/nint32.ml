@@ -10,49 +10,43 @@ let of_int = Int32.of_int
 
 module UnOp = struct
   let clz i =
-      if Int32.equal i 0l
-      then 32l
-      else
-        let j = ref i in
-        let cnt = ref 0 in
-        let break = ref false in
-        let loop = ref 0 in
-        while Bool.equal !break false && !loop < 32 do
-          let r = Int32.logand Int32.min_int !j in
-          if Int32.equal r 0l
-          then (
-            incr cnt ;
-            incr loop ;
-            j := Int32.shift_left !j 1 )
-          else break := true
-        done ;
-        Int32.of_int !cnt
+      let j = ref i in
+      let cnt = ref 0 in
+      let break = ref false in
+      let loop = ref 1 in
+      while Bool.equal !break false && !loop <= 32 do
+        let r = Int32.logand 0x8000_0000l !j in
+        if Int32.equal r 0l
+        then (
+          incr cnt ;
+          incr loop ;
+          j := Int32.shift_left !j 1 )
+        else break := true
+      done ;
+      Int32.of_int !cnt
 
 
   let ctz i =
-      if Int32.equal i 0l
-      then 32l
-      else
-        let j = ref i in
-        let cnt = ref 0 in
-        let break = ref false in
-        let loop = ref 0 in
-        while Bool.equal !break false && !loop < 32 do
-          let r = Int32.logand 1l !j in
-          if Int32.equal r 0l
-          then (
-            incr cnt ;
-            incr loop ;
-            j := Int32.shift_right_logical !j 1 )
-          else break := true
-        done ;
-        Int32.of_int !cnt
+      let j = ref i in
+      let cnt = ref 0 in
+      let break = ref false in
+      let loop = ref 1 in
+      while Bool.equal !break false && !loop <= 32 do
+        let r = Int32.logand 1l !j in
+        if Int32.equal r 0l
+        then (
+          incr cnt ;
+          incr loop ;
+          j := Int32.shift_right_logical !j 1 )
+        else break := true
+      done ;
+      Int32.of_int !cnt
 
 
   let popcont i =
       let j = ref i in
       let cnt = ref 0 in
-      for _ = 0 to 31 do
+      for _ = 1 to 32 do
         let r = Int32.logand 1l !j in
         if Int32.equal r 1l then incr cnt ;
         j := Int32.shift_right_logical !j 1
@@ -82,31 +76,31 @@ module BinOp = struct
   let logxor = Int32.logxor
 
   let shl x y =
-      let k = Int32.to_int y in
+      let k = Int32.to_int y mod 32 in
       Int32.shift_left x k
 
 
   let shr_s x y =
-      let k = Int32.to_int y in
-      Int32.shift_right_logical x k
-
-
-  let shr_u x y =
-      let k = Int32.to_int y in
+      let k = Int32.to_int y mod 32 in
       Int32.shift_right x k
 
 
+  let shr_u x y =
+      let k = Int32.to_int y mod 32 in
+      Int32.shift_right_logical x k
+
+
   let rotl x y =
-      let k = Int32.to_int y in
+      let k = Int32.to_int y mod 32 in
       let l = Int32.shift_left x k in
-      let r = Int32.shift_right x (32 - k) in
+      let r = Int32.shift_right_logical x (32 - k) in
       Int32.add l r
 
 
   let rotr x y =
-      let k = Int32.to_int y in
+      let k = Int32.to_int y mod 32 in
       let l = Int32.shift_left x (32 - k) in
-      let r = Int32.shift_right x k in
+      let r = Int32.shift_right_logical x k in
       Int32.add l r
 end
 
@@ -133,17 +127,41 @@ module RelOp = struct
 end
 
 module CvtOp = struct
-  let wrap_i64 x = Int64.rem x 0x1_0000_0000L |> Int64.to_int32
+  (* https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/i32_convert.ml *)
 
-  let trunc_s_f32 _x = failwith "TODO"
+  let wrap_i64 = Int64.to_int32
 
-  let trunc_s_f64 _x = failwith "TODO"
+  let trunc_s_f32 x =
+      let xf = Int32.float_of_bits x in
+      if Float.is_nan xf then failwith "integer nan" ;
+      if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int)
+      then failwith "integer overflow"
+      else Int32.of_float xf
 
-  let trunc_u_f32 _x = failwith "TODO"
 
-  let trunc_u_f64 _x = failwith "TODO"
+  let trunc_u_f32 x =
+      let xf = Int32.float_of_bits x in
+      if Float.is_nan xf then failwith "integer nan" ;
+      if xf >= -.Int32.(to_float min_int) *. 2.0 || xf <= -1.0
+      then failwith "integer overflow"
+      else xf |> Int64.of_float |> Int64.to_int32
 
-  let reinterpret_f32 _x = failwith "TODO"
 
-  let reinterpret_f64 _x = failwith "TODO"
+  let trunc_s_f64 x =
+      let xf = x in
+      if Float.is_nan xf then failwith "integer nan" ;
+      if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int)
+      then failwith "integer overflow"
+      else Int32.of_float xf
+
+
+  let trunc_u_f64 x =
+      let xf = x in
+      if Float.is_nan xf then failwith "integer nan" ;
+      if xf >= -.Int32.(to_float min_int) *. 2.0 || xf <= -1.0
+      then failwith "integer overflow"
+      else xf |> Int64.of_float |> Int64.to_int32
+
+
+  let reinterpret_f32 x = x
 end

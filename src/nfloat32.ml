@@ -66,11 +66,11 @@ module UnOp = struct
 
   let neg x = Int32.logxor x Int32.min_int
 
-  let sqrt x = unary Stdlib.sqrt x
+  let sqrt x = unary Float.sqrt x
 
-  let ceil x = unary Stdlib.ceil x
+  let ceil x = unary Float.ceil x
 
-  let floor x = unary Stdlib.floor x
+  let floor x = unary Float.floor x
 
   let trunc x =
       let xf = to_float x in
@@ -79,7 +79,7 @@ module UnOp = struct
       then x
       else
         (* trunc is either ceil or floor depending on which one is toward zero *)
-        let f = if xf < 0.0 then Stdlib.ceil xf else Stdlib.floor xf in
+        let f = if xf < 0.0 then Float.ceil xf else Float.floor xf in
         let result = of_float f in
         if is_nan result then determine_unary_nan result else result
 
@@ -91,8 +91,8 @@ module UnOp = struct
       then x
       else
         (* nearest is either ceil or floor depending on which is nearest or even *)
-        let u = Stdlib.ceil xf in
-        let d = Stdlib.floor xf in
+        let u = Float.ceil xf in
+        let d = Float.floor xf in
         let um = abs_float (xf -. u) in
         let dm = abs_float (xf -. d) in
         let u_or_d =
@@ -100,7 +100,7 @@ module UnOp = struct
             || ( um = dm
                &&
                let h = u /. 2. in
-               Stdlib.floor h = h )
+               Float.floor h = h )
         in
         let f = if u_or_d then u else d in
         let result = of_float f in
@@ -160,17 +160,32 @@ module RelOp = struct
 end
 
 module CvtOp = struct
-  let convert_s_i32 _x = failwith ""
+  (* https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/f32_convert.ml *)
 
-  let convert_s_i64 _x = failwith ""
+  let convert_s_i32 x = x |> Int32.to_float |> of_float
 
-  let convert_u_i32 _x = failwith ""
+  let convert_u_i32 x =
+      if x >= 0l
+      then x |> Int32.to_float |> of_float
+      else
+        let xx =
+            Int32.(logor (shift_right_logical x 1) (logand x 1l))
+            |> Int32.to_float
+        in
+        of_float (xx *. 2.0)
 
-  let convert_u_i64 _x = failwith ""
 
-  let demote_f64 _x = failwith ""
+  let convert_s_i64 x = x |> Int64.to_float |> of_float
 
-  let reinterpret_i32 _x = failwith ""
+  let convert_u_i64 x =
+      if x >= 0L
+      then x |> Int64.to_float |> of_float
+      else
+        let xx = Int64.shift_right_logical x 1 |> Int64.to_float in
+        of_float (xx *. 2.0)
 
-  let reinterpret_i64 _x = failwith ""
+
+  let demote_f64 x = if Float.is_nan x then pos_nan else of_float x
+
+  let reinterpret_i32 x = x
 end

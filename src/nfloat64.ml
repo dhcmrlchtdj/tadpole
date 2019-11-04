@@ -51,17 +51,29 @@ module RelOp = struct
 end
 
 module CvtOp = struct
-  let convert_s_i32 _x = failwith ""
+  (* https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/f64_convert.ml *)
 
-  let convert_s_i64 _x = failwith ""
+  let convert_s_i32 x = Int32.to_float x
 
-  let convert_u_i32 _x = failwith ""
+  let convert_u_i32 x =
+      let xx = Int64.logand (Int64.of_int32 x) 0x0000_0000_FFFF_FFFFL in
+      Int64.to_float xx
 
-  let convert_u_i64 _x = failwith ""
 
-  let promote_f32 _x = failwith ""
+  let convert_s_i64 x = Int64.to_float x
 
-  let reinterpret_i32 _x = failwith ""
+  let convert_u_i64 x =
+      if Int64.compare x 0L >= 0
+      then Int64.to_float x
+      else
+        let xx =
+            Int64.(logor (shift_right_logical x 1) (logand x 1L))
+            |> Int64.to_float
+        in
+        xx *. 2.0
 
-  let reinterpret_i64 _x = failwith ""
+
+  let promote_f32 x = Int32.float_of_bits x
+
+  let reinterpret_i64 x = Int64.float_of_bits x
 end
