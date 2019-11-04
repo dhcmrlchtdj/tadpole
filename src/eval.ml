@@ -153,150 +153,140 @@ let alloc_module
 
 (* ******** *)
 
-let rec aux_stack_pop_n acc n stack =
-    if n = 0
-    then List.rev acc
-    else
-      match stack with
-          | Value v :: t -> aux_stack_pop_n (v :: acc) (n - 1) t
-          | _ -> failwith "assert failure"
-
-
-let aux_trap (ctx : context) =
-    let stack = [ Instr (Iadmin Trap) ] in
-    { ctx with stack }
-
+let aux_trap (ctx : context) = { ctx with cont = [ Instr (Iadmin Trap) ] }
 
 let aux_get_functype = function
     | Func { functype; _ } -> functype
     | HostFunc { functype; _ } -> functype
 
 
+let aux_instrs_to_stack instrs = List.map (fun i -> Instr i) instrs
+
 (* ******** *)
 
 let rec eval_expr (ctx : context) : value * context =
     let ctx2 = eval_instr ctx in
-    match ctx2.stack with
-        | Value v :: _ -> (v, ctx2)
+    (* TODO: trap *)
+    match ctx2.evaluated with
+        | v :: _ -> (v, ctx2)
         | _ -> failwith "assert failure"
 
 
 and eval_instr (ctx : context) : context =
-    match ctx.stack with
-        | Instr (Inumeric i) :: stack ->
-            eval_numeric_instr { ctx with stack } i
-        | Instr (Iparametric i) :: stack ->
-            eval_parametric_instr { ctx with stack } i
-        | Instr (Ivariable i) :: stack ->
-            eval_variable_instr { ctx with stack } i
-        | Instr (Imemory i) :: stack -> eval_memory_instr { ctx with stack } i
-        | Instr (Icontrol i) :: stack ->
-            eval_control_instr { ctx with stack } i
-        | Instr (Iadmin i) :: stack -> eval_admin_instr { ctx with stack } i
+    match ctx.cont with
+        | Instr (Inumeric i) :: cont -> eval_numeric_instr { ctx with cont } i
+        | Instr (Iparametric i) :: cont ->
+            eval_parametric_instr { ctx with cont } i
+        | Instr (Ivariable i) :: cont ->
+            eval_variable_instr { ctx with cont } i
+        | Instr (Imemory i) :: cont -> eval_memory_instr { ctx with cont } i
+        | Instr (Icontrol i) :: cont -> eval_control_instr { ctx with cont } i
+        | Instr (Iadmin i) :: cont -> eval_admin_instr { ctx with cont } i
         | _ -> failwith ""
 
 
 and eval_numeric_instr (ctx : context) = function
     | Const v ->
-        let stack = Value v :: ctx.stack in
-        { ctx with stack }
+        let evaluated = v :: ctx.evaluated in
+        { ctx with evaluated }
     | UnOp (t, op) -> (
-        match ctx.stack with
-            | Value c :: tail -> (
+        match ctx.evaluated with
+            | c :: tail -> (
                 match EvalNum.unop (t, op, c) with
                     | Some v ->
-                        let stack = Value v :: tail in
-                        { ctx with stack }
+                        let evaluated = v :: tail in
+                        { ctx with evaluated }
                     | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | BinOp (t, op) -> (
-        match ctx.stack with
-            | Value c2 :: Value c1 :: tail -> (
+        match ctx.evaluated with
+            | c2 :: c1 :: tail -> (
                 match EvalNum.binop (t, op, c1, c2) with
                     | Some v ->
-                        let stack = Value v :: tail in
-                        { ctx with stack }
+                        let evaluated = v :: tail in
+                        { ctx with evaluated }
                     | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | TestOp (t, op) -> (
-        match ctx.stack with
-            | Value c :: tail -> (
+        match ctx.evaluated with
+            | c :: tail -> (
                 match EvalNum.testop (t, op, c) with
                     | Some true ->
-                        let stack = Value (I32 1l) :: tail in
-                        { ctx with stack }
+                        let evaluated = I32 1l :: tail in
+                        { ctx with evaluated }
                     | Some false ->
-                        let stack = Value (I32 0l) :: tail in
-                        { ctx with stack }
+                        let evaluated = I32 0l :: tail in
+                        { ctx with evaluated }
                     | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | RelOp (t, op) -> (
-        match ctx.stack with
-            | Value c2 :: Value c1 :: tail -> (
+        match ctx.evaluated with
+            | c2 :: c1 :: tail -> (
                 match EvalNum.relop (t, op, c1, c2) with
                     | Some true ->
-                        let stack = Value (I32 1l) :: tail in
-                        { ctx with stack }
+                        let evaluated = I32 1l :: tail in
+                        { ctx with evaluated }
                     | Some false ->
-                        let stack = Value (I32 0l) :: tail in
-                        { ctx with stack }
+                        let evaluated = I32 0l :: tail in
+                        { ctx with evaluated }
                     | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
     | CvtOp (t2, op, t1) -> (
-        match ctx.stack with
-            | Value c :: tail -> (
+        match ctx.evaluated with
+            | c :: tail -> (
                 match EvalNum.cvtop (t2, op, t1, c) with
                     | Some v ->
-                        let stack = Value v :: tail in
-                        { ctx with stack }
+                        let evaluated = v :: tail in
+                        { ctx with evaluated }
                     | None -> aux_trap ctx )
             | _ -> failwith "assert failure" )
 
 
 and eval_parametric_instr (ctx : context) = function
     | Drop -> (
-        match ctx.stack with
-            | _ :: stack -> { ctx with stack }
+        match ctx.evaluated with
+            | _ :: evaluated -> { ctx with evaluated }
             | _ -> failwith "assert failure" )
     | Select -> (
-        match ctx.stack with
-            | Value (I32 c) :: v2 :: v1 :: t ->
+        match ctx.evaluated with
+            | I32 c :: v2 :: v1 :: tail ->
                 let h = if Int32.equal c 0l then v2 else v1 in
-                let stack = h :: t in
-                { ctx with stack }
+                let evaluated = h :: tail in
+                { ctx with evaluated }
             | _ -> failwith "assert failure" )
 
 
 and eval_variable_instr (ctx : context) = function
     | LocalGet x ->
         let v = ctx.frame.locals.(x) in
-        let stack = Value v :: ctx.stack in
-        { ctx with stack }
+        let evaluated = v :: ctx.evaluated in
+        { ctx with evaluated }
     | LocalSet x -> (
-        match ctx.stack with
-            | Value v :: stack ->
+        match ctx.evaluated with
+            | v :: evaluated ->
                 let () = ctx.frame.locals.(x) <- v in
-                { ctx with stack }
+                { ctx with evaluated }
             | _ -> failwith "assert failure" )
     | LocalTee x -> (
-        match ctx.stack with
-            | h :: _ ->
-                let stack = Instr (Ivariable (LocalSet x)) :: h :: ctx.stack in
-                { ctx with stack }
+        match ctx.evaluated with
+            | h :: t ->
+                let cont = Instr (Ivariable (LocalSet x)) :: ctx.cont in
+                let evaluated = h :: h :: t in
+                { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
     | GlobalGet x ->
         let addr = ctx.frame.moduleinst.globaladdrs.(x) in
         let glob = ctx.store.globals.(addr) in
-        let stack = Value glob.value :: ctx.stack in
-        { ctx with stack }
+        let evaluated = glob.value :: ctx.evaluated in
+        { ctx with evaluated }
     | GlobalSet x -> (
-        match ctx.stack with
-            | Value value :: stack ->
+        match ctx.evaluated with
+            | value :: evaluated ->
                 let addr = ctx.frame.moduleinst.globaladdrs.(x) in
                 let glob = ctx.store.globals.(addr) in
                 let new_glob = { glob with value } in
                 let () = ctx.store.globals.(addr) <- new_glob in
-                { ctx with stack }
+                { ctx with evaluated }
             | _ -> failwith "assert failure" )
 
 
@@ -304,8 +294,8 @@ and eval_memory_instr =
     let rec aux_memory_load ctx (memarg : memarg) len to_value =
         let addr = ctx.frame.moduleinst.memaddrs.(0) in
         let mem = ctx.store.mems.(addr) in
-        match ctx.stack with
-            | Value (I32 i) :: stack ->
+        match ctx.evaluated with
+            | I32 i :: tail ->
                 let ii = Int32.to_int i in
                 let ea = ii + memarg.offset in
                 if ea + len <= Bytes.length mem.data
@@ -313,8 +303,8 @@ and eval_memory_instr =
                   let b = Bytes.make 8 '\000' in
                   let () = Bytes.blit mem.data ea b (8 - len) 8 in
                   let value = to_value b in
-                  let stack = Value value :: stack in
-                  { ctx with stack }
+                  let evaluated = value :: tail in
+                  { ctx with evaluated }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
     and aux_char8_to_int64 b = Bytes.get_int64_le b 0
@@ -338,15 +328,15 @@ and eval_memory_instr =
     let rec aux_memory_store ctx (memarg : memarg) len =
         let addr = ctx.frame.moduleinst.memaddrs.(0) in
         let mem = ctx.store.mems.(addr) in
-        match ctx.stack with
-            | Value c :: Value (I32 i) :: stack ->
+        match ctx.evaluated with
+            | c :: I32 i :: evaluated ->
                 let ii = Int32.to_int i in
                 let ea = memarg.offset + ii in
                 if ea + len <= Bytes.length mem.data
                 then
                   let b = aux_bytes len c in
                   let () = Bytes.blit b 0 mem.data ea len in
-                  { ctx with stack }
+                  { ctx with evaluated }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
     and aux_bytes len value =
@@ -426,22 +416,23 @@ and eval_memory_instr =
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
             let sz = Bytes.length mem.data / page_size in
-            let stack = Value (I32 (Int32.of_int sz)) :: ctx.stack in
-            { ctx with stack }
+            let evaluated = I32 (Int32.of_int sz) :: ctx.evaluated in
+            { ctx with evaluated }
         | MemoryGrow -> (
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
             let sz = Bytes.length mem.data / page_size in
-            match ctx.stack with
-                | Value (I32 n) :: t ->
-                    let stack =
+            match ctx.evaluated with
+                | I32 n :: tail ->
+                    let nsz =
                         match grow_mem mem (Int32.to_int n) with
                             | Some m ->
                                 let () = ctx.store.mems.(addr) <- m in
-                                Value (I32 (Int32.of_int sz)) :: t
-                            | None -> Value (I32 (-1l)) :: t
+                                I32 (Int32.of_int sz)
+                            | None -> I32 (-1l)
                     in
-                    { ctx with stack }
+                    let evaluated = nsz :: tail in
+                    { ctx with evaluated }
                 | _ -> failwith "assert failure" )
         | _ -> failwith "never"
 
@@ -452,54 +443,49 @@ and eval_control_instr (ctx : context) = function
     | Block (rtypes, instrs) ->
         let n = List.length rtypes in
         let l = Instr (Iadmin (Label (n, [], instrs))) in
-        let stack = l :: ctx.stack in
-        (* TODO: enter block with label *)
-        { ctx with stack }
+        let cont = l :: ctx.cont in
+        { ctx with cont }
     | Loop (_, instrs) as sub ->
         let l = Instr (Iadmin (Label (0, [ Icontrol sub ], instrs))) in
-        let stack = l :: ctx.stack in
-        (* TODO: enter block with label *)
-        { ctx with stack }
+        let cont = l :: ctx.cont in
+        { ctx with cont }
     | If (rtypes, instrs1, instrs2) -> (
-        match ctx.stack with
-            | Value (I32 c) :: t ->
+        match ctx.evaluated with
+            | I32 c :: evaluated ->
                 let n = List.length rtypes in
                 let cont = if Int32.equal c 0l then instrs2 else instrs1 in
                 let l = Instr (Iadmin (Label (n, [], cont))) in
-                let stack = l :: t in
-                (* TODO: enter block with label *)
-                { ctx with stack }
+                let cont = l :: ctx.cont in
+                { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
     | Br _l -> failwith "TODO"
     | BrIf l -> (
-        match ctx.stack with
-            | Value (I32 c) :: t ->
-                let stack =
+        match ctx.evaluated with
+            | I32 c :: evaluated ->
+                let cont =
                     if Int32.equal c 0l
-                    then t
-                    else (* TODO: execute br *) Instr (Icontrol (Br l)) :: t
+                    then ctx.cont
+                    else Instr (Icontrol (Br l)) :: ctx.cont
                 in
-                { ctx with stack }
+                { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
     | BrTable (ls, l) -> (
-        match ctx.stack with
-            | Value (I32 i) :: t ->
+        match ctx.evaluated with
+            | I32 i :: evaluated ->
                 let ii = Int32.to_int i in
                 let br =
                     if ii < Array.length ls
                     then Instr (Icontrol (Br ls.(ii)))
                     else Instr (Icontrol (Br l))
                 in
-                (* TODO: execute br *)
-                let stack = br :: t in
-                { ctx with stack }
+                let cont = br :: ctx.cont in
+                { ctx with evaluated; cont }
             | _ -> failwith "assert failure" )
     | Return -> failwith "TODO"
     | Call x ->
         let addr = ctx.frame.moduleinst.funcaddrs.(x) in
-        let stack = Instr (Iadmin (Invoke addr)) :: ctx.stack in
-        (* TODO: invoke func *)
-        { ctx with stack }
+        let cont = Instr (Iadmin (Invoke addr)) :: ctx.cont in
+        { ctx with cont }
     | CallIndirect x -> (
         let aux_ft_eq (expect : functype) (actual : functype) : bool =
             let (e_param, e_arg) = expect in
@@ -511,8 +497,8 @@ and eval_control_instr (ctx : context) = function
         let taddr = ctx.frame.moduleinst.tableaddrs.(0) in
         let tab = ctx.store.tables.(taddr) in
         let ft_expect = ctx.frame.moduleinst.types.(x) in
-        match ctx.stack with
-            | Value (I32 i) :: t ->
+        match ctx.evaluated with
+            | I32 i :: evaluated ->
                 let ii = Int32.to_int i in
                 if ii < Array.length tab.elem
                 then
@@ -522,9 +508,10 @@ and eval_control_instr (ctx : context) = function
                           let ft_actual = aux_get_functype f in
                           if aux_ft_eq ft_expect ft_actual
                           then
-                            let stack = Instr (Iadmin (Invoke faddr)) :: t in
-                            (* TODO: invoke func *)
-                            { ctx with stack }
+                            let cont =
+                                Instr (Iadmin (Invoke faddr)) :: ctx.cont
+                            in
+                            { ctx with evaluated; cont }
                           else aux_trap ctx
                       | None -> aux_trap ctx
                 else aux_trap ctx
@@ -547,7 +534,9 @@ and eval_admin_instr (ctx : context) = function
                             | TF64 -> F64 0.0)
                       func.func.locals
                 in
-                let vals = aux_stack_pop_n [] (List.length params) ctx.stack in
+                let n = List.length params in
+                let vals = List.take n ctx.evaluated in
+                let evaluated = List.drop n ctx.evaluated in
                 let locals = Array.of_list (vals @ val0) in
                 let frame = { moduleinst = func.moduleinst; locals } in
                 let instrs = func.func.body in
@@ -555,16 +544,16 @@ and eval_admin_instr (ctx : context) = function
                     Icontrol (Block (List.map (fun x -> Some x) rets, instrs))
                 in
                 let iframe =
-                    Instr (Iadmin (Frame (List.length rets, frame, [ block ])))
+                    let m = List.length rets in
+                    Instr (Iadmin (Frame (m, frame, [ block ])))
                 in
-                let stack = iframe :: ctx.stack in
-                (* TODO: execute block *)
-                { ctx with stack }
+                let cont = iframe :: ctx.cont in
+                { ctx with evaluated; cont }
             | HostFunc _ -> failwith "TODO" )
+    (* | InitElem _ -> failwith "TODO" *)
+    (* | InitData _ -> failwith "TODO" *)
     | Label _ -> failwith "TODO"
     | Frame _ -> failwith "TODO"
-    | InitElem _ -> failwith "TODO"
-    | InitData _ -> failwith "TODO"
 
 
 (* ******** *)
@@ -601,9 +590,8 @@ let invoke =
               values |> List.map (fun v -> Value v) |> List.rev
           in
           let cont = Instr (Iadmin (Invoke f)) :: stack_values in
-          (* let ctx = eval_instr { store; frame; stack = []; cont } in *)
-          (* aux_stack_pop_n [] (List.length rets) ctx.stack *)
-          eval_instr { store; frame; stack = []; cont }
+          let ctx = { store; frame; evaluated = []; cont } in
+          eval_instr ctx
         else failwith "argument error"
 
 
@@ -612,9 +600,6 @@ let invoke =
 let instantiate (s : store) (m : moduledef) (externs : externval list)
     : context
   =
-    let expr2stack expr = List.map (fun i -> Instr i) expr in
-    (* let _ = validate m in *)
-    (* assert (Array.length m.imports = List.length externs) ; *)
     let vals =
         let global_externs =
             externs
@@ -638,8 +623,8 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
         in
         let frame = { locals = [||]; moduleinst } in
         let f (g : global) =
-            let stack = expr2stack g.init in
-            let ctx = { store = s; frame; stack; cont = [] } in
+            let cont = aux_instrs_to_stack g.init in
+            let ctx = { store = s; frame; evaluated = []; cont } in
             let (v, _) = eval_expr ctx in
             v
         in
@@ -647,11 +632,11 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
     in
     let (store, moduleinst) = alloc_module s m vals externs in
     let frame = { locals = [||]; moduleinst } in
-    let ctx0 = { store; frame; stack = []; cont = [] } in
+    let ctx0 = { store; frame; evaluated = []; cont = [] } in
     let ctx1 =
         let f (ctx : context) (el : elem) =
-            let stack = expr2stack el.offset in
-            let (v, ctx_r) = eval_expr { ctx with stack } in
+            let cont = aux_instrs_to_stack el.offset in
+            let (v, ctx_r) = eval_expr { ctx with cont } in
             let offset =
                 match v with
                     | I32 x -> Int32.to_int x
@@ -673,8 +658,8 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
     in
     let ctx2 =
         let f (ctx : context) (dat : data) =
-            let stack = expr2stack dat.offset in
-            let (v, ctx_r) = eval_expr { ctx with stack } in
+            let cont = aux_instrs_to_stack dat.offset in
+            let (v, ctx_r) = eval_expr { ctx with cont } in
             let offset =
                 match v with
                     | I32 x -> Int32.to_int x

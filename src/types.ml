@@ -362,6 +362,6 @@ and stack_entry =
 type context = {
     store : store;
     frame : frame;
-    stack : stack;
+    evaluated : value list;
     cont : stack;
   }
