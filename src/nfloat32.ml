@@ -196,4 +196,10 @@ let to_bytes x =
     b
 
 
+let to_bytes_le x =
+    let b = Bytes.create 8 in
+    let () = Bytes.set_int32_le b 0 x in
+    b
+
+
 let of_bytes b = Bytes.get_int32_be b 0

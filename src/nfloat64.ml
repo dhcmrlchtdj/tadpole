@@ -11,6 +11,13 @@ let to_bytes x =
     b
 
 
+let to_bytes_le x =
+    let x = Int64.bits_of_float x in
+    let b = Bytes.create 8 in
+    let () = Bytes.set_int64_le b 0 x in
+    b
+
+
 let of_bytes b = Bytes.get_int64_be b 0 |> Int64.float_of_bits
 
 module UnOp = struct

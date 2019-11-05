@@ -45,7 +45,7 @@ type valtype =
     | TF64
 [@@deriving eq]
 
-type resulttype = valtype option list
+type resulttype = valtype list
 
 type functype = valtype list * valtype list
 
@@ -174,8 +174,8 @@ and cvtop =
 (* ******** *)
 
 type memarg = {
-    offset : u32;
     align : u32;
+    offset : u32;
   }
 
 (* ******** *)

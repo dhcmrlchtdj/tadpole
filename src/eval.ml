@@ -559,9 +559,7 @@ and eval_admin_instr (ctx : context) = function
                 let locals = Array.of_list (vals @ val0) in
                 let frame = { moduleinst = func.moduleinst; locals } in
                 let instrs = func.func.body in
-                let block =
-                    Icontrol (Block (List.map (fun x -> Some x) rets, instrs))
-                in
+                let block = Icontrol (Block (rets, instrs)) in
                 let iframe =
                     let m = List.length rets in
                     Iadmin (Frame (m, frame, [ block ]))
