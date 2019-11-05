@@ -2,28 +2,22 @@ open Types
 
 let concat = String.concat ""
 
-module LEB128 = struct
-  let unsign_encode _x = "TODO"
-
-  let sign_encode _x = "TODO"
-end
-
 module Value = struct
   let byte = Bytes.to_string
 
-  let uint (x : u32) = LEB128.unsign_encode x
+  let name (x : string) = x
 
-  let i32 (x : Nint32.t) = LEB128.sign_encode x
+  let uint (x : u32) = Leb128.Unsigned.encode (Int64.of_int x)
 
-  let i64 (x : Nint64.t) = LEB128.sign_encode x
+  let idx = uint
+
+  let i32 (x : Nint32.t) = Leb128.Signed.encode (Nint64.of_int32 x)
+
+  let i64 (x : Nint64.t) = Leb128.Signed.encode x
 
   let f32 (x : Nfloat32.t) = x |> Nfloat32.to_bytes_le |> Bytes.to_string
 
   let f64 (x : Nfloat64.t) = x |> Nfloat64.to_bytes_le |> Bytes.to_string
-
-  let name (x : string) = x
-
-  let idx = uint
 end
 
 module Type = struct
@@ -307,4 +301,12 @@ module Instruction = struct
       | _ -> "TODO"
 end
 
-let to_string (_datums : Datum.t list) : string = "TODO"
+module Modules = struct
+  let magic = "\x00\x61\x73\x6d"
+
+  let version = "\x01\x00\x00\x00"
+
+  let to_string (m : moduledef) = concat [ magic; version; "" ]
+end
+
+let to_string = Modules.to_string
