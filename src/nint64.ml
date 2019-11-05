@@ -12,6 +12,26 @@ let to_int32 = Int64.to_int32
 
 let of_int32 = Int64.of_int32
 
+let bits_of_float = Int64.bits_of_float
+
+let float_if_bits = Int64.float_of_bits
+
+let wrap_to n x =
+    match n with
+        | 8 -> Int64.rem x 0x100L
+        | 16 -> Int64.rem x 0x1_0000L
+        | 32 -> Int64.rem x 0x1_0000_0000L
+        | _ -> failwith "never"
+
+
+let to_bytes x =
+    let b = Bytes.create 8 in
+    let () = Bytes.set_int64_be b 0 x in
+    b
+
+
+let of_bytes b = Bytes.get_int64_be b 0
+
 module UnOp = struct
   let clz i =
       let j = ref i in

@@ -298,13 +298,13 @@ and variable_instr =
 
 and memory_instr =
     | Load of valtype * memarg
-    | Store of valtype * memarg
     | Load8S of valtype * memarg
     | Load8U of valtype * memarg
     | Load16S of valtype * memarg
     | Load16U of valtype * memarg
     | Load32S of valtype * memarg
     | Load32U of valtype * memarg
+    | Store of valtype * memarg
     | Store8 of valtype * memarg
     | Store16 of valtype * memarg
     | Store32 of valtype * memarg

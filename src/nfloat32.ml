@@ -189,3 +189,11 @@ module CvtOp = struct
 
   let reinterpret_i32 x = x
 end
+
+let to_bytes x =
+    let b = Bytes.create 8 in
+    let () = Bytes.set_int32_be b 0 x in
+    b
+
+
+let of_bytes b = Bytes.get_int32_be b 0

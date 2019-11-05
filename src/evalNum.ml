@@ -130,6 +130,7 @@ let relop = function
 
 
 let cvtop = function
+    (* TI32 *)
     | (TI32, CVT_WRAP, TI64, I64 x) -> Some (I32 (Nint32.CvtOp.wrap_i64 x))
     | (TI32, CVT_TRUNC_S, TF32, F32 x) ->
         Some (I32 (Nint32.CvtOp.trunc_s_f32 x))
@@ -141,6 +142,7 @@ let cvtop = function
         Some (I32 (Nint32.CvtOp.trunc_u_f64 x))
     | (TI32, CVT_REINTERPRET, TF32, F32 x) ->
         Some (I32 (Nint32.CvtOp.reinterpret_f32 x))
+    (* TI64 *)
     | (TI64, CVT_EXTEND_S, TI32, I32 x) ->
         Some (I64 (Nint64.CvtOp.extend_s_i32 x))
     | (TI64, CVT_EXTEND_U, TI32, I32 x) ->
@@ -155,6 +157,7 @@ let cvtop = function
         Some (I64 (Nint64.CvtOp.trunc_u_f64 x))
     | (TI64, CVT_REINTERPRET, TF64, F64 x) ->
         Some (I64 (Nint64.CvtOp.reinterpret_f64 x))
+    (* TF32 *)
     | (TF32, CVT_CONVERT_S, TI32, I32 x) ->
         Some (F32 (Nfloat32.CvtOp.convert_s_i32 x))
     | (TF32, CVT_CONVERT_S, TI64, I64 x) ->
@@ -167,6 +170,7 @@ let cvtop = function
         Some (F32 (Nfloat32.CvtOp.demote_f64 x))
     | (TF32, CVT_REINTERPRET, TI32, I32 x) ->
         Some (F32 (Nfloat32.CvtOp.reinterpret_i32 x))
+    (* TF64 *)
     | (TF64, CVT_CONVERT_S, TI32, I32 x) ->
         Some (F64 (Nfloat64.CvtOp.convert_s_i32 x))
     | (TF64, CVT_CONVERT_S, TI64, I64 x) ->

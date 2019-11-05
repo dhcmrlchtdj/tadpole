@@ -4,6 +4,15 @@ type t = Float.t
 
 let equal = Float.equal
 
+let to_bytes x =
+    let x = Int64.bits_of_float x in
+    let b = Bytes.create 8 in
+    let () = Bytes.set_int64_be b 0 x in
+    b
+
+
+let of_bytes b = Bytes.get_int64_be b 0 |> Int64.float_of_bits
+
 module UnOp = struct
   let abs = Float.abs
 

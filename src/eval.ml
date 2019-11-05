@@ -300,7 +300,7 @@ and eval_variable_instr (ctx : context) = function
 
 
 and eval_memory_instr =
-    let rec aux_memory_load ctx (memarg : memarg) len to_value =
+    let aux_memory_load ctx (memarg : memarg) len pad to_value =
         let addr = ctx.frame.moduleinst.memaddrs.(0) in
         let mem = ctx.store.mems.(addr) in
         match ctx.evaluated with
@@ -309,32 +309,33 @@ and eval_memory_instr =
                 let ea = ii + memarg.offset in
                 if ea + len <= Bytes.length mem.data
                 then
-                  let b = Bytes.make 8 '\000' in
-                  let () = Bytes.blit mem.data ea b (8 - len) 8 in
-                  let value = to_value b in
+                  let bvalue = Bytes.create len in
+                  let () = Bytes.blit mem.data ea bvalue 0 len in
+                  let value = bvalue |> pad |> to_value in
                   let evaluated = value :: tail in
                   { ctx with evaluated }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
-    and aux_char8_to_int64 b = Bytes.get_int64_le b 0
-    and aux_char8_to_int64_s n arr =
-        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
-        let pos =
-            match n with
-                | 8 -> 7
-                | 16 -> 6
-                | 32 -> 4
-                | _ -> failwith "never"
+    and sign_pad f t x =
+        let flen = f / 8 in
+        let tlen = t / 8 in
+        let padding = Bytes.make (tlen - flen) '\000' in
+        let first_code = Bytes.get x 0 |> Char.code in
+        let unsign = first_code land 0x7F in
+        let () =
+            if first_code <> unsign
+            then
+              let () = Bytes.set padding 0 (Char.chr 0x80) in
+              Bytes.set x 0 (Char.chr unsign)
         in
-        let sign = Char.code (Bytes.get arr pos) in
-        if sign lsr 7 = 1
-        then (
-          Bytes.set arr pos (Char.chr (sign land 0x7F)) ;
-          let x = aux_char8_to_int64 arr in
-          Int64.neg x )
-        else aux_char8_to_int64 arr
+        Bytes.cat padding x
+    and unsign_pad f t x =
+        let flen = f / 8 in
+        let tlen = t / 8 in
+        let padding = Bytes.make (tlen - flen) '\000' in
+        Bytes.cat padding x
     in
-    let rec aux_memory_store ctx (memarg : memarg) len =
+    let aux_memory_store ctx (memarg : memarg) len to_bytes =
         let addr = ctx.frame.moduleinst.memaddrs.(0) in
         let mem = ctx.store.mems.(addr) in
         match ctx.evaluated with
@@ -343,84 +344,95 @@ and eval_memory_instr =
                 let ea = memarg.offset + ii in
                 if ea + len <= Bytes.length mem.data
                 then
-                  let b = aux_bytes len c in
-                  let () = Bytes.blit b 0 mem.data ea len in
+                  let bvalue = to_bytes c in
+                  let start = Bytes.length bvalue - len in
+                  let () = Bytes.blit bvalue start mem.data ea len in
                   { ctx with evaluated }
                 else aux_trap ctx
             | _ -> failwith "assert failure"
-    and aux_bytes len value =
-        if Sys.big_endian then failwith "FIXME: deal with big_endian" ;
-        let i64 =
-            match value with
-                | I32 x -> Nint64.of_int32 x
-                | I64 x -> x
-                | F32 x -> x |> Float32.int32_of_bits |> Nint64.of_int32
-                | F64 x -> Nint64.bits_of_float x
-        in
-        let arr = Bytes.make 8 '\000' in
-        let x = ref i64 in
-        for i = 7 downto 0 do
-          let data = !x |> Int64.logand 0xFFL |> Nint64.to_int |> Char.chr in
-          Bytes.set arr i data ;
-          x := Int64.shift_right_logical !x 8
-        done ;
-        Bytes.sub arr (8 - len) len
+    and to_bytes value =
+        match value with
+            | I32 x -> Nint32.to_bytes x
+            | I64 x -> Nint64.to_bytes x
+            | F32 x -> Nfloat32.to_bytes x
+            | F64 x -> Nfloat64.to_bytes x
+    and to_bytes_n n value =
+        match value with
+            | I32 x -> x |> Nint32.wrap_to n |> Nint32.to_bytes
+            | I64 x -> x |> Nint64.wrap_to n |> Nint64.to_bytes
+            | F32 _ | F64 _ -> failwith "never"
     in
     fun (ctx : context) -> function
-        | Load (TI32, memarg) ->
-            aux_memory_load ctx memarg 4 (fun arr ->
-                I32 (aux_char8_to_int64 arr |> Nint64.to_int32))
-        | Load (TI64, memarg) ->
-            aux_memory_load ctx memarg 8 (fun arr ->
-                I64 (aux_char8_to_int64 arr))
         | Load (TF32, memarg) ->
-            aux_memory_load ctx memarg 4 (fun arr ->
-                F32
-                  ( aux_char8_to_int64 arr
-                  |> Nint64.to_int32
-                  |> Float32.bits_of_int32 ))
+            aux_memory_load
+              ctx
+              memarg
+              4
+              (fun x -> x)
+              (fun b -> F32 (Nfloat32.of_bytes b))
         | Load (TF64, memarg) ->
-            aux_memory_load ctx memarg 8 (fun arr ->
-                F64 (aux_char8_to_int64 arr |> Int64.float_of_bits))
+            aux_memory_load
+              ctx
+              memarg
+              8
+              (fun x -> x)
+              (fun b -> F64 (Nfloat64.of_bytes b))
+        | Load (TI32, memarg) ->
+            aux_memory_load
+              ctx
+              memarg
+              4
+              (fun x -> x)
+              (fun b -> I32 (Nint32.of_bytes b))
+        | Load (TI64, memarg) ->
+            aux_memory_load
+              ctx
+              memarg
+              8
+              (fun x -> x)
+              (fun b -> I64 (Nint64.of_bytes b))
         | Load8S (TI32, memarg) ->
-            aux_memory_load ctx memarg 1 (fun arr ->
-                I32 (aux_char8_to_int64_s 8 arr |> Int64.to_int32))
-        | Load8S (TI64, memarg) ->
-            aux_memory_load ctx memarg 1 (fun arr ->
-                I64 (aux_char8_to_int64_s 8 arr))
+            aux_memory_load ctx memarg 1 (sign_pad 8 32) (fun b ->
+                I32 (Nint32.of_bytes b))
         | Load8U (TI32, memarg) ->
-            aux_memory_load ctx memarg 1 (fun arr ->
-                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
-        | Load8U (TI64, memarg) ->
-            aux_memory_load ctx memarg 1 (fun arr ->
-                I64 (aux_char8_to_int64 arr))
+            aux_memory_load ctx memarg 1 (sign_pad 8 32) (fun b ->
+                I32 (Nint32.of_bytes b))
         | Load16S (TI32, memarg) ->
-            aux_memory_load ctx memarg 2 (fun arr ->
-                I32 (aux_char8_to_int64_s 16 arr |> Int64.to_int32))
-        | Load16S (TI64, memarg) ->
-            aux_memory_load ctx memarg 2 (fun arr ->
-                I64 (aux_char8_to_int64_s 16 arr))
+            aux_memory_load ctx memarg 2 (unsign_pad 16 32) (fun b ->
+                I32 (Nint32.of_bytes b))
         | Load16U (TI32, memarg) ->
-            aux_memory_load ctx memarg 2 (fun arr ->
-                I32 (aux_char8_to_int64 arr |> Int64.to_int32))
+            aux_memory_load ctx memarg 2 (unsign_pad 16 32) (fun b ->
+                I32 (Nint32.of_bytes b))
+        | Load8S (TI64, memarg) ->
+            aux_memory_load ctx memarg 1 (sign_pad 8 64) (fun b ->
+                I64 (Nint64.of_bytes b))
+        | Load8U (TI64, memarg) ->
+            aux_memory_load ctx memarg 1 (unsign_pad 8 64) (fun b ->
+                I64 (Nint64.of_bytes b))
+        | Load16S (TI64, memarg) ->
+            aux_memory_load ctx memarg 2 (sign_pad 16 64) (fun b ->
+                I64 (Nint64.of_bytes b))
         | Load16U (TI64, memarg) ->
-            aux_memory_load ctx memarg 2 (fun arr ->
-                I64 (aux_char8_to_int64 arr))
+            aux_memory_load ctx memarg 2 (unsign_pad 16 64) (fun b ->
+                I64 (Nint64.of_bytes b))
         | Load32S (TI64, memarg) ->
-            aux_memory_load ctx memarg 4 (fun arr ->
-                I64 (aux_char8_to_int64_s 32 arr))
+            aux_memory_load ctx memarg 4 (sign_pad 64 64) (fun b ->
+                I64 (Nint64.of_bytes b))
         | Load32U (TI64, memarg) ->
-            aux_memory_load ctx memarg 4 (fun arr ->
-                I64 (aux_char8_to_int64 arr))
-        | Store (TI32, memarg) -> aux_memory_store ctx memarg 4
-        | Store (TI64, memarg) -> aux_memory_store ctx memarg 8
-        | Store (TF32, memarg) -> aux_memory_store ctx memarg 4
-        | Store (TF64, memarg) -> aux_memory_store ctx memarg 8
-        | Store8 (TI32, memarg) -> aux_memory_store ctx memarg 1
-        | Store8 (TI64, memarg) -> aux_memory_store ctx memarg 1
-        | Store16 (TI32, memarg) -> aux_memory_store ctx memarg 2
-        | Store16 (TI64, memarg) -> aux_memory_store ctx memarg 2
-        | Store32 (TI64, memarg) -> aux_memory_store ctx memarg 4
+            aux_memory_load ctx memarg 4 (unsign_pad 64 64) (fun b ->
+                I64 (Nint64.of_bytes b))
+        | Store (TF32, memarg) -> aux_memory_store ctx memarg 4 to_bytes
+        | Store (TF64, memarg) -> aux_memory_store ctx memarg 8 to_bytes
+        | Store (TI32, memarg) -> aux_memory_store ctx memarg 4 to_bytes
+        | Store (TI64, memarg) -> aux_memory_store ctx memarg 8 to_bytes
+        | Store8 (TI32, memarg) -> aux_memory_store ctx memarg 1 (to_bytes_n 8)
+        | Store8 (TI64, memarg) -> aux_memory_store ctx memarg 1 (to_bytes_n 8)
+        | Store16 (TI32, memarg) ->
+            aux_memory_store ctx memarg 2 (to_bytes_n 16)
+        | Store16 (TI64, memarg) ->
+            aux_memory_store ctx memarg 2 (to_bytes_n 16)
+        | Store32 (TI64, memarg) ->
+            aux_memory_store ctx memarg 4 (to_bytes_n 32)
         | MemorySize ->
             let addr = ctx.frame.moduleinst.memaddrs.(0) in
             let mem = ctx.store.mems.(addr) in
