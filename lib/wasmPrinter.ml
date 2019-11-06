@@ -2,12 +2,24 @@ open Types
 
 let concat = String.concat ""
 
+let uint (x : u32) = Leb128.Unsigned.encode (Int64.of_int x)
+
+let vec bs =
+    let size = List.length bs in
+    concat (uint size :: bs)
+
+
 module Value = struct
-  let byte = Bytes.to_string
+  let byte (x : bytes) =
+      let xx = Bytes.to_string x in
+      let size = Bytes.length xx in
+      concat [ uint size; xx ]
 
-  let name (x : string) = x
 
-  let uint (x : u32) = Leb128.Unsigned.encode (Int64.of_int x)
+  let name (x : string) =
+      let size = String.length x in
+      concat [ uint size; x ]
+
 
   let idx = uint
 
@@ -42,14 +54,15 @@ module Type = struct
 
 
   let functype ((ps, rs) : functype) =
-      concat
-        [ "\x60"; concat (List.map valtype ps); concat (List.map valtype rs) ]
+      let pss = vec (List.map valtype ps) in
+      let rss = vec (List.map valtype rs) in
+      concat [ "\x60"; pss; rss ]
 
 
   let limits ({ min; max } : limits) =
       match max with
-          | None -> concat [ "\x00"; Value.uint min ]
-          | Some max -> concat [ "\x01"; Value.uint min; Value.uint max ]
+          | None -> concat [ "\x00"; uint min ]
+          | Some max -> concat [ "\x01"; uint min; uint max ]
 
 
   let memtype x = limits x
@@ -60,9 +73,7 @@ module Type = struct
 end
 
 module Instruction = struct
-  let memarg ({ align; offset } : memarg) =
-      concat [ Value.uint align; Value.uint offset ]
-
+  let memarg ({ align; offset } : memarg) = concat [ uint align; uint offset ]
 
   let rec expr is = concat [ instrs is; "\x0B" ]
 
@@ -289,7 +300,7 @@ module Instruction = struct
           concat
             [
               "\x0E";
-              concat (larr |> Array.map Value.idx |> Array.to_list);
+              vec (larr |> Array.map Value.idx |> Array.to_list);
               Value.idx l;
             ]
       | Return -> "\x0F"
@@ -306,7 +317,117 @@ module Modules = struct
 
   let version = "\x01\x00\x00\x00"
 
-  let to_string (m : moduledef) = concat [ magic; version; "" ]
+  let aux_section sid arr =
+      let cont = vec (Array.to_list arr) in
+      let size = String.length cont in
+      concat [ sid; uint size; cont ]
+
+
+  let typesec (m : moduledef) =
+      aux_section "\x01" (Array.map Type.functype m.types)
+
+
+  let importsec (m : moduledef) =
+      let rec import (i : import) =
+          concat [ Value.name i.modname; Value.name i.name; importdesc i.desc ]
+      and importdesc = function
+          | ID_func x -> concat [ "\x00"; Value.idx x ]
+          | ID_table tt -> concat [ "\x01"; Type.tabletype tt ]
+          | ID_mem mt -> concat [ "\x02"; Type.memtype mt ]
+          | ID_global gt -> concat [ "\x03"; Type.globaltype gt ]
+      in
+      aux_section "\x02" (Array.map import m.imports)
+
+
+  let funcsec (m : moduledef) =
+      aux_section "\x03" (Array.map (fun f -> Value.idx f.typei) m.funcs)
+
+
+  let tablesec (m : moduledef) =
+      aux_section "\x04" (Array.map (fun t -> Type.tabletype t.ttype) m.tables)
+
+
+  let memsec (m : moduledef) =
+      aux_section "\x05" (Array.map (fun m -> Type.memtype m.mtype) m.mems)
+
+
+  let globalsec (m : moduledef) =
+      aux_section
+        "\x06"
+        (Array.map (fun g -> Type.globaltype g.gtype) m.globals)
+
+
+  let exportsec (m : moduledef) =
+      let rec export (e : export) =
+          concat [ Value.name e.name; exportdesc e.desc ]
+      and exportdesc = function
+          | ED_func i -> concat [ "\x00"; Value.idx i ]
+          | ED_table i -> concat [ "\x01"; Value.idx i ]
+          | ED_mem i -> concat [ "\x02"; Value.idx i ]
+          | ED_global i -> concat [ "\x03"; Value.idx i ]
+      in
+      aux_section "\x07" (Array.map export m.exports)
+
+
+  let startsec (m : moduledef) =
+      match m.start with
+          | None -> ""
+          | Some { func } ->
+              let cont = Value.idx func in
+              let size = String.length cont in
+              concat [ "\x08"; uint size; cont ]
+
+
+  let elemsec (m : moduledef) =
+      let elem (e : elem) =
+          let x = Value.idx e.table in
+          let ee = Instruction.expr e.offset in
+          let y = vec (List.map Value.idx e.init) in
+          concat [ x; ee; y ]
+      in
+      aux_section "\x09" (Array.map elem m.elem)
+
+
+  let codesec (m : moduledef) =
+      let code (func : func) =
+          let n = List.length func.locals in
+          let ts = List.map Type.valtype func.locals in
+          let t = vec (uint n :: ts) in
+          let e = Instruction.expr func.body in
+          let f = concat [ t; e ] in
+          let size = String.length f in
+          concat [ uint size; f ]
+      in
+      aux_section "\x0a" (Array.map code m.funcs)
+
+
+  let datasec (m : moduledef) =
+      let data (d : data) =
+          let x = Value.idx d.data in
+          let e = Instruction.expr d.offset in
+          let b = Value.byte d.init in
+          concat [ x; e; b ]
+      in
+      aux_section "\x0b" (Array.map data m.data)
+
+
+  let to_string (m : moduledef) =
+      concat
+        [
+          magic;
+          version;
+          typesec m;
+          importsec m;
+          funcsec m;
+          tablesec m;
+          memsec m;
+          globalsec m;
+          exportsec m;
+          startsec m;
+          elemsec m;
+          codesec m;
+          datasec m;
+        ]
 end
 
 let to_string = Modules.to_string
