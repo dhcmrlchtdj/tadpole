@@ -19,7 +19,7 @@ doc:
 
 install:
 	dune build @install
-	# dune install
+	dune install
 
 .PHONY: run build test clean fmt doc
 .PHONY: install

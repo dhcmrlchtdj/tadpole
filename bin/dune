@@ -1,4 +1,5 @@
 (executables
+ ; (public_names wasm wat)
  (names wasm wat)
  (libraries containers tadpole)
  (flags
