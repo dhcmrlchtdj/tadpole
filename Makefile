@@ -1,25 +1,25 @@
 SHELL := /usr/local/bin/bash
 
-# run: build
-#     ./_build/default/main.bc
+run: build
 
 build:
-	dune build @all
+	dune build @default
 
 test:
-	echo "TODO"
+	dune runtest
 
 clean:
 	dune clean
 
 fmt:
-	ocamlformat -i src/*.ml
+	ocamlformat -i */*.ml
 
 doc:
-	echo "TODO"
+	dune build @doc
 
-install: build
-	dune install
+install:
+	dune build @install
+	# dune install
 
 .PHONY: run build test clean fmt doc
 .PHONY: install

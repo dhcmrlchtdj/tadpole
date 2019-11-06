@@ -1,5 +1,3 @@
-open! Containers
-
 module Doc = struct
   let sprintf = Printf.sprintf
 
@@ -16,7 +14,7 @@ module Doc = struct
   let to_string =
       let rec aux used = function
           | Text s -> s
-          | Newline i -> sprintf "\n%s" (String.repeat " " i)
+          | Newline i -> sprintf "\n%s" (CCString.repeat " " i)
           | Group d ->
               let s = to_string_group d in
               let len = String.length s in

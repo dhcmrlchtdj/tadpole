@@ -1,4 +1,5 @@
 open! Containers
+open Tadpole
 
 module type Scanner = sig
   val scan : string -> Token.t list
@@ -38,8 +39,7 @@ module Make (Scanner : Scanner) = struct
           s
           |> Scanner.scan
           |> Parser.parse
-          |> WasmPrinter.to_string
-          |> print_endline)
+          |> fun _ -> "" (* |> WasmPrinter.to_string *) |> print_endline)
 
 
   let print_val =
@@ -48,8 +48,7 @@ module Make (Scanner : Scanner) = struct
           |> Scanner.scan
           |> Parser.parse
           |> Evaluator.eval
-          |> Evaluator.show_value
-          |> print_endline)
+          |> fun _ -> "" (* |> Evaluator.show_value *) |> print_endline)
 
 
   let main () =

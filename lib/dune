@@ -1,0 +1,12 @@
+(library
+ (name tadpole)
+ (libraries containers)
+ (preprocess
+  (pps ppx_deriving.std))
+ (flags
+  (:standard -warn-error -a)))
+
+(alias
+ (name default)
+ (deps
+  (alias_rec all)))

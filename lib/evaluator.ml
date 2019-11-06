@@ -1,4 +1,3 @@
-open! Containers
 module D = Datum
 
 (* *** *)
@@ -8,7 +7,6 @@ type val_type =
     | I64
     | F32
     | F64
-[@@deriving show]
 
 and value =
     | TRUE
@@ -19,9 +17,8 @@ and value =
     | TODO of string
     (* | Func of (param_name * param_type) list * ret_type * env * body *)
     | Func of (string * val_type) list * val_type * env * D.t list
-[@@deriving show]
 
-and env = (string, value) Hashtbl.t [@@deriving show]
+and env = (string, value) Hashtbl.t
 
 (* *** *)
 
@@ -31,7 +28,9 @@ let env_add (env : env) (key : string) (value : value) =
     Hashtbl.add env key value
 
 
-let env_get (env : env) (key : string) : value option = Hashtbl.get env key
+let env_get (env : env) (key : string) : value option =
+    Hashtbl.find_opt env key
+
 
 (* *** *)
 

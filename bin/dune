@@ -1,0 +1,9 @@
+(executables
+ (names wasm wat)
+ (libraries containers tadpole)
+ (flags
+  (:standard -warn-error -a)))
+
+(alias
+ (name default)
+ (deps wasm.exe wat.exe))

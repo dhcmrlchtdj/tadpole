@@ -1,5 +1,3 @@
-open! Containers
-
 let codepoint_to_chars (codepoint : int) : char list =
     let aux = function
         | t when t < 0x80 ->
@@ -51,15 +49,15 @@ let hex_of_char_list (chars : char list) : int =
 
 
 let str_of_rev_char_list (chars : char list) : string =
-    chars |> List.rev |> String.of_list
+    chars |> List.rev |> CCString.of_list
 
 
 let num_of_string (s : string) : Token.t option =
-    match Int.of_string s with
+    match CCInt.of_string s with
         | Some n -> Some (Token.INT n)
         | None -> (
             try
-              let n = Float.of_string_exn s in
+              let n = Float.of_string s in
               Some (Token.FLOAT n)
             with
                 | _ -> None )
@@ -240,4 +238,4 @@ let scan (src : string) : Token.t list =
         | h :: t when is_idchar h -> scan_reserved [ h ] t
         | _ -> failwith "never"
     in
-    scan_all_token [] (String.to_list src)
+    scan_all_token [] (CCString.to_list src)
