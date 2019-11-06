@@ -1,0 +1,24 @@
+opam-version: "2.0"
+
+version: "1.0"
+name: "tadpole"
+synopsis: "A WASM/WAT (MVP) evaluator"
+homepage: "https://github.com/dhcmrlchtdj/tadpole"
+bug-reports: "https://github.com/dhcmrlchtdj/tadpole/issues"
+license: "UNLICENSE"
+
+authors: "h11 <nirisix@gmail.com>"
+maintainer: "h11 <nirisix@gmail.com>"
+dev-repo: "git+https://github.com/dhcmrlchtdj/tadpole"
+
+depends: [
+    "containers"
+    "ppx_deriving"
+    "dune" {build}
+    "alcotest" {dev}
+    "ocamlformat" {dev}
+]
+
+build: [
+    [ "make" "build" ]
+]

@@ -1,4 +1,4 @@
-SHELL := /usr/local/bin/bash
+SHELL := /bin/bash
 
 run: build
 

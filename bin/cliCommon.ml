@@ -2,7 +2,7 @@ open! Containers
 open Tadpole
 
 module type Scanner = sig
-  val scan : string -> Token.t list
+  val parse : string -> Token.t list
 end
 
 module Make (Scanner : Scanner) = struct
