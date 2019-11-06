@@ -20,6 +20,8 @@ let to_bytes_le x =
 
 let of_bytes b = Bytes.get_int64_be b 0 |> Int64.float_of_bits
 
+let to_string = Float.to_string
+
 module UnOp = struct
   let abs = Float.abs
 

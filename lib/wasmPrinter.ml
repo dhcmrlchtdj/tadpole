@@ -33,7 +33,7 @@ module Type = struct
       | VAR -> "\x01"
 
 
-  let elemtype _ = "\x70"
+  let elemtype (_e : elemtype) = "\x70"
 
   let resulttype = function
       | [] -> "\x40"

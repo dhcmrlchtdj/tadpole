@@ -12,6 +12,8 @@ let bits_of_float32 x = x
 
 let float32_of_bits x = x
 
+let to_string = Int32.to_string
+
 let wrap_to n x =
     match n with
         | 8 -> Int32.rem x 0x100l

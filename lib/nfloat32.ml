@@ -203,3 +203,5 @@ let to_bytes_le x =
 
 
 let of_bytes b = Bytes.get_int32_be b 0
+
+let to_string x = x |> to_float |> Float.to_string
