@@ -7,7 +7,7 @@ module Wasm = Cli.Make (struct
 
   let wat s = s |> WasmParser.parse |> WatPrinter.to_string
 
-  let wasm s = s
+  let wasm s = s |> WasmParser.parse |> WasmPrinter.to_string
 
   let value s = s |> WasmParser.parse |> Evaluator.eval
 end)
