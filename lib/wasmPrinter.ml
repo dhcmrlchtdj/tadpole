@@ -12,7 +12,7 @@ let vec bs =
 module Value = struct
   let byte (x : bytes) =
       let xx = Bytes.to_string x in
-      let size = Bytes.length xx in
+      let size = String.length xx in
       concat [ uint size; xx ]
 
 

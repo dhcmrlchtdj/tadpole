@@ -710,3 +710,8 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
     in
     let ctx = { store; frame; evaluated = []; cont } in
     eval_instr ctx
+
+
+(* ******** *)
+
+let eval (_m : moduledef) : string = failwith "TODO"

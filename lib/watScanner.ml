@@ -1,3 +1,5 @@
+open WatToken
+
 let codepoint_to_chars (codepoint : int) : char list =
     let aux = function
         | t when t < 0x80 ->
@@ -50,17 +52,6 @@ let hex_of_char_list (chars : char list) : int =
 
 let str_of_rev_char_list (chars : char list) : string =
     chars |> List.rev |> CCString.of_list
-
-
-let num_of_string (s : string) : Token.t option =
-    match CCInt.of_string s with
-        | Some n -> Some (Token.INT n)
-        | None -> (
-            try
-              let n = Float.of_string s in
-              Some (Token.FLOAT n)
-            with
-                | _ -> None )
 
 
 let is_digit = function
@@ -118,9 +109,8 @@ let is_space = function
     | _ -> false
 
 
-let scan (src : string) : Token.t list =
-    let open Token in
-    let rec scan_all_token (acc : Token.t list) (t : char list) =
+let scan (src : string) : WatToken.t list =
+    let rec scan_all_token (acc : WatToken.t list) (t : char list) =
         match scan_token t with
             | Ok (Some tok, tt) -> scan_all_token (tok :: acc) tt
             | Ok (None, []) -> List.rev acc
@@ -196,11 +186,9 @@ let scan (src : string) : Token.t list =
         let rec aux (acc : char list) = function
             | '_' :: t -> aux acc t
             | h :: t when is_num_char h -> aux (h :: acc) t
-            | t -> (
+            | t ->
                 let s = str_of_rev_char_list acc in
-                match num_of_string s with
-                    | Some n -> Ok (Some n, t)
-                    | None -> Ok (Some (RESERVED s), t) )
+                Ok (Some (NUM s), t)
         in
         let (acc, tt) =
             match t with
@@ -230,9 +218,9 @@ let scan (src : string) : Token.t list =
         | 'a' .. 'z' :: _ as t -> (
             match scan_keyword [] t with
                 | Ok (Some (KEYWORD k), tt) when String.equal k "inf" ->
-                    Ok (Some (FLOAT infinity), tt)
+                    Ok (Some (NUM (Float.to_string infinity)), tt)
                 | Ok (Some (KEYWORD k), tt) when String.equal k "nan" ->
-                    Ok (Some (FLOAT nan), tt)
+                    Ok (Some (NUM (Float.to_string nan)), tt)
                 | s -> s )
         (* reserved *)
         | h :: t when is_idchar h -> scan_reserved [ h ] t

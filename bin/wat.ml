@@ -1,4 +1,17 @@
 open Tadpole
-module Cli = CliCommon.Make (WatScanner)
 
-let () = Cli.main ()
+module Wat = Cli.Make (struct
+  let token s = s |> WatScanner.scan |> WatToken.to_string
+
+  let ast s =
+      s |> WatScanner.scan |> WatParser.parse |> Types.moduledef_to_string
+
+
+  let wat s = s
+
+  let wasm s = s |> WatScanner.scan |> WatParser.parse |> WasmPrinter.to_string
+
+  let value s = s |> WatScanner.scan |> WatParser.parse |> Evaluator.eval
+end)
+
+let () = Wat.run ()

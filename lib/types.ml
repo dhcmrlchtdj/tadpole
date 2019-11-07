@@ -357,3 +357,7 @@ type context = {
     evaluated : value list;
     cont : instr list;
   }
+
+(* ******** *)
+
+let moduledef_to_string (_m : moduledef) : string = failwith "TODO"
