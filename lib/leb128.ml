@@ -1,11 +1,11 @@
 module Unsigned = struct
-  let encode (x : Int64.t) : string =
+  let encode (x : Int64.t) : char list =
       if Int64.equal x 0L
-      then "\x00"
+      then [ '\x00' ]
       else
         let rec aux acc n =
             if Int64.equal n 0L
-            then acc |> List.rev |> List.map Char.chr |> CCString.of_list
+            then acc |> List.rev |> List.map Char.chr
             else
               let next = Int64.shift_right_logical n 7 in
               let curr = n |> Int64.to_int |> ( land ) 0x7f in
@@ -15,8 +15,8 @@ module Unsigned = struct
         aux [] x
 
 
-  let decode (s : string) : Int64.t =
-      let cs = s |> CCString.to_list |> List.map Char.code |> List.rev in
+  let decode (s : char list) : Int64.t =
+      let cs = s |> List.map Char.code |> List.rev in
       let rec aux acc = function
           | [] -> acc
           | h :: t ->
@@ -28,7 +28,7 @@ module Unsigned = struct
 end
 
 module Signed = struct
-  let encode (x : Int64.t) : string =
+  let encode (x : Int64.t) : char list =
       let xx =
           if Int64.compare x 0L >= 0
           then x
@@ -50,8 +50,8 @@ module Signed = struct
       Unsigned.encode xx
 
 
-  let decode (s : string) : Int64.t =
-      let cs = s |> CCString.to_list |> List.map Char.code |> List.rev in
+  let decode (s : char list) : Int64.t =
+      let cs = s |> List.map Char.code |> List.rev in
       let is_neg =
           let h = List.hd cs in
           h land 0x40 = 0x40

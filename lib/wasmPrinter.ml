@@ -2,34 +2,43 @@ open Types
 
 let concat = String.concat ""
 
-let uint (x : u32) = Leb128.Unsigned.encode (Int64.of_int x)
+let uint (x : u32) : string =
+    x |> Int64.of_int |> Leb128.Unsigned.encode |> CCString.of_list
 
-let vec bs =
+
+let vec bs : string =
     let size = List.length bs in
     concat (uint size :: bs)
 
 
 module Value = struct
-  let byte (x : bytes) =
+  let byte (x : bytes) : string =
       let xx = Bytes.to_string x in
       let size = String.length xx in
       concat [ uint size; xx ]
 
 
-  let name (x : string) =
+  let name (x : string) : string =
       let size = String.length x in
       concat [ uint size; x ]
 
 
   let idx = uint
 
-  let i32 (x : Nint32.t) = Leb128.Signed.encode (Nint64.of_int32 x)
+  let i32 (x : Nint32.t) : string =
+      x |> Int64.of_int32 |> Leb128.Signed.encode |> CCString.of_list
 
-  let i64 (x : Nint64.t) = Leb128.Signed.encode x
 
-  let f32 (x : Nfloat32.t) = x |> Nfloat32.to_bytes_le |> Bytes.to_string
+  let i64 (x : Nint64.t) : string =
+      x |> Leb128.Signed.encode |> CCString.of_list
 
-  let f64 (x : Nfloat64.t) = x |> Nfloat64.to_bytes_le |> Bytes.to_string
+
+  let f32 (x : Nfloat32.t) : string =
+      x |> Nfloat32.to_bytes_le |> Bytes.to_string
+
+
+  let f64 (x : Nfloat64.t) : string =
+      x |> Nfloat64.to_bytes_le |> Bytes.to_string
 end
 
 module Type = struct
