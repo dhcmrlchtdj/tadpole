@@ -84,7 +84,7 @@ end
 module Instruction = struct
   let memarg ({ align; offset } : memarg) = concat [ uint align; uint offset ]
 
-  let rec expr is = concat [ instrs is; "\x0B" ]
+  let rec expr is = concat [ instrs is; "\x0b" ]
 
   and instrs is =
       let rec aux acc = function
@@ -105,9 +105,9 @@ module Instruction = struct
 
   and numeric = function
       | Const (I32 v) -> concat [ "\x41"; Value.i32 v ]
-      | Const (I64 v) -> concat [ "\x41"; Value.i64 v ]
-      | Const (F32 v) -> concat [ "\x41"; Value.f32 v ]
-      | Const (F64 v) -> concat [ "\x41"; Value.f64 v ]
+      | Const (I64 v) -> concat [ "\x42"; Value.i64 v ]
+      | Const (F32 v) -> concat [ "\x43"; Value.f32 v ]
+      | Const (F64 v) -> concat [ "\x44"; Value.f64 v ]
       (*  *)
       | TestOp (TI32, I_EQZ) -> "\x45"
       | RelOp (TI32, I_EQ) -> "\x46"
@@ -120,6 +120,32 @@ module Instruction = struct
       | RelOp (TI32, I_LE_U) -> "\x4d"
       | RelOp (TI32, I_GE_S) -> "\x4e"
       | RelOp (TI32, I_GE_U) -> "\x4f"
+      (*  *)
+      | TestOp (TI64, I_EQZ) -> "\x50"
+      | RelOp (TI64, I_EQ) -> "\x51"
+      | RelOp (TI64, I_NE) -> "\x52"
+      | RelOp (TI64, I_LT_S) -> "\x53"
+      | RelOp (TI64, I_LT_U) -> "\x54"
+      | RelOp (TI64, I_GT_S) -> "\x55"
+      | RelOp (TI64, I_GT_U) -> "\x56"
+      | RelOp (TI64, I_LE_S) -> "\x57"
+      | RelOp (TI64, I_LE_U) -> "\x58"
+      | RelOp (TI64, I_GE_S) -> "\x59"
+      | RelOp (TI64, I_GE_U) -> "\x5a"
+      (*  *)
+      | RelOp (TF32, F_EQ) -> "\x5b"
+      | RelOp (TF32, F_NE) -> "\x5c"
+      | RelOp (TF32, F_LT) -> "\x5d"
+      | RelOp (TF32, F_GT) -> "\x5e"
+      | RelOp (TF32, F_LE) -> "\x5f"
+      | RelOp (TF32, F_GE) -> "\x60"
+      (*  *)
+      | RelOp (TF64, F_EQ) -> "\x61"
+      | RelOp (TF64, F_NE) -> "\x62"
+      | RelOp (TF64, F_LT) -> "\x63"
+      | RelOp (TF64, F_GT) -> "\x64"
+      | RelOp (TF64, F_LE) -> "\x65"
+      | RelOp (TF64, F_GE) -> "\x66"
       (*  *)
       | UnOp (TI32, I_CLZ) -> "\x67"
       | UnOp (TI32, I_CTZ) -> "\x68"
@@ -140,18 +166,6 @@ module Instruction = struct
       | BinOp (TI32, I_ROTL) -> "\x77"
       | BinOp (TI32, I_ROTR) -> "\x78"
       (*  *)
-      | TestOp (TI64, I_EQZ) -> "\x50"
-      | RelOp (TI64, I_EQ) -> "\x51"
-      | RelOp (TI64, I_NE) -> "\x52"
-      | RelOp (TI64, I_LT_S) -> "\x53"
-      | RelOp (TI64, I_LT_U) -> "\x54"
-      | RelOp (TI64, I_GT_S) -> "\x55"
-      | RelOp (TI64, I_GT_U) -> "\x56"
-      | RelOp (TI64, I_LE_S) -> "\x57"
-      | RelOp (TI64, I_LE_U) -> "\x58"
-      | RelOp (TI64, I_GE_S) -> "\x59"
-      | RelOp (TI64, I_GE_U) -> "\x5a"
-      (*  *)
       | UnOp (TI64, I_CLZ) -> "\x79"
       | UnOp (TI64, I_CTZ) -> "\x7a"
       | UnOp (TI64, I_POPCONT) -> "\x7b"
@@ -171,13 +185,6 @@ module Instruction = struct
       | BinOp (TI64, I_ROTL) -> "\x89"
       | BinOp (TI64, I_ROTR) -> "\x8a"
       (*  *)
-      | RelOp (TF32, F_EQ) -> "\x5b"
-      | RelOp (TF32, F_NE) -> "\x5c"
-      | RelOp (TF32, F_LT) -> "\x5d"
-      | RelOp (TF32, F_GT) -> "\x5e"
-      | RelOp (TF32, F_LE) -> "\x5f"
-      | RelOp (TF32, F_GE) -> "\x60"
-      (*  *)
       | UnOp (TF32, F_ABS) -> "\x8b"
       | UnOp (TF32, F_NEG) -> "\x8c"
       | UnOp (TF32, F_CEIL) -> "\x8d"
@@ -192,13 +199,6 @@ module Instruction = struct
       | BinOp (TF32, F_MIN) -> "\x96"
       | BinOp (TF32, F_MAX) -> "\x97"
       | BinOp (TF32, F_COPYSIGN) -> "\x98"
-      (*  *)
-      | RelOp (TF64, F_EQ) -> "\x61"
-      | RelOp (TF64, F_NE) -> "\x62"
-      | RelOp (TF64, F_LT) -> "\x63"
-      | RelOp (TF64, F_GT) -> "\x64"
-      | RelOp (TF64, F_LE) -> "\x65"
-      | RelOp (TF64, F_GE) -> "\x66"
       (*  *)
       | UnOp (TF64, F_ABS) -> "\x99"
       | UnOp (TF64, F_NEG) -> "\x9a"
@@ -244,8 +244,8 @@ module Instruction = struct
 
 
   and parametric = function
-      | Drop -> "\x1A"
-      | Select -> "\x1B"
+      | Drop -> "\x1a"
+      | Select -> "\x1b"
 
 
   and variable = function
@@ -275,11 +275,11 @@ module Instruction = struct
       | Store (TI64, m) -> concat [ "\x37"; memarg m ]
       | Store (TF32, m) -> concat [ "\x38"; memarg m ]
       | Store (TF64, m) -> concat [ "\x39"; memarg m ]
-      | Store8 (TI32, m) -> concat [ "\x3A"; memarg m ]
-      | Store16 (TI32, m) -> concat [ "\x3B"; memarg m ]
-      | Store8 (TI64, m) -> concat [ "\x3C"; memarg m ]
-      | Store16 (TI64, m) -> concat [ "\x3D"; memarg m ]
-      | Store32 (TI64, m) -> concat [ "\x3E"; memarg m ]
+      | Store8 (TI32, m) -> concat [ "\x3a"; memarg m ]
+      | Store16 (TI32, m) -> concat [ "\x3b"; memarg m ]
+      | Store8 (TI64, m) -> concat [ "\x3c"; memarg m ]
+      | Store16 (TI64, m) -> concat [ "\x3d"; memarg m ]
+      | Store32 (TI64, m) -> concat [ "\x3e"; memarg m ]
       | MemorySize -> concat [ "\x3F"; "\x00" ]
       | MemoryGrow -> concat [ "\x40"; "\x00" ]
       | _ -> failwith "never"
@@ -289,10 +289,10 @@ module Instruction = struct
       | Nop -> "\x00"
       | Unreachable -> "\x01"
       | Block (r, is) ->
-          concat [ "\x02"; Type.resulttype r; instrs is; "\x0B" ]
-      | Loop (r, is) -> concat [ "\x03"; Type.resulttype r; instrs is; "\x0B" ]
+          concat [ "\x02"; Type.resulttype r; instrs is; "\x0b" ]
+      | Loop (r, is) -> concat [ "\x03"; Type.resulttype r; instrs is; "\x0b" ]
       | If (r, in1, []) ->
-          concat [ "\x04"; Type.resulttype r; instrs in1; "\x0B" ]
+          concat [ "\x04"; Type.resulttype r; instrs in1; "\x0b" ]
       | If (r, in1, in2) ->
           concat
             [
@@ -301,18 +301,18 @@ module Instruction = struct
               instrs in1;
               "\x05";
               instrs in2;
-              "\x0B";
+              "\x0b";
             ]
-      | Br l -> concat [ "\x0C"; Value.idx l ]
-      | BrIf l -> concat [ "\x0D"; Value.idx l ]
+      | Br l -> concat [ "\x0c"; Value.idx l ]
+      | BrIf l -> concat [ "\x0d"; Value.idx l ]
       | BrTable (larr, l) ->
           concat
             [
-              "\x0E";
+              "\x0e";
               vec (larr |> Array.map Value.idx |> Array.to_list);
               Value.idx l;
             ]
-      | Return -> "\x0F"
+      | Return -> "\x0f"
       | Call i -> concat [ "\x10"; Value.idx i ]
       | CallIndirect i -> concat [ "\x11"; Value.idx i; "\x00" ]
 
