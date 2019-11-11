@@ -25,7 +25,6 @@ let codepoint_to_chars (codepoint : int) : char list =
     in
     aux codepoint |> List.map char_of_int
 
-
 let hex_of_char_list (chars : char list) : int =
     let rec aux (acc : int) = function
         | [] -> acc
@@ -49,15 +48,12 @@ let hex_of_char_list (chars : char list) : int =
     in
     aux 0 chars
 
-
 let str_of_rev_char_list (chars : char list) : string =
     chars |> List.rev |> CCString.of_list
-
 
 let is_digit = function
     | '0' .. '9' -> true
     | _ -> false
-
 
 let is_hexdigit = function
     | '0' .. '9' -> true
@@ -65,14 +61,12 @@ let is_hexdigit = function
     | 'A' .. 'F' -> true
     | _ -> false
 
-
 let is_num_char = function
     | '0' .. '9' -> true
     | 'a' .. 'f' -> true
     | 'A' .. 'F' -> true
     | '.' | '+' | '-' | 'p' | 'P' | 'x' -> true
     | _ -> false
-
 
 let is_idchar = function
     | '0' .. '9' -> true
@@ -103,11 +97,9 @@ let is_idchar = function
     | '~' -> true
     | _ -> false
 
-
 let is_space = function
     | ' ' | '\t' | '\n' | '\r' -> true
     | _ -> false
-
 
 let scan (src : string) : WatToken.t list =
     let rec scan_all_token (acc : WatToken.t list) (t : char list) =
@@ -136,9 +128,10 @@ let scan (src : string) : WatToken.t list =
             | ';' :: ')' :: t ->
                 let lv = nest_level - 1 in
                 if lv = 0
-                then
+                then (
                   let acc2 = ')' :: ';' :: acc in
                   Ok (Some (COMMENT (acc2 |> str_of_rev_char_list)), t)
+                )
                 else aux lv acc t
             | h :: t -> aux nest_level (h :: acc) t
             | [] -> failwith "never"
@@ -171,7 +164,8 @@ let scan (src : string) : WatToken.t list =
                     let chs = codepoint_to_chars codepoint in
                     let chs_rev = List.rev chs in
                     scan_string (chs_rev @ acc) tt
-                | _ -> failwith "[scan_string] invalid codepoint" )
+                | _ -> failwith "[scan_string] invalid codepoint"
+          )
         | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t
         | '\\' :: 'n' :: t -> scan_string ('\n' :: acc) t
         | '\\' :: 'r' :: t -> scan_string ('\r' :: acc) t
@@ -221,7 +215,8 @@ let scan (src : string) : WatToken.t list =
                     Ok (Some (NUM (Float.to_string infinity)), tt)
                 | Ok (Some (KEYWORD k), tt) when String.equal k "nan" ->
                     Ok (Some (NUM (Float.to_string nan)), tt)
-                | s -> s )
+                | s -> s
+          )
         (* reserved *)
         | h :: t when is_idchar h -> scan_reserved [ h ] t
         | _ -> failwith "never"

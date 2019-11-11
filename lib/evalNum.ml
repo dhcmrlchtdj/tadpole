@@ -27,7 +27,6 @@ let unop = function
     | (TF64, F_NEAREST, F64 i) -> Some (F64 (Nfloat64.UnOp.nearest i))
     | _ -> None
 
-
 let binop = function
     (* TI32 *)
     | (TI32, I_ADD, I32 x, I32 y) -> Some (I32 (Nint32.BinOp.add x y))
@@ -81,12 +80,10 @@ let binop = function
         Some (F64 (Nfloat64.BinOp.copy_sign x y))
     | _ -> None
 
-
 let testop = function
     | (TI32, I_EQZ, I32 i) -> Some (Nint32.equal i 0l)
     | (TI64, I_EQZ, I64 i) -> Some (Nint64.equal i 0L)
     | _ -> None
-
 
 let relop = function
     (* TI32 *)
@@ -126,7 +123,6 @@ let relop = function
     | (TF64, F_GT, F64 x, F64 y) -> Some (Nfloat64.RelOp.gt x y)
     | (TF64, F_GE, F64 x, F64 y) -> Some (Nfloat64.RelOp.ge x y)
     | _ -> None
-
 
 let cvtop = function
     (* TI32 *)

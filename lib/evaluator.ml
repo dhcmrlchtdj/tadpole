@@ -11,11 +11,11 @@ let grow_table (tbl : tableinst) (n : int) : tableinst option =
     in
     if len >= limit
     then None
-    else
+    else (
       let empty = Array.make n None in
       let elem = Array.append tbl.elem empty in
       Some { tbl with elem }
-
+    )
 
 let grow_mem (mem : meminst) (n : int) : meminst option =
     let size = Bytes.length mem.data in
@@ -27,15 +27,14 @@ let grow_mem (mem : meminst) (n : int) : meminst option =
     in
     if len >= limit
     then None
-    else
+    else (
       let empty = Bytes.make n '\000' in
       let data = Bytes.cat mem.data empty in
       Some { mem with data }
+    )
 
-
-let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
-    : store * funcaddr
-  =
+let alloc_func (moduleinst : moduleinst) (s : store) (func : func) :
+    store * funcaddr =
     let a = Array.length s.funcs in
     let functype = moduleinst.types.(func.typei) in
     let func_inst = Func { functype; moduleinst; func } in
@@ -43,16 +42,13 @@ let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
     let s2 = { s with funcs } in
     (s2, a)
 
-
-let alloc_host_func (s : store) (functype : functype) (hostfunc : hostfunc)
-    : store * funcaddr
-  =
+let alloc_host_func (s : store) (functype : functype) (hostfunc : hostfunc) :
+    store * funcaddr =
     let a = Array.length s.funcs in
     let func_inst = HostFunc { functype; hostfunc } in
     let funcs = Array.append s.funcs [| func_inst |] in
     let s2 = { s with funcs } in
     (s2, a)
-
 
 let alloc_table (s : store) ((limit, _) : tabletype) : store * tableaddr =
     let a = Array.length s.tables in
@@ -62,7 +58,6 @@ let alloc_table (s : store) ((limit, _) : tabletype) : store * tableaddr =
     let s2 = { s with tables } in
     (s2, a)
 
-
 let alloc_mem (s : store) ({ min; max } : memtype) : store * memaddr =
     let a = Array.length s.mems in
     let data = Bytes.make min '\000' in
@@ -71,24 +66,19 @@ let alloc_mem (s : store) ({ min; max } : memtype) : store * memaddr =
     let s2 = { s with mems } in
     (s2, a)
 
-
-let alloc_global (s : store) ((mut, _) : globaltype) (value : value)
-    : store * globaladdr
-  =
+let alloc_global (s : store) ((mut, _) : globaltype) (value : value) :
+    store * globaladdr =
     let a = Array.length s.globals in
     let glob_inst = { value; mut } in
     let globals = Array.append s.globals [| glob_inst |] in
     let s2 = { s with globals } in
     (s2, a)
 
-
 let alloc_module
     (s : store)
     (m : moduledef)
     (externs : externval list)
-    (values : value array)
-    : store * moduleinst
-  =
+    (values : value array) : store * moduleinst =
     let mod_inst =
         {
           types = m.types;
@@ -142,13 +132,12 @@ let alloc_module
         Array.map aux m.exports
     in
     let revlist l = l |> List.rev |> Array.of_list in
-    mod_inst.funcaddrs <- revlist faddrs ;
-    mod_inst.tableaddrs <- revlist taddrs ;
-    mod_inst.memaddrs <- revlist maddrs ;
-    mod_inst.globaladdrs <- revlist gaddrs ;
-    mod_inst.exports <- exports ;
+    mod_inst.funcaddrs <- revlist faddrs;
+    mod_inst.tableaddrs <- revlist taddrs;
+    mod_inst.memaddrs <- revlist maddrs;
+    mod_inst.globaladdrs <- revlist gaddrs;
+    mod_inst.exports <- exports;
     (s4, mod_inst)
-
 
 (* ******** *)
 
@@ -158,7 +147,6 @@ let aux_get_functype = function
     | Func { functype; _ } -> functype
     | HostFunc { functype; _ } -> functype
 
-
 (* ******** *)
 
 let rec eval_expr (context : context) : value * context =
@@ -166,7 +154,6 @@ let rec eval_expr (context : context) : value * context =
     match ctx.evaluated with
         | v :: evaluated -> (v, { ctx with evaluated })
         | _ -> failwith "assert failure"
-
 
 and eval_instr (ctx : context) : context =
     match ctx.cont with
@@ -184,14 +171,12 @@ and eval_instr (ctx : context) : context =
                         eval_parametric_instr { ctx with cont } i
                     | Ivariable i :: cont ->
                         eval_variable_instr { ctx with cont } i
-                    | Imemory i :: cont ->
-                        eval_memory_instr { ctx with cont } i
+                    | Imemory i :: cont -> eval_memory_instr { ctx with cont } i
                     | Icontrol i :: cont ->
                         eval_control_instr { ctx with cont } i
                     | Iadmin i :: cont -> eval_admin_instr { ctx with cont } i
             in
             eval_instr next
-
 
 and eval_numeric_instr (ctx : context) = function
     | Const v ->
@@ -204,8 +189,10 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let evaluated = v :: tail in
                         { ctx with evaluated }
-                    | None -> aux_trap ctx )
-            | _ -> failwith "assert failure" )
+                    | None -> aux_trap ctx
+              )
+            | _ -> failwith "assert failure"
+      )
     | BinOp (t, op) -> (
         match ctx.evaluated with
             | c2 :: c1 :: tail -> (
@@ -213,8 +200,10 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let evaluated = v :: tail in
                         { ctx with evaluated }
-                    | None -> aux_trap ctx )
-            | _ -> failwith "assert failure" )
+                    | None -> aux_trap ctx
+              )
+            | _ -> failwith "assert failure"
+      )
     | TestOp (t, op) -> (
         match ctx.evaluated with
             | c :: tail -> (
@@ -225,8 +214,10 @@ and eval_numeric_instr (ctx : context) = function
                     | Some false ->
                         let evaluated = I32 0l :: tail in
                         { ctx with evaluated }
-                    | None -> aux_trap ctx )
-            | _ -> failwith "assert failure" )
+                    | None -> aux_trap ctx
+              )
+            | _ -> failwith "assert failure"
+      )
     | RelOp (t, op) -> (
         match ctx.evaluated with
             | c2 :: c1 :: tail -> (
@@ -237,8 +228,10 @@ and eval_numeric_instr (ctx : context) = function
                     | Some false ->
                         let evaluated = I32 0l :: tail in
                         { ctx with evaluated }
-                    | None -> aux_trap ctx )
-            | _ -> failwith "assert failure" )
+                    | None -> aux_trap ctx
+              )
+            | _ -> failwith "assert failure"
+      )
     | CvtOp (t2, op, t1) -> (
         match ctx.evaluated with
             | c :: tail -> (
@@ -246,23 +239,25 @@ and eval_numeric_instr (ctx : context) = function
                     | Some v ->
                         let evaluated = v :: tail in
                         { ctx with evaluated }
-                    | None -> aux_trap ctx )
-            | _ -> failwith "assert failure" )
-
+                    | None -> aux_trap ctx
+              )
+            | _ -> failwith "assert failure"
+      )
 
 and eval_parametric_instr (ctx : context) = function
     | Drop -> (
         match ctx.evaluated with
             | _ :: evaluated -> { ctx with evaluated }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | Select -> (
         match ctx.evaluated with
             | I32 c :: v2 :: v1 :: tail ->
                 let h = if Nint32.equal c 0l then v2 else v1 in
                 let evaluated = h :: tail in
                 { ctx with evaluated }
-            | _ -> failwith "assert failure" )
-
+            | _ -> failwith "assert failure"
+      )
 
 and eval_variable_instr (ctx : context) = function
     | LocalGet x ->
@@ -274,14 +269,16 @@ and eval_variable_instr (ctx : context) = function
             | v :: evaluated ->
                 let () = ctx.frame.locals.(x) <- v in
                 { ctx with evaluated }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | LocalTee x -> (
         match ctx.evaluated with
             | h :: t ->
                 let cont = Ivariable (LocalSet x) :: ctx.cont in
                 let evaluated = h :: h :: t in
                 { ctx with evaluated; cont }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | GlobalGet x ->
         let addr = ctx.frame.moduleinst.globaladdrs.(x) in
         let glob = ctx.store.globals.(addr) in
@@ -295,8 +292,8 @@ and eval_variable_instr (ctx : context) = function
                 let new_glob = { glob with value } in
                 let () = ctx.store.globals.(addr) <- new_glob in
                 { ctx with evaluated }
-            | _ -> failwith "assert failure" )
-
+            | _ -> failwith "assert failure"
+      )
 
 and eval_memory_instr =
     let aux_memory_load ctx (memarg : memarg) len pad to_value =
@@ -307,12 +304,13 @@ and eval_memory_instr =
                 let ii = Nint32.to_int i in
                 let ea = ii + memarg.offset in
                 if ea + len <= Bytes.length mem.data
-                then
+                then (
                   let bvalue = Bytes.create len in
                   let () = Bytes.blit mem.data ea bvalue 0 len in
                   let value = bvalue |> pad |> to_value in
                   let evaluated = value :: tail in
                   { ctx with evaluated }
+                )
                 else aux_trap ctx
             | _ -> failwith "assert failure"
     and sign_pad f t x =
@@ -323,9 +321,10 @@ and eval_memory_instr =
         let unsign = first_code land 0x7F in
         let () =
             if first_code <> unsign
-            then
+            then (
               let () = Bytes.set padding 0 (Char.chr 0x80) in
               Bytes.set x 0 (Char.chr unsign)
+            )
         in
         Bytes.cat padding x
     and unsign_pad f t x =
@@ -342,11 +341,12 @@ and eval_memory_instr =
                 let ii = Nint32.to_int i in
                 let ea = memarg.offset + ii in
                 if ea + len <= Bytes.length mem.data
-                then
+                then (
                   let bvalue = to_bytes c in
                   let start = Bytes.length bvalue - len in
                   let () = Bytes.blit bvalue start mem.data ea len in
                   { ctx with evaluated }
+                )
                 else aux_trap ctx
             | _ -> failwith "assert failure"
     and to_bytes value =
@@ -453,9 +453,9 @@ and eval_memory_instr =
                     in
                     let evaluated = nsz :: tail in
                     { ctx with evaluated }
-                | _ -> failwith "assert failure" )
+                | _ -> failwith "assert failure"
+          )
         | _ -> failwith "never"
-
 
 and eval_control_instr (ctx : context) = function
     | Nop -> ctx
@@ -477,7 +477,8 @@ and eval_control_instr (ctx : context) = function
                 let l = Iadmin (Label (n, [], cont)) in
                 let cont = l :: ctx.cont in
                 { ctx with evaluated; cont }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | Br _ as sub -> { ctx with cont = [ Icontrol sub ] }
     | BrIf l -> (
         match ctx.evaluated with
@@ -488,7 +489,8 @@ and eval_control_instr (ctx : context) = function
                     else Icontrol (Br l) :: ctx.cont
                 in
                 { ctx with evaluated; cont }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | BrTable (ls, l) -> (
         match ctx.evaluated with
             | I32 i :: evaluated ->
@@ -500,7 +502,8 @@ and eval_control_instr (ctx : context) = function
                 in
                 let cont = br :: ctx.cont in
                 { ctx with evaluated; cont }
-            | _ -> failwith "assert failure" )
+            | _ -> failwith "assert failure"
+      )
     | Return -> { ctx with cont = [ Icontrol Return ] }
     | Call x ->
         let addr = ctx.frame.moduleinst.funcaddrs.(x) in
@@ -521,20 +524,22 @@ and eval_control_instr (ctx : context) = function
             | I32 i :: evaluated ->
                 let ii = Nint32.to_int i in
                 if ii < Array.length tab.elem
-                then
+                then (
                   match tab.elem.(ii) with
                       | Some faddr ->
                           let f = ctx.store.funcs.(faddr) in
                           let ft_actual = aux_get_functype f in
                           if aux_ft_eq ft_expect ft_actual
-                          then
+                          then (
                             let cont = Iadmin (Invoke faddr) :: ctx.cont in
                             { ctx with evaluated; cont }
+                          )
                           else aux_trap ctx
                       | None -> aux_trap ctx
+                )
                 else aux_trap ctx
-            | _ -> failwith "assert failure" )
-
+            | _ -> failwith "assert failure"
+      )
 
 and eval_admin_instr (ctx : context) = function
     | Trap -> failwith "trap"
@@ -565,7 +570,8 @@ and eval_admin_instr (ctx : context) = function
                 in
                 let cont = iframe :: ctx.cont in
                 { ctx with evaluated; cont }
-            | HostFunc _ -> failwith "TODO" )
+            | HostFunc _ -> failwith "TODO"
+      )
     | InitElem (tableaddr, offset_expr, funcs) ->
         let (v, ctx2) = eval_expr { ctx with cont = offset_expr } in
         let offset =
@@ -600,13 +606,13 @@ and eval_admin_instr (ctx : context) = function
                 in
                 let cont = List.append next_instrs ctx.cont in
                 { new_ctx with evaluated; cont }
-            | _ -> new_ctx )
+            | _ -> new_ctx
+      )
     | Frame (n, frame, instrs) ->
         let new_ctx = eval_instr { ctx with frame; cont = instrs } in
         let vals = CCList.take n new_ctx.evaluated in
         let evaluated = List.append vals ctx.evaluated in
         { ctx with store = new_ctx.store; evaluated }
-
 
 (* ******** *)
 
@@ -626,7 +632,7 @@ let invoke =
         let len_eq = List.length params = List.length values in
         let type_eq = aux_type_eq params values in
         if len_eq && type_eq
-        then
+        then (
           let moduleinst =
               {
                 types = [||];
@@ -642,14 +648,13 @@ let invoke =
           let cont = [ Iadmin (Invoke f) ] in
           let ctx = { store; frame; evaluated; cont } in
           eval_instr ctx
+        )
         else failwith "argument error"
-
 
 (* ******** *)
 
-let instantiate (s : store) (m : moduledef) (externs : externval list)
-    : context
-  =
+let instantiate (s : store) (m : moduledef) (externs : externval list) : context
+    =
     let vals =
         let global_externs =
             externs
@@ -710,7 +715,6 @@ let instantiate (s : store) (m : moduledef) (externs : externval list)
     in
     let ctx = { store; frame; evaluated = []; cont } in
     eval_instr ctx
-
 
 (* ******** *)
 

@@ -12,5 +12,4 @@ let build (input, output) =
             output
             (input |> fun _ -> "output") )
 
-
 let () = Alcotest.run "tadpole" [ ("test_set", List.map build cases) ]

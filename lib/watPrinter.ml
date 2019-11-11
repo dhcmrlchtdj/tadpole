@@ -1,24 +1,16 @@
 open Types
 
 let concat = String.concat " "
-
 let sprintf = Printf.sprintf
 
 module Value = struct
   let byte = Bytes.to_string
-
   let name (x : string) = x
-
   let uint (x : u32) = string_of_int x
-
   let idx = uint
-
   let i32 (x : Nint32.t) = Nint32.to_string x
-
   let i64 (x : Nint64.t) = Nint64.to_string x
-
   let f32 (x : Nfloat32.t) = Nfloat32.to_string x
-
   let f64 (x : Nfloat64.t) = Nfloat64.to_string x
 end
 
@@ -29,7 +21,6 @@ module Type = struct
       | TF32 -> "f32"
       | TF64 -> "f64"
 
-
   let elemtype (_e : elemtype) = "funcref"
 
   let resulttype = function
@@ -37,28 +28,23 @@ module Type = struct
       | [ t ] -> sprintf "(%s)" (valtype t)
       | _ -> failwith "Typ.resulttype | invalid"
 
-
   let rec aux_valtypes wrap acc = function
       | [] -> List.rev acc
       | h :: t ->
           let a2 = wrap (valtype h) :: acc in
           aux_valtypes wrap a2 t
 
-
   let functype ((ps, rs) : functype) =
       let pss = concat (aux_valtypes (sprintf "(param %s)") [] ps) in
       let rss = concat (aux_valtypes (sprintf "(result %s)") [] rs) in
       sprintf "(func %s %s)" pss rss
-
 
   let limits ({ min; max } : limits) =
       match max with
           | None -> Value.uint min
           | Some max -> concat [ Value.uint min; Value.uint max ]
 
-
   let memtype x = limits x
-
   let tabletype ((l, e) : tabletype) = concat [ limits l; elemtype e ]
 
   let globaltype ((m, v) : globaltype) =
@@ -81,7 +67,6 @@ module Instruction = struct
       in
       concat [ o; a ]
 
-
   let rec expr is = instrs is
 
   and instrs is =
@@ -91,7 +76,6 @@ module Instruction = struct
       in
       aux [] is
 
-
   and instr = function
       | Inumeric i -> numeric i
       | Iparametric i -> parametric i
@@ -99,7 +83,6 @@ module Instruction = struct
       | Imemory i -> memory i
       | Icontrol i -> control i
       | Iadmin i -> admin i
-
 
   and numeric = function
       | Const (I32 v) -> sprintf "i32.const %s" (Value.i32 v)
@@ -240,11 +223,9 @@ module Instruction = struct
       | CvtOp (TF64, CVT_REINTERPRET, TI64) -> "f64.reinterpret_i64"
       | _ -> failwith "never"
 
-
   and parametric = function
       | Drop -> "drop"
       | Select -> "select"
-
 
   and variable = function
       | LocalGet i -> sprintf "local.get %s" (Value.idx i)
@@ -252,7 +233,6 @@ module Instruction = struct
       | LocalTee i -> sprintf "local.tee %s" (Value.idx i)
       | GlobalGet i -> sprintf "global.get %s" (Value.idx i)
       | GlobalSet i -> sprintf "global.set %s" (Value.idx i)
-
 
   and memory = function
       | Load (TI32, m) -> sprintf "i32.load %s" (memarg 4 m)
@@ -282,7 +262,6 @@ module Instruction = struct
       | MemoryGrow -> "memory.grow"
       | _ -> failwith "never"
 
-
   and control = function
       | Nop -> "nop"
       | Unreachable -> "unreachable"
@@ -301,16 +280,13 @@ module Instruction = struct
       | If (r, in1, []) -> "TODO"
       | If (r, in1, in2) -> "TODO"
 
-
   and admin = function
       | _ -> "TODO"
 end
 
 module Modules = struct
   let magic = "\x00\x61\x73\x6d"
-
   let version = "\x01\x00\x00\x00"
-
   let to_string (m : moduledef) = concat [ magic; version; "" ]
 end
 

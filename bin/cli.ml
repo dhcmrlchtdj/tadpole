@@ -1,12 +1,8 @@
 module type Impl = sig
   val token : string -> string
-
   val ast : string -> string
-
   val wat : string -> string
-
   val wasm : string -> string
-
   val value : string -> string
 end
 
@@ -14,7 +10,6 @@ module Make (I : Impl) = struct
   let p tr = function
       | `Stdin -> CCIO.read_all stdin |> tr |> print_endline
       | `File file -> CCIO.File.read_exn file |> tr |> print_endline
-
 
   let run () =
       let exe = Sys.argv.(0) in

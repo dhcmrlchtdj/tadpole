@@ -46,12 +46,11 @@ type valtype =
 [@@deriving eq]
 
 type resulttype = valtype list
-
 type functype = valtype list * valtype list
 
 type limits = {
-    min : u32;
-    max : u32 option;
+    min: u32;
+    max: u32 option;
   }
 
 type memtype = limits
@@ -74,13 +73,12 @@ type externtype =
 
 (* ******** *)
 
-type table = { ttype : tabletype }
-
-type mem = { mtype : memtype }
+type table = { ttype: tabletype }
+type mem = { mtype: memtype }
 
 type export = {
-    name : string;
-    desc : exportdesc;
+    name: string;
+    desc: exportdesc;
   }
 
 and exportdesc =
@@ -90,9 +88,9 @@ and exportdesc =
     | ED_global of globalidx
 
 type import = {
-    modname : string;
-    name : string;
-    desc : importdesc;
+    modname: string;
+    name: string;
+    desc: importdesc;
   }
 
 and importdesc =
@@ -174,15 +172,15 @@ and cvtop =
 (* ******** *)
 
 type memarg = {
-    align : u32;
-    offset : u32;
+    align: u32;
+    offset: u32;
   }
 
 (* ******** *)
 
 type exportinst = {
-    name : string;
-    value : externval;
+    name: string;
+    value: externval;
   }
 
 and externval =
@@ -192,79 +190,79 @@ and externval =
     | EV_global of globaladdr
 
 type tableinst = {
-    elem : funcaddr option array;
-    max : u32 option;
+    elem: funcaddr option array;
+    max: u32 option;
   }
 
 type meminst = {
-    data : bytes;
-    max : u32 option;
+    data: bytes;
+    max: u32 option;
   }
 
 type globalinst = {
-    value : value;
-    mut : mut;
+    value: value;
+    mut: mut;
   }
 
 type moduleinst = {
-    mutable types : functype array;
-    mutable funcaddrs : funcaddr array;
-    mutable tableaddrs : tableaddr array;
-    mutable memaddrs : memaddr array;
-    mutable globaladdrs : globaladdr array;
-    mutable exports : exportinst array;
+    mutable types: functype array;
+    mutable funcaddrs: funcaddr array;
+    mutable tableaddrs: tableaddr array;
+    mutable memaddrs: memaddr array;
+    mutable globaladdrs: globaladdr array;
+    mutable exports: exportinst array;
   }
 
-type start = { func : funcidx }
+type start = { func: funcidx }
 
 type moduledef = {
-    types : functype array;
-    funcs : func array;
-    tables : table array;
-    mems : mem array;
-    globals : global array;
-    elem : elem array;
-    data : data array;
-    start : start option;
-    imports : import array;
-    exports : export array;
+    types: functype array;
+    funcs: func array;
+    tables: table array;
+    mems: mem array;
+    globals: global array;
+    elem: elem array;
+    data: data array;
+    start: start option;
+    imports: import array;
+    exports: export array;
   }
 
 and global = {
-    gtype : globaltype;
-    init : expr;
+    gtype: globaltype;
+    init: expr;
   }
 
 and elem = {
-    table : tableidx;
-    offset : expr;
-    init : funcidx list;
+    table: tableidx;
+    offset: expr;
+    init: funcidx list;
   }
 
 and data = {
-    data : memidx;
-    offset : expr;
-    init : bytes;
+    data: memidx;
+    offset: expr;
+    init: bytes;
   }
 
 (* FIXME *)
 and hostfunc = int
 
 and func = {
-    typei : typeidx;
-    locals : valtype list;
-    body : expr;
+    typei: typeidx;
+    locals: valtype list;
+    body: expr;
   }
 
 and funcinst =
     | Func of {
-        functype : functype;
-        moduleinst : moduleinst;
-        func : func;
+        functype: functype;
+        moduleinst: moduleinst;
+        func: func;
       }
     | HostFunc of {
-        functype : functype;
-        hostfunc : hostfunc;
+        functype: functype;
+        hostfunc: hostfunc;
       }
 
 (* ******** *)
@@ -336,26 +334,26 @@ and expr = instr list
 
 (* ******** *)
 and frame = {
-    locals : value array;
-    moduleinst : moduleinst;
+    locals: value array;
+    moduleinst: moduleinst;
   }
 
 (* ******** *)
 
 type store = {
-    funcs : funcinst array;
-    tables : tableinst array;
-    mems : meminst array;
-    globals : globalinst array;
+    funcs: funcinst array;
+    tables: tableinst array;
+    mems: meminst array;
+    globals: globalinst array;
   }
 
 (* ******** *)
 
 type context = {
-    store : store;
-    frame : frame;
-    evaluated : value list;
-    cont : instr list;
+    store: store;
+    frame: frame;
+    evaluated: value list;
+    cont: instr list;
   }
 
 (* ******** *)

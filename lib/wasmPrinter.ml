@@ -5,11 +5,9 @@ let concat = String.concat ""
 let uint (x : u32) : string =
     x |> Int64.of_int |> Leb128.Unsigned.encode |> CCString.of_list
 
-
 let vec bs : string =
     let size = List.length bs in
     concat (uint size :: bs)
-
 
 module Value = struct
   let byte (x : bytes) : string =
@@ -17,25 +15,20 @@ module Value = struct
       let size = String.length xx in
       concat [ uint size; xx ]
 
-
   let name (x : string) : string =
       let size = String.length x in
       concat [ uint size; x ]
-
 
   let idx = uint
 
   let i32 (x : Nint32.t) : string =
       x |> Int64.of_int32 |> Leb128.Signed.encode |> CCString.of_list
 
-
   let i64 (x : Nint64.t) : string =
       x |> Leb128.Signed.encode |> CCString.of_list
 
-
   let f32 (x : Nfloat32.t) : string =
       x |> Nfloat32.to_bytes_le |> Bytes.to_string
-
 
   let f64 (x : Nfloat64.t) : string =
       x |> Nfloat64.to_bytes_le |> Bytes.to_string
@@ -48,11 +41,9 @@ module Type = struct
       | TF32 -> "\x7d"
       | TF64 -> "\x7c"
 
-
   let mut = function
       | CONST -> "\x00"
       | VAR -> "\x01"
-
 
   let elemtype (_e : elemtype) = "\x70"
 
@@ -61,23 +52,18 @@ module Type = struct
       | [ t ] -> valtype t
       | _ -> failwith "Typ.resulttype | invalid"
 
-
   let functype ((ps, rs) : functype) =
       let pss = vec (List.map valtype ps) in
       let rss = vec (List.map valtype rs) in
       concat [ "\x60"; pss; rss ]
-
 
   let limits ({ min; max } : limits) =
       match max with
           | None -> concat [ "\x00"; uint min ]
           | Some max -> concat [ "\x01"; uint min; uint max ]
 
-
   let memtype x = limits x
-
   let tabletype ((l, e) : tabletype) = concat [ limits l; elemtype e ]
-
   let globaltype ((m, v) : globaltype) = concat [ mut m; valtype v ]
 end
 
@@ -93,7 +79,6 @@ module Instruction = struct
       in
       aux [] is
 
-
   and instr = function
       | Inumeric i -> numeric i
       | Iparametric i -> parametric i
@@ -101,7 +86,6 @@ module Instruction = struct
       | Imemory i -> memory i
       | Icontrol i -> control i
       | Iadmin i -> admin i
-
 
   and numeric = function
       | Const (I32 v) -> concat [ "\x41"; Value.i32 v ]
@@ -242,11 +226,9 @@ module Instruction = struct
       | CvtOp (TF64, CVT_REINTERPRET, TI64) -> "\xbf"
       | _ -> failwith "never"
 
-
   and parametric = function
       | Drop -> "\x1a"
       | Select -> "\x1b"
-
 
   and variable = function
       | LocalGet i -> concat [ "\x20"; Value.idx i ]
@@ -254,7 +236,6 @@ module Instruction = struct
       | LocalTee i -> concat [ "\x22"; Value.idx i ]
       | GlobalGet i -> concat [ "\x23"; Value.idx i ]
       | GlobalSet i -> concat [ "\x24"; Value.idx i ]
-
 
   and memory = function
       | Load (TI32, m) -> concat [ "\x28"; memarg m ]
@@ -284,24 +265,17 @@ module Instruction = struct
       | MemoryGrow -> concat [ "\x40"; "\x00" ]
       | _ -> failwith "never"
 
-
   and control = function
       | Nop -> "\x00"
       | Unreachable -> "\x01"
-      | Block (r, is) ->
-          concat [ "\x02"; Type.resulttype r; instrs is; "\x0b" ]
+      | Block (r, is) -> concat [ "\x02"; Type.resulttype r; instrs is; "\x0b" ]
       | Loop (r, is) -> concat [ "\x03"; Type.resulttype r; instrs is; "\x0b" ]
       | If (r, in1, []) ->
           concat [ "\x04"; Type.resulttype r; instrs in1; "\x0b" ]
       | If (r, in1, in2) ->
           concat
             [
-              "\x04";
-              Type.resulttype r;
-              instrs in1;
-              "\x05";
-              instrs in2;
-              "\x0b";
+              "\x04"; Type.resulttype r; instrs in1; "\x05"; instrs in2; "\x0b";
             ]
       | Br l -> concat [ "\x0c"; Value.idx l ]
       | BrIf l -> concat [ "\x0d"; Value.idx l ]
@@ -316,14 +290,12 @@ module Instruction = struct
       | Call i -> concat [ "\x10"; Value.idx i ]
       | CallIndirect i -> concat [ "\x11"; Value.idx i; "\x00" ]
 
-
   and admin = function
       | _ -> "TODO"
 end
 
 module Modules = struct
   let magic = "\x00\x61\x73\x6d"
-
   let version = "\x01\x00\x00\x00"
 
   let aux_section sid arr =
@@ -331,10 +303,8 @@ module Modules = struct
       let size = String.length cont in
       concat [ sid; uint size; cont ]
 
-
   let typesec (m : moduledef) =
       aux_section "\x01" (Array.map Type.functype m.types)
-
 
   let importsec (m : moduledef) =
       let rec import (i : import) =
@@ -347,24 +317,19 @@ module Modules = struct
       in
       aux_section "\x02" (Array.map import m.imports)
 
-
   let funcsec (m : moduledef) =
       aux_section "\x03" (Array.map (fun f -> Value.idx f.typei) m.funcs)
-
 
   let tablesec (m : moduledef) =
       aux_section "\x04" (Array.map (fun t -> Type.tabletype t.ttype) m.tables)
 
-
   let memsec (m : moduledef) =
       aux_section "\x05" (Array.map (fun m -> Type.memtype m.mtype) m.mems)
-
 
   let globalsec (m : moduledef) =
       aux_section
         "\x06"
         (Array.map (fun g -> Type.globaltype g.gtype) m.globals)
-
 
   let exportsec (m : moduledef) =
       let rec export (e : export) =
@@ -377,7 +342,6 @@ module Modules = struct
       in
       aux_section "\x07" (Array.map export m.exports)
 
-
   let startsec (m : moduledef) =
       match m.start with
           | None -> ""
@@ -385,7 +349,6 @@ module Modules = struct
               let cont = Value.idx func in
               let size = String.length cont in
               concat [ "\x08"; uint size; cont ]
-
 
   let elemsec (m : moduledef) =
       let elem (e : elem) =
@@ -395,7 +358,6 @@ module Modules = struct
           concat [ x; ee; y ]
       in
       aux_section "\x09" (Array.map elem m.elem)
-
 
   let codesec (m : moduledef) =
       let code (func : func) =
@@ -409,7 +371,6 @@ module Modules = struct
       in
       aux_section "\x0a" (Array.map code m.funcs)
 
-
   let datasec (m : moduledef) =
       let data (d : data) =
           let x = Value.idx d.data in
@@ -418,7 +379,6 @@ module Modules = struct
           concat [ x; e; b ]
       in
       aux_section "\x0b" (Array.map data m.data)
-
 
   let to_string (m : moduledef) =
       concat
