@@ -16,8 +16,8 @@ let to_string = Int32.to_string
 
 let wrap_to n x =
     match n with
-        | 8 -> Int32.rem x 0x100l
-        | 16 -> Int32.rem x 0x1_0000l
+        | 8 -> Int32.logand x 0xffl
+        | 16 -> Int32.logand x 0xffffl
         | _ -> failwith "never"
 
 

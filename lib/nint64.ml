@@ -20,9 +20,9 @@ let to_string = Int64.to_string
 
 let wrap_to n x =
     match n with
-        | 8 -> Int64.rem x 0x100L
-        | 16 -> Int64.rem x 0x1_0000L
-        | 32 -> Int64.rem x 0x1_0000_0000L
+        | 8 -> Int64.logand x 0xffL
+        | 16 -> Int64.logand x 0xffffL
+        | 32 -> Int64.logand x 0xffff_ffffL
         | _ -> failwith "never"
 
 
