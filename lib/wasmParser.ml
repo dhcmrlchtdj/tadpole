@@ -5,11 +5,14 @@ module R = Result
 type p_context = {
     p: int;
     s: string;
+    slen: int;
   }
 
 type 'a r = ('a * p_context, string) result
 
-module Value = struct end
+module Value = struct
+  let read_uint _ctx : int r = failwith "TODO"
+end
 
 module Type = struct end
 
@@ -20,11 +23,22 @@ module Module = struct
 
   let version = "\x01\x00\x00\x00"
 
-  let aux_section (sid : char) ({ p; s } : p_context) : string r =
+  let aux_section (sid : char) ({ p; s; slen } : p_context) : string r =
       let ch = s.[p] in
-      if Char.equal ch sid then failwith "TODO" else failwith "TODO"
+      if Char.equal ch sid
+      then Ok ("", { p; s; slen })
+      else
+        Ok { p = p + 1; s; slen }
+        |> R.flat_map Value.read_uint
+        |> R.flat_map (fun (size, { p; s; slen }) ->
+               if size + p < slen
+               then (
+                 let cont = String.sub s p size in
+                 Ok (cont, { p = p + size; s; slen })
+               )
+               else Error "EOF")
 
-  let parse_customsec ctx = failwith "TODO"
+  let parse_customsec = failwith "TODO"
 
   let parse_functype = failwith "TODO"
 
@@ -80,7 +94,7 @@ module Module = struct
       |> R.map (fun _ -> failwith "TODO")
 
   let parse (p : int) (s : string) : moduledef =
-      let ctx : p_context = { p; s } in
+      let ctx : p_context = { p; s; slen = String.length s } in
       Ok ctx |> R.flat_map parse_module |> R.map (fun (m, _) -> m) |> R.get_exn
 end
 
