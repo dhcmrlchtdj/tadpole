@@ -63,7 +63,9 @@ module Type = struct
           | Some max -> concat [ "\x01"; uint min; uint max ]
 
   let memtype x = limits x
+
   let tabletype ((l, e) : tabletype) = concat [ limits l; elemtype e ]
+
   let globaltype ((m, v) : globaltype) = concat [ mut m; valtype v ]
 end
 
@@ -296,6 +298,7 @@ end
 
 module Modules = struct
   let magic = "\x00\x61\x73\x6d"
+
   let version = "\x01\x00\x00\x00"
 
   let aux_section sid arr =

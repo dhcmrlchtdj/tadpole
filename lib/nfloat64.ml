@@ -1,6 +1,4 @@
-(* include Stdlib.Float *)
-
-type t = Float.t
+type t = float [@@deriving show]
 
 let equal = Float.equal
 
@@ -17,34 +15,52 @@ let to_bytes_le x =
     b
 
 let of_bytes b = Bytes.get_int64_be b 0 |> Int64.float_of_bits
+
 let to_string = Float.to_string
 
 module UnOp = struct
   let abs = Float.abs
+
   let neg = Float.neg
+
   let sqrt = Float.sqrt
+
   let ceil = Float.ceil
+
   let floor = Float.floor
+
   let trunc = Float.trunc
+
   let nearest = Float.round
 end
 
 module BinOp = struct
   let add = Float.add
+
   let sub = Float.sub
+
   let mul = Float.mul
+
   let div = Float.div
+
   let min = Float.min
+
   let max = Float.min
+
   let copy_sign = Float.copy_sign
 end
 
 module RelOp = struct
   let eq = Float.equal
+
   let ne x y = not (Float.equal x y)
+
   let lt x y = Float.compare x y < 0
+
   let le x y = Float.compare x y <= 0
+
   let gt x y = Float.compare x y > 0
+
   let ge x y = Float.compare x y >= 0
 end
 
@@ -71,5 +87,6 @@ module CvtOp = struct
       )
 
   let promote_f32 x = Int32.float_of_bits x
+
   let reinterpret_i64 x = Int64.float_of_bits x
 end

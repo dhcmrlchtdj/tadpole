@@ -1,8 +1,12 @@
 module type Impl = sig
   val token : string -> string
+
   val ast : string -> string
+
   val wat : string -> string
+
   val wasm : string -> string
+
   val value : string -> string
 end
 

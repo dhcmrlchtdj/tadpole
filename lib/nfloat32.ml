@@ -1,11 +1,11 @@
 (* original https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/float.ml *)
 
-(* include Stdlib.Int32 *)
-
-type t = Int32.t
+type t = Int32.t [@@deriving show]
 
 let of_float = Int32.bits_of_float
+
 let to_float = Int32.float_of_bits
+
 let pos_nan = 0x7fc00000l
 
 let is_nan x =
@@ -56,9 +56,13 @@ let binary x op y =
 
 module UnOp = struct
   let abs x = Int32.logand x Int32.max_int
+
   let neg x = Int32.logxor x Int32.min_int
+
   let sqrt x = unary Float.sqrt x
+
   let ceil x = unary Float.ceil x
+
   let floor x = unary Float.floor x
 
   let trunc x =
@@ -100,8 +104,11 @@ end
 
 module BinOp = struct
   let add x y = binary x ( +. ) y
+
   let sub x y = binary x ( -. ) y
+
   let mul x y = binary x ( *. ) y
+
   let div x y = binary x ( /. ) y
 
   let min x y =
@@ -133,10 +140,15 @@ end
 
 module RelOp = struct
   let eq x y = to_float x = to_float y
+
   let ne x y = to_float x <> to_float y
+
   let lt x y = to_float x < to_float y
+
   let gt x y = to_float x > to_float y
+
   let le x y = to_float x <= to_float y
+
   let ge x y = to_float x >= to_float y
 end
 
@@ -167,6 +179,7 @@ module CvtOp = struct
       )
 
   let demote_f64 x = if Float.is_nan x then pos_nan else of_float x
+
   let reinterpret_i32 x = x
 end
 
@@ -181,4 +194,5 @@ let to_bytes_le x =
     b
 
 let of_bytes b = Bytes.get_int32_be b 0
+
 let to_string x = x |> to_float |> Float.to_string

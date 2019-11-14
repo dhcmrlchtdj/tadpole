@@ -1,34 +1,34 @@
-type u32 = int
+type u32 = int [@@deriving show]
 
 (* ******** *)
 
-type idx = u32
+type idx = u32 [@@deriving show]
 
-and typeidx = idx
+and typeidx = idx [@@deriving show]
 
-and funcidx = idx
+and funcidx = idx [@@deriving show]
 
-and tableidx = idx
+and tableidx = idx [@@deriving show]
 
-and memidx = idx
+and memidx = idx [@@deriving show]
 
-and globalidx = idx
+and globalidx = idx [@@deriving show]
 
-and localidx = idx
+and localidx = idx [@@deriving show]
 
-and labelidx = idx
+and labelidx = idx [@@deriving show]
 
 (* ******** *)
 
-type addr = u32
+type addr = u32 [@@deriving show]
 
-and funcaddr = addr
+and funcaddr = addr [@@deriving show]
 
-and tableaddr = addr
+and tableaddr = addr [@@deriving show]
 
-and memaddr = addr
+and memaddr = addr [@@deriving show]
 
-and globaladdr = addr
+and globaladdr = addr [@@deriving show]
 
 (* ******** *)
 
@@ -37,67 +37,77 @@ type value =
     | I64 of Nint64.t
     | F32 of Nfloat32.t
     | F64 of Nfloat64.t
+[@@deriving show]
 
 type valtype =
     | TI32
     | TI64
     | TF32
     | TF64
-[@@deriving eq]
+[@@deriving show]
 
-type resulttype = valtype list
-type functype = valtype list * valtype list
+type resulttype = valtype list [@@deriving show]
+
+type functype = valtype list * valtype list [@@deriving show]
 
 type limits = {
     min: u32;
     max: u32 option;
   }
+[@@deriving show]
 
-type memtype = limits
+type memtype = limits [@@deriving show]
 
-type tabletype = limits * elemtype
+type tabletype = limits * elemtype [@@deriving show]
 
-and elemtype = FUNCREF
+and elemtype = FUNCREF [@@deriving show]
 
 type mut =
     | CONST
     | VAR
+[@@deriving show]
 
-type globaltype = mut * valtype
+type globaltype = mut * valtype [@@deriving show]
 
 type externtype =
     | ET_func of functype
     | ET_table of tabletype
     | ET_mem of memtype
     | ET_global of globaltype
+[@@deriving show]
 
 (* ******** *)
 
-type table = { ttype: tabletype }
-type mem = { mtype: memtype }
+type table = { ttype: tabletype } [@@deriving show]
+
+type mem = { mtype: memtype } [@@deriving show]
 
 type export = {
     name: string;
     desc: exportdesc;
   }
+[@@deriving show]
 
 and exportdesc =
     | ED_func of funcidx
     | ED_table of tableidx
     | ED_mem of memidx
     | ED_global of globalidx
+[@@deriving show]
 
 type import = {
     modname: string;
     name: string;
     desc: importdesc;
   }
+[@@deriving show]
 
 and importdesc =
     | ID_func of funcidx
     | ID_table of tabletype
     | ID_mem of memtype
     | ID_global of globaltype
+[@@deriving show]
 
 (* ******** *)
 
@@ -112,6 +122,7 @@ type unop =
     | F_FLOOR
     | F_TRUNC
     | F_NEAREST
+[@@deriving show]
 
 and binop =
     | I_ADD
@@ -136,8 +147,9 @@ and binop =
     | F_MIN
     | F_MAX
     | F_COPYSIGN
+[@@deriving show]
 
-and testop = I_EQZ
+and testop = I_EQZ [@@deriving show]
 
 and relop =
     | I_EQ
@@ -156,6 +168,7 @@ and relop =
     | F_GT
     | F_LE
     | F_GE
+[@@deriving show]
 
 and cvtop =
     | CVT_WRAP
@@ -168,6 +181,7 @@ and cvtop =
     | CVT_DEMOTE
     | CVT_PROMOTE
     | CVT_REINTERPRET
+[@@deriving show]
 
 (* ******** *)
 
@@ -175,6 +189,7 @@ type memarg = {
     align: u32;
     offset: u32;
   }
+[@@deriving show]
 
 (* ******** *)
 
@@ -182,27 +197,32 @@ type exportinst = {
     name: string;
     value: externval;
   }
+[@@deriving show]
 
 and externval =
     | EV_func of funcaddr
     | EV_table of tableaddr
     | EV_mem of memaddr
     | EV_global of globaladdr
+[@@deriving show]
 
 type tableinst = {
     elem: funcaddr option array;
     max: u32 option;
   }
+[@@deriving show]
 
 type meminst = {
     data: bytes;
     max: u32 option;
   }
+[@@deriving show]
 
 type globalinst = {
     value: value;
     mut: mut;
   }
+[@@deriving show]
 
 type moduleinst = {
     mutable types: functype array;
@@ -212,8 +232,9 @@ type moduleinst = {
     mutable globaladdrs: globaladdr array;
     mutable exports: exportinst array;
   }
+[@@deriving show]
 
-type start = { func: funcidx }
+type start = { func: funcidx } [@@deriving show]
 
 type moduledef = {
     types: functype array;
@@ -227,32 +248,37 @@ type moduledef = {
     imports: import array;
     exports: export array;
   }
+[@@deriving show]
 
 and global = {
     gtype: globaltype;
     init: expr;
   }
+[@@deriving show]
 
 and elem = {
     table: tableidx;
     offset: expr;
     init: funcidx list;
   }
+[@@deriving show]
 
 and data = {
     data: memidx;
     offset: expr;
     init: bytes;
   }
+[@@deriving show]
 
 (* FIXME *)
-and hostfunc = int
+and hostfunc = int [@@deriving show]
 
 and func = {
     typei: typeidx;
     locals: valtype list;
     body: expr;
   }
+[@@deriving show]
 
 and funcinst =
     | Func of {
@@ -264,6 +290,7 @@ and funcinst =
         functype: functype;
         hostfunc: hostfunc;
       }
+[@@deriving show]
 
 (* ******** *)
 and instr =
@@ -273,6 +300,7 @@ and instr =
     | Imemory of memory_instr
     | Icontrol of control_instr
     | Iadmin of admin_instr
+[@@deriving show]
 
 and numeric_instr =
     | Const of value
@@ -282,10 +310,12 @@ and numeric_instr =
     | RelOp of valtype * relop
     (*i32.wrap_i64 -> t1.op_t2 *)
     | CvtOp of valtype * cvtop * valtype
+[@@deriving show]
 
 and parametric_instr =
     | Drop
     | Select
+[@@deriving show]
 
 and variable_instr =
     | LocalGet of localidx
@@ -293,6 +323,7 @@ and variable_instr =
     | LocalTee of localidx
     | GlobalGet of globalidx
     | GlobalSet of globalidx
+[@@deriving show]
 
 and memory_instr =
     | Load of valtype * memarg
@@ -308,6 +339,7 @@ and memory_instr =
     | Store32 of valtype * memarg
     | MemorySize
     | MemoryGrow
+[@@deriving show]
 
 and control_instr =
     | Nop
@@ -321,6 +353,7 @@ and control_instr =
     | Return
     | Call of funcidx
     | CallIndirect of typeidx
+[@@deriving show]
 
 and admin_instr =
     | Trap
@@ -329,6 +362,7 @@ and admin_instr =
     | InitData of memaddr * instr list * bytes
     | Label of int * instr list * instr list
     | Frame of int * frame * instr list
+[@@deriving show]
 
 and expr = instr list
 
@@ -337,6 +371,7 @@ and frame = {
     locals: value array;
     moduleinst: moduleinst;
   }
+[@@deriving show]
 
 (* ******** *)
 
@@ -358,4 +393,4 @@ type context = {
 
 (* ******** *)
 
-let moduledef_to_string (_m : moduledef) : string = failwith "TODO"
+let moduledef_to_string (m : moduledef) : string = show_moduledef m

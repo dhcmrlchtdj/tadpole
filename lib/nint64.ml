@@ -1,14 +1,19 @@
-(* include Stdlib.Int64 *)
-
-type t = Int64.t
+type t = Int64.t [@@deriving show]
 
 let equal = Int64.equal
+
 let to_int = Int64.to_int
+
 let of_int = Int64.of_int
+
 let to_int32 = Int64.to_int32
+
 let of_int32 = Int64.of_int32
+
 let bits_of_float = Int64.bits_of_float
+
 let float_if_bits = Int64.float_of_bits
+
 let to_string = Int64.to_string
 
 let wrap_to n x =
@@ -73,14 +78,23 @@ end
 
 module BinOp = struct
   let add = Int64.add
+
   let sub = Int64.sub
+
   let mul = Int64.mul
+
   let div_s = Int64.div
+
   let div_u = Int64.unsigned_div
+
   let rem_s = Int64.rem
+
   let rem_u = Int64.unsigned_rem
+
   let logand = Int64.logand
+
   let logor = Int64.logor
+
   let logxor = Int64.logxor
 
   let shl x y =
@@ -110,14 +124,23 @@ end
 
 module RelOp = struct
   let eq = Int64.equal
+
   let ne x y = not (Int64.equal x y)
+
   let lt_s x y = Int64.compare x y < 0
+
   let lt_u x y = Int64.unsigned_compare x y < 0
+
   let le_s x y = Int64.compare x y <= 0
+
   let le_u x y = Int64.unsigned_compare x y <= 0
+
   let gt_s x y = Int64.compare x y > 0
+
   let gt_u x y = Int64.unsigned_compare x y > 0
+
   let ge_s x y = Int64.compare x y >= 0
+
   let ge_u x y = Int64.unsigned_compare x y >= 0
 end
 

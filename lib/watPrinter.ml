@@ -1,16 +1,24 @@
 open Types
 
 let concat = String.concat " "
+
 let sprintf = Printf.sprintf
 
 module Value = struct
   let byte = Bytes.to_string
+
   let name (x : string) = x
+
   let uint (x : u32) = string_of_int x
+
   let idx = uint
+
   let i32 (x : Nint32.t) = Nint32.to_string x
+
   let i64 (x : Nint64.t) = Nint64.to_string x
+
   let f32 (x : Nfloat32.t) = Nfloat32.to_string x
+
   let f64 (x : Nfloat64.t) = Nfloat64.to_string x
 end
 
@@ -45,6 +53,7 @@ module Type = struct
           | Some max -> concat [ Value.uint min; Value.uint max ]
 
   let memtype x = limits x
+
   let tabletype ((l, e) : tabletype) = concat [ limits l; elemtype e ]
 
   let globaltype ((m, v) : globaltype) =
@@ -286,7 +295,9 @@ end
 
 module Modules = struct
   let magic = "\x00\x61\x73\x6d"
+
   let version = "\x01\x00\x00\x00"
+
   let to_string (m : moduledef) = concat [ magic; version; "" ]
 end
 

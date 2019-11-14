@@ -1,12 +1,15 @@
-(* include Stdlib.Int32 *)
-
-type t = Int32.t
+type t = Int32.t [@@deriving show]
 
 let equal = Int32.equal
+
 let to_int = Int32.to_int
+
 let of_int = Int32.of_int
+
 let bits_of_float32 x = x
+
 let float32_of_bits x = x
+
 let to_string = Int32.to_string
 
 let wrap_to n x =
@@ -70,14 +73,23 @@ end
 
 module BinOp = struct
   let add = Int32.add
+
   let sub = Int32.sub
+
   let mul = Int32.mul
+
   let div_s = Int32.div
+
   let div_u = Int32.unsigned_div
+
   let rem_s = Int32.rem
+
   let rem_u = Int32.unsigned_rem
+
   let logand = Int32.logand
+
   let logor = Int32.logor
+
   let logxor = Int32.logxor
 
   let shl x y =
@@ -107,14 +119,23 @@ end
 
 module RelOp = struct
   let eq = Int32.equal
+
   let ne x y = not (Int32.equal x y)
+
   let lt_s x y = Int32.compare x y < 0
+
   let lt_u x y = Int32.unsigned_compare x y < 0
+
   let le_s x y = Int32.compare x y <= 0
+
   let le_u x y = Int32.unsigned_compare x y <= 0
+
   let gt_s x y = Int32.compare x y > 0
+
   let gt_u x y = Int32.unsigned_compare x y > 0
+
   let ge_s x y = Int32.compare x y >= 0
+
   let ge_u x y = Int32.unsigned_compare x y >= 0
 end
 
