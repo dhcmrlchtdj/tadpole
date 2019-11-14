@@ -44,7 +44,7 @@ type valtype =
     | TI64
     | TF32
     | TF64
-[@@deriving show]
+[@@deriving show, eq]
 
 type resulttype = valtype list [@@deriving show]
 

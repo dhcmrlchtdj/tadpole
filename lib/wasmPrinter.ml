@@ -296,7 +296,7 @@ module Instruction = struct
       | _ -> "TODO"
 end
 
-module Modules = struct
+module Module = struct
   let magic = "\x00\x61\x73\x6d"
 
   let version = "\x01\x00\x00\x00"
@@ -402,4 +402,4 @@ module Modules = struct
         ]
 end
 
-let to_string = Modules.to_string
+let to_string = Module.to_string
