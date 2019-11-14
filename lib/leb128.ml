@@ -1,3 +1,5 @@
+open! Containers
+
 module Unsigned = struct
   let encode (x : Int64.t) : char list =
       if Int64.equal x 0L

@@ -1,3 +1,4 @@
+open! Containers
 open Tadpole
 
 module Wat = Cli.Make (struct

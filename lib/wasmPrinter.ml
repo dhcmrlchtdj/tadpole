@@ -1,9 +1,10 @@
+open! Containers
 open Types
 
 let concat = String.concat ""
 
 let uint (x : u32) : string =
-    x |> Int64.of_int |> Leb128.Unsigned.encode |> CCString.of_list
+    x |> Int64.of_int |> Leb128.Unsigned.encode |> String.of_list
 
 let vec bs : string =
     let size = List.length bs in
@@ -22,10 +23,9 @@ module Value = struct
   let idx = uint
 
   let i32 (x : Nint32.t) : string =
-      x |> Int64.of_int32 |> Leb128.Signed.encode |> CCString.of_list
+      x |> Int64.of_int32 |> Leb128.Signed.encode |> String.of_list
 
-  let i64 (x : Nint64.t) : string =
-      x |> Leb128.Signed.encode |> CCString.of_list
+  let i64 (x : Nint64.t) : string = x |> Leb128.Signed.encode |> String.of_list
 
   let f32 (x : Nfloat32.t) : string =
       x |> Nfloat32.to_bytes_le |> Bytes.to_string

@@ -1,3 +1,4 @@
+open! Containers
 open Types
 
 let page_size = (* 64K *) 0x1_0000
@@ -558,8 +559,8 @@ and eval_admin_instr (ctx : context) = function
                       func.func.locals
                 in
                 let n = List.length params in
-                let vals = CCList.take n ctx.evaluated in
-                let evaluated = CCList.drop n ctx.evaluated in
+                let vals = List.take n ctx.evaluated in
+                let evaluated = List.drop n ctx.evaluated in
                 let locals = Array.of_list (vals @ val0) in
                 let frame = { moduleinst = func.moduleinst; locals } in
                 let instrs = func.func.body in
@@ -602,7 +603,7 @@ and eval_admin_instr (ctx : context) = function
             | [ Icontrol Return ] -> new_ctx
             | [] ->
                 let evaluated =
-                    List.append (CCList.take n new_ctx.evaluated) ctx.evaluated
+                    List.append (List.take n new_ctx.evaluated) ctx.evaluated
                 in
                 let cont = List.append next_instrs ctx.cont in
                 { new_ctx with evaluated; cont }
@@ -610,7 +611,7 @@ and eval_admin_instr (ctx : context) = function
       )
     | Frame (n, frame, instrs) ->
         let new_ctx = eval_instr { ctx with frame; cont = instrs } in
-        let vals = CCList.take n new_ctx.evaluated in
+        let vals = List.take n new_ctx.evaluated in
         let evaluated = List.append vals ctx.evaluated in
         { ctx with store = new_ctx.store; evaluated }
 

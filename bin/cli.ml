@@ -1,3 +1,5 @@
+open! Containers
+
 module type Impl = sig
   val token : string -> string
 
@@ -12,8 +14,8 @@ end
 
 module Make (I : Impl) = struct
   let p tr = function
-      | `Stdin -> CCIO.read_all stdin |> tr |> print_endline
-      | `File file -> CCIO.File.read_exn file |> tr |> print_endline
+      | `Stdin -> IO.read_all stdin |> tr |> print_endline
+      | `File file -> IO.File.read_exn file |> tr |> print_endline
 
   let run () =
       let exe = Sys.argv.(0) in

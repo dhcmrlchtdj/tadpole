@@ -1,3 +1,4 @@
+open! Containers
 open WatToken
 
 let codepoint_to_chars (codepoint : int) : char list =
@@ -49,7 +50,7 @@ let hex_of_char_list (chars : char list) : int =
     aux 0 chars
 
 let str_of_rev_char_list (chars : char list) : string =
-    chars |> List.rev |> CCString.of_list
+    chars |> List.rev |> String.of_list
 
 let is_digit = function
     | '0' .. '9' -> true
@@ -221,4 +222,4 @@ let scan (src : string) : WatToken.t list =
         | h :: t when is_idchar h -> scan_reserved [ h ] t
         | _ -> failwith "never"
     in
-    scan_all_token [] (CCString.to_list src)
+    scan_all_token [] (String.to_list src)
