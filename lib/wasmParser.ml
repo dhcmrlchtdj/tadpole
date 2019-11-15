@@ -1,33 +1,39 @@
 open! Containers
 open Types
-module R = Result
 
 let ( let* ) = Result.( >>= )
 
 let ( let+ ) = Result.( >|= )
 
-type p_context = {
-    p: int;
-    s: string;
-    slen: int;
-  }
-
 type 'a or_err = ('a, string) result
 
-let aux_read
-    (len : int)
-    (ctx : p_context)
-    (f : string -> p_context -> 'a or_err) : 'a or_err =
-    let { p; s; slen } = ctx in
-    if p + len < slen
+type source = {
+    s: string;
+    left: int;
+    right: int;
+  }
+
+let aux_src2str ({ s; left; right } : source) = String.sub s left (right - left)
+
+let aux_read (src : source) (len : int) : (source * source) or_err =
+    let { left; right; _ } = src in
+    if left < right && left + len <= right
     then (
-      let c = String.sub s p len in
-      f c { ctx with p = p + len }
+      let sub = { src with right = left + len } in
+      let src = { src with left = left + len } in
+      Ok (sub, src)
     )
     else Error "EOF"
 
+let aux_consume (pattern : string) (src : source) : source or_err =
+    let len = String.length pattern in
+    let* (sub, src) = aux_read src len in
+    if String.equal pattern (aux_src2str sub)
+    then Ok src
+    else Error "aux_consume | failure"
+
 module Value = struct
-  let read_uint _ctx : (int * p_context) or_err = failwith "TODO"
+  let read_uint _ctx : (int * source) or_err = failwith "TODO"
 end
 
 module Type = struct end
@@ -49,22 +55,24 @@ module Module = struct
       export: string;
     }
 
-  type m_ctx = moduledef * p_context
+  type m_ctx = moduledef * source
 
   let magic = "\x00\x61\x73\x6d"
 
   let version = "\x01\x00\x00\x00"
 
-  let aux_section (sid : char) (ctx : p_context) : (string * p_context) or_err =
-      let { p; s; slen } = ctx in
-      let ch = s.[p] in
-      if Char.equal ch sid
-      then Ok ("", ctx)
-      else
-        Ok { p = p + 1; s; slen }
-        |> R.flat_map Value.read_uint
-        |> R.flat_map (fun (size, ctx) ->
-               aux_read size ctx (fun c ctx -> Ok (c, ctx)))
+  let aux_section (sec_id : char) (src : source) :
+      (source option * source) or_err =
+      let { s; left; _ } = src in
+      let ch = s.[left] in
+      if Char.equal ch sec_id
+      then (
+        let src = { src with left = left + 1 } in
+        let* (size, src) = Value.read_uint src in
+        let* (sub, src) = aux_read src size in
+        Ok (Some sub, src)
+      )
+      else Ok (None, src)
 
   let parse_types _x = failwith "TODO"
 
@@ -86,16 +94,8 @@ module Module = struct
 
   let parse_exports _x = failwith "TODO"
 
-  let parse_module (ctx : p_context) : moduledef or_err =
-      let consume_magic (ctx : p_context) : p_context or_err =
-          aux_read 4 ctx (fun c ctx ->
-              if String.equal c magic then Ok ctx else Error "magic error")
-      in
-      let consume_version (ctx : p_context) : p_context or_err =
-          aux_read 4 ctx (fun c ctx ->
-              if String.equal c version then Ok ctx else Error "version error")
-      in
-      let split_module (_ctx : p_context) =
+  let parse_module (ctx : source) : moduledef or_err =
+      let split_module (_ctx : source) =
           let sec =
               {
                 functype = "";
@@ -114,8 +114,8 @@ module Module = struct
           Ok sec
       in
 
-      let* ctx = consume_magic ctx in
-      let* ctx = consume_version ctx in
+      let* ctx = aux_consume magic ctx in
+      let* ctx = aux_consume version ctx in
       let* sec = split_module ctx in
 
       let* types = parse_types sec.functype in
@@ -144,9 +144,9 @@ module Module = struct
       in
       Ok m
 
-  let parse (p : int) (s : string) : moduledef =
-      let ctx : p_context = { p; s; slen = String.length s } in
-      Ok ctx |> R.flat_map parse_module |> R.get_or_failwith
+  let parse (src : source) : moduledef =
+      let m = parse_module src in
+      Result.get_or_failwith m
 end
 
-let parse = Module.parse 0
+let parse s = Module.parse { s; left = 0; right = String.length s }
