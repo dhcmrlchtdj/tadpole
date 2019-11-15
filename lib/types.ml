@@ -344,8 +344,8 @@ and memory_instr =
 [@@deriving show]
 
 and control_instr =
-  | Nop
   | Unreachable
+  | Nop
   | Block of resulttype * instr list
   | Loop of resulttype * instr list
   | If of resulttype * instr list * instr list

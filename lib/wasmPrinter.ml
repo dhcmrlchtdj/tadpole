@@ -267,8 +267,8 @@ module Instruction = struct
     | _ -> failwith "never"
 
   and control = function
-    | Nop -> "\x00"
-    | Unreachable -> "\x01"
+    | Unreachable -> "\x00"
+    | Nop -> "\x01"
     | Block (r, is) -> concat [ "\x02"; Type.resulttype r; instrs is; "\x0b" ]
     | Loop (r, is) -> concat [ "\x03"; Type.resulttype r; instrs is; "\x0b" ]
     | If (r, in1, []) ->
