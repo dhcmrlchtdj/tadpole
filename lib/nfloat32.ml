@@ -1,6 +1,8 @@
 (* original https://github.com/WebAssembly/spec/blob/994591e51c9df9e7ef980b04d660709b79982f75/interpreter/exec/float.ml *)
 
-type t = Int32.t [@@deriving show]
+type t = Int32.t
+
+let pp f t = Format.pp_print_float f (Int32.float_of_bits t)
 
 let of_float = Int32.bits_of_float
 
