@@ -151,17 +151,19 @@ let scan (src : string) : WatToken.t list =
     | h :: t when is_idchar h -> scan_reserved (h :: acc) t
     | t -> Ok (Some (RESERVED (acc |> str_of_rev_char_list)), t)
   and scan_string (acc : char list) = function
-    (* TODO https://webassembly.github.io/spec/core/text/values.html#strings *)
     | '\\' :: n :: m :: t when is_hexdigit n && is_hexdigit m ->
       let c = [ n; m ] |> hex_of_char_list |> Char.chr in
       scan_string (c :: acc) t
-    | '\\' :: 'u' :: t -> (
+    | '\\' :: 'u' :: '{' :: t -> (
       let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
       match scan_hexdigit [] t with
-        | Ok (Some codepoint, tt) when is_valid codepoint ->
+        | Ok (Some codepoint, tt) when is_valid codepoint -> (
           let chs = codepoint_to_chars codepoint in
           let chs_rev = List.rev chs in
-          scan_string (chs_rev @ acc) tt
+          match tt with
+            | '}' :: tt -> scan_string (chs_rev @ acc) tt
+            | _ -> failwith "[scan_string] invalid unicode"
+        )
         | _ -> failwith "[scan_string] invalid codepoint"
     )
     | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t

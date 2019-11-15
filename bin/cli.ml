@@ -8,8 +8,6 @@ module type Impl = sig
   val wat : string -> string
 
   val wasm : string -> string
-
-  val value : string -> string
 end
 
 module Make (I : Impl) = struct
@@ -33,8 +31,6 @@ module Make (I : Impl) = struct
       | [ "-wat"; file ] -> p I.wat (`File file)
       | [ "-wasm"; "-" ] -> p I.wasm `Stdin
       | [ "-wasm"; file ] -> p I.wasm (`File file)
-      | [ "-" ] -> p I.value `Stdin
-      | [ file ] -> p I.value (`File file)
       | _ -> usage ()
     in
     aux argv

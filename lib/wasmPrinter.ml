@@ -93,7 +93,7 @@ module Instruction = struct
     | Const (I64 v) -> concat [ "\x42"; Value.i64 v ]
     | Const (F32 v) -> concat [ "\x43"; Value.f32 v ]
     | Const (F64 v) -> concat [ "\x44"; Value.f64 v ]
-    (*  *)
+    (* i32 *)
     | TestOp (TI32, I_EQZ) -> "\x45"
     | RelOp (TI32, I_EQ) -> "\x46"
     | RelOp (TI32, I_NE) -> "\x47"
@@ -105,7 +105,7 @@ module Instruction = struct
     | RelOp (TI32, I_LE_U) -> "\x4d"
     | RelOp (TI32, I_GE_S) -> "\x4e"
     | RelOp (TI32, I_GE_U) -> "\x4f"
-    (*  *)
+    (* i64 *)
     | TestOp (TI64, I_EQZ) -> "\x50"
     | RelOp (TI64, I_EQ) -> "\x51"
     | RelOp (TI64, I_NE) -> "\x52"
@@ -117,21 +117,21 @@ module Instruction = struct
     | RelOp (TI64, I_LE_U) -> "\x58"
     | RelOp (TI64, I_GE_S) -> "\x59"
     | RelOp (TI64, I_GE_U) -> "\x5a"
-    (*  *)
+    (* f32 *)
     | RelOp (TF32, F_EQ) -> "\x5b"
     | RelOp (TF32, F_NE) -> "\x5c"
     | RelOp (TF32, F_LT) -> "\x5d"
     | RelOp (TF32, F_GT) -> "\x5e"
     | RelOp (TF32, F_LE) -> "\x5f"
     | RelOp (TF32, F_GE) -> "\x60"
-    (*  *)
+    (* f64 *)
     | RelOp (TF64, F_EQ) -> "\x61"
     | RelOp (TF64, F_NE) -> "\x62"
     | RelOp (TF64, F_LT) -> "\x63"
     | RelOp (TF64, F_GT) -> "\x64"
     | RelOp (TF64, F_LE) -> "\x65"
     | RelOp (TF64, F_GE) -> "\x66"
-    (*  *)
+    (* i32 *)
     | UnOp (TI32, I_CLZ) -> "\x67"
     | UnOp (TI32, I_CTZ) -> "\x68"
     | UnOp (TI32, I_POPCONT) -> "\x69"
@@ -150,7 +150,7 @@ module Instruction = struct
     | BinOp (TI32, I_SHR_U) -> "\x76"
     | BinOp (TI32, I_ROTL) -> "\x77"
     | BinOp (TI32, I_ROTR) -> "\x78"
-    (*  *)
+    (* i64 *)
     | UnOp (TI64, I_CLZ) -> "\x79"
     | UnOp (TI64, I_CTZ) -> "\x7a"
     | UnOp (TI64, I_POPCONT) -> "\x7b"
@@ -169,7 +169,7 @@ module Instruction = struct
     | BinOp (TI64, I_SHR_U) -> "\x88"
     | BinOp (TI64, I_ROTL) -> "\x89"
     | BinOp (TI64, I_ROTR) -> "\x8a"
-    (*  *)
+    (* f32 *)
     | UnOp (TF32, F_ABS) -> "\x8b"
     | UnOp (TF32, F_NEG) -> "\x8c"
     | UnOp (TF32, F_CEIL) -> "\x8d"
@@ -184,7 +184,7 @@ module Instruction = struct
     | BinOp (TF32, F_MIN) -> "\x96"
     | BinOp (TF32, F_MAX) -> "\x97"
     | BinOp (TF32, F_COPYSIGN) -> "\x98"
-    (*  *)
+    (* f64 *)
     | UnOp (TF64, F_ABS) -> "\x99"
     | UnOp (TF64, F_NEG) -> "\x9a"
     | UnOp (TF64, F_CEIL) -> "\x9b"
@@ -199,7 +199,7 @@ module Instruction = struct
     | BinOp (TF64, F_MIN) -> "\xa4"
     | BinOp (TF64, F_MAX) -> "\xa5"
     | BinOp (TF64, F_COPYSIGN) -> "\xa6"
-    (*  *)
+    (* cvt *)
     | CvtOp (TI32, CVT_WRAP, TI64) -> "\xa7"
     | CvtOp (TI32, CVT_TRUNC_S, TF32) -> "\xa8"
     | CvtOp (TI32, CVT_TRUNC_U, TF32) -> "\xa9"
