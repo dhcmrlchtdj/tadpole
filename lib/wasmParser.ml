@@ -3,8 +3,6 @@ open Types
 
 let ( let* ) = Result.( >>= )
 
-(* let ( let+ ) = Result.( >|= ) *)
-
 type 'a or_err = ('a, string) result
 
 module S = struct
@@ -14,18 +12,10 @@ module S = struct
     right: int;
   }
 
-  let empty = { s = ""; left = 0; right = 0 }
-
   let of_string (s : string) : t = { s; left = 0; right = String.length s }
 
   let to_string ({ s; left; right } : t) : string =
     String.sub s left (right - left)
-
-  let concat (t1 : t) (t2 : t) : t =
-    let s1 = to_string t1 in
-    let s2 = to_string t2 in
-    let s = s1 ^ s2 in
-    of_string s
 
   let take (len : int) (src : t) : (t * t) or_err =
     let { left; right; _ } = src in
@@ -60,11 +50,6 @@ module S = struct
       let ch = s.[left] in
       Ok ch
     )
-
-  let peek_int (src : t) : int or_err =
-    let* ch = peek_char src in
-    let n = Char.code ch in
-    Ok n
 
   let consume (pattern : string) (src : t) : t or_err =
     let len = String.length pattern in
@@ -141,7 +126,7 @@ module Value = struct
   let idx = uint
 end
 
-let aux_vec (src : S.t) (f : S.t -> ('a * S.t) or_err) : ('a list * S.t) or_err =
+let aux_vec (f : S.t -> ('a * S.t) or_err) (src : S.t) : ('a list * S.t) or_err =
   let rec aux (acc : 'a list) (src : S.t) n =
     if n = 0
     then (
@@ -177,8 +162,8 @@ module Type = struct
 
   let functype (s : S.t) : (functype * S.t) or_err =
     let* s = S.consume_char '\x60' s in
-    let* (t1, s) = aux_vec s valtype in
-    let* (t2, s) = aux_vec s valtype in
+    let* (t1, s) = aux_vec valtype s in
+    let* (t2, s) = aux_vec valtype s in
     let func = (t1, t2) in
     Ok (func, s)
 
@@ -265,7 +250,7 @@ module Instruction = struct
         let* (x, s) = Value.idx s in
         Ok (Icontrol (BrIf x), s)
       | '\x0e' ->
-        let* (ls, s) = aux_vec s Value.idx in
+        let* (ls, s) = aux_vec Value.idx s in
         let ls = Array.of_list ls in
         let* (l, s) = Value.idx s in
         Ok (Icontrol (BrTable (ls, l)), s)
@@ -513,32 +498,32 @@ end
 
 module Module = struct
   type sections = {
-    typesec: S.t;
-    importsec: S.t;
-    funcsec: S.t;
-    tablesec: S.t;
-    memsec: S.t;
-    globalsec: S.t;
-    exportsec: S.t;
-    startsec: S.t;
-    elemsec: S.t;
-    codesec: S.t;
-    datasec: S.t;
+    typesec: S.t list;
+    importsec: S.t list;
+    funcsec: S.t list;
+    tablesec: S.t list;
+    memsec: S.t list;
+    globalsec: S.t list;
+    exportsec: S.t list;
+    startsec: S.t list;
+    elemsec: S.t list;
+    codesec: S.t list;
+    datasec: S.t list;
   }
 
   let empty_sections =
     {
-      typesec = S.empty;
-      importsec = S.empty;
-      funcsec = S.empty;
-      tablesec = S.empty;
-      memsec = S.empty;
-      globalsec = S.empty;
-      exportsec = S.empty;
-      startsec = S.empty;
-      elemsec = S.empty;
-      codesec = S.empty;
-      datasec = S.empty;
+      typesec = [];
+      importsec = [];
+      funcsec = [];
+      tablesec = [];
+      memsec = [];
+      globalsec = [];
+      exportsec = [];
+      startsec = [];
+      elemsec = [];
+      codesec = [];
+      datasec = [];
     }
 
   let aux_read_section (src : S.t) : (int * S.t * S.t) or_err =
@@ -560,42 +545,161 @@ module Module = struct
         let acc =
           match sec_id with
             | 0 -> acc
-            | 1 -> { acc with typesec = S.concat acc.typesec sec }
-            | 2 -> { acc with importsec = S.concat acc.importsec sec }
-            | 3 -> { acc with funcsec = S.concat acc.funcsec sec }
-            | 4 -> { acc with tablesec = S.concat acc.tablesec sec }
-            | 5 -> { acc with memsec = S.concat acc.memsec sec }
-            | 6 -> { acc with globalsec = S.concat acc.globalsec sec }
-            | 7 -> { acc with exportsec = S.concat acc.exportsec sec }
-            | 8 -> { acc with startsec = S.concat acc.startsec sec }
-            | 9 -> { acc with elemsec = S.concat acc.elemsec sec }
-            | 10 -> { acc with codesec = S.concat acc.codesec sec }
-            | 11 -> { acc with datasec = S.concat acc.datasec sec }
+            | 1 -> { acc with typesec = sec :: acc.typesec }
+            | 2 -> { acc with importsec = sec :: acc.importsec }
+            | 3 -> { acc with funcsec = sec :: acc.funcsec }
+            | 4 -> { acc with tablesec = sec :: acc.tablesec }
+            | 5 -> { acc with memsec = sec :: acc.memsec }
+            | 6 -> { acc with globalsec = sec :: acc.globalsec }
+            | 7 -> { acc with exportsec = sec :: acc.exportsec }
+            | 8 -> { acc with startsec = sec :: acc.startsec }
+            | 9 -> { acc with elemsec = sec :: acc.elemsec }
+            | 10 -> { acc with codesec = sec :: acc.codesec }
+            | 11 -> { acc with datasec = sec :: acc.datasec }
             | _ -> failwith "never"
         in
         aux acc src
     in
     aux empty_sections src
 
-  let parse_types _x = failwith "TODO"
+  let aux_parse_section (f : S.t -> ('a * S.t) or_err) (ss : S.t list)
+      : 'a array or_err
+    =
+    let mapf (s : S.t) =
+      let* (xs, _) = aux_vec f s in
+      Ok xs
+    in
+    let xss : 'a list or_err list = List.rev_map mapf ss in
+    let* xs = Result.flatten_l xss in
+    let xs = xs |> List.flatten |> Array.of_list in
+    Ok xs
 
-  let parse_funcs _x _x = failwith "TODO"
+  let parse_types (ss : S.t list) : functype array or_err =
+    aux_parse_section Type.functype ss
 
-  let parse_tables _x = failwith "TODO"
+  let parse_funcs (idxs : S.t list) (codes : S.t list) : func array or_err =
+    let aux_locals (s : S.t) : (valtype list * S.t) or_err =
+      let* (n, s) = Value.uint s in
+      let* (t, s) = Type.valtype s in
+      let rec aux acc = function
+        | 0 -> Ok (acc, s)
+        | n -> aux (t :: acc) (n - 1)
+      in
+      aux [] n
+    in
+    let fcode (s : S.t) : ((valtype list * expr) * S.t) or_err =
+      let* (size, s) = Value.uint s in
+      let* (code, s) = S.take size s in
+      let* (locals, code) = aux_vec aux_locals code in
+      let locals = List.flatten locals in
+      let* (body, _) = Instruction.expr code in
+      Ok ((locals, body), s)
+    in
+    let fidx (s : S.t) : (typeidx * S.t) or_err = Value.idx s in
+    let mapf (sidx : S.t) (scode : S.t) : func list or_err =
+      let* (idx, _) = aux_vec fidx sidx in
+      let* (code, _) = aux_vec fcode scode in
+      let f =
+        List.map2 (fun typei (locals, body) -> { typei; locals; body }) idx code
+      in
+      Ok f
+    in
+    let xss = List.rev_map2 mapf idxs codes in
+    let* xs = Result.flatten_l xss in
+    let xs = xs |> List.flatten |> Array.of_list in
+    Ok xs
 
-  let parse_mems _x = failwith "TODO"
+  let parse_tables (ss : S.t list) : table array or_err =
+    let f (s : S.t) =
+      let* (ttype, s) = Type.tabletype s in
+      Ok ({ ttype }, s)
+    in
+    aux_parse_section f ss
 
-  let parse_globals _x = failwith "TODO"
+  let parse_mems (ss : S.t list) : mem array or_err =
+    let f (s : S.t) =
+      let* (mtype, s) = Type.memtype s in
+      Ok ({ mtype }, s)
+    in
+    aux_parse_section f ss
 
-  let parse_elem _x = failwith "TODO"
+  let parse_globals (ss : S.t list) : global array or_err =
+    let f (s : S.t) =
+      let* (gtype, s) = Type.globaltype s in
+      let* (init, s) = Instruction.expr s in
+      Ok ({ gtype; init }, s)
+    in
+    aux_parse_section f ss
 
-  let parse_data _x = failwith "TODO"
+  let parse_elem (ss : S.t list) : elem array or_err =
+    let f (s : S.t) =
+      let* (table, s) = Value.idx s in
+      let* (offset, s) = Instruction.expr s in
+      let* (init, s) = aux_vec Value.idx s in
+      Ok ({ table; offset; init }, s)
+    in
+    aux_parse_section f ss
 
-  let parse_start _x = failwith "TODO"
+  let parse_data (ss : S.t list) : data array or_err =
+    let f (s : S.t) =
+      let* (data, s) = Value.idx s in
+      let* (offset, s) = Instruction.expr s in
+      let* (init, s) = Value.byte s in
+      Ok ({ data; offset; init }, s)
+    in
+    aux_parse_section f ss
 
-  let parse_imports _x = failwith "TODO"
+  let parse_start (ss : S.t list) : start option or_err =
+    match List.rev ss with
+      | [] -> Ok None
+      | [ s ] ->
+        let* (func, _) = Value.idx s in
+        Ok (Some { func })
+      | _ -> Error "invalid start"
 
-  let parse_exports _x = failwith "TODO"
+  let parse_imports (ss : S.t list) : import array or_err =
+    let aux_desc (s : S.t) : (importdesc * S.t) or_err =
+      let* (t, s) = S.take_char s in
+      match t with
+        | '\x00' ->
+          let* (x, s) = Value.idx s in
+          Ok (ID_func x, s)
+        | '\x01' ->
+          let* (tt, s) = Type.tabletype s in
+          Ok (ID_table tt, s)
+        | '\x02' ->
+          let* (mt, s) = Type.memtype s in
+          Ok (ID_mem mt, s)
+        | '\x03' ->
+          let* (gt, s) = Type.globaltype s in
+          Ok (ID_global gt, s)
+        | _ -> Error "invalid import desc"
+    in
+    let f (s : S.t) =
+      let* (modname, s) = Value.name s in
+      let* (name, s) = Value.name s in
+      let* (desc, s) = aux_desc s in
+      Ok ({ modname; name; desc }, s)
+    in
+    aux_parse_section f ss
+
+  let parse_exports (ss : S.t list) : export array or_err =
+    let aux_desc (s : S.t) : (exportdesc * S.t) or_err =
+      let* (t, s) = S.take_char s in
+      let* (i, s) = Value.idx s in
+      match t with
+        | '\x00' -> Ok (ED_func i, s)
+        | '\x01' -> Ok (ED_table i, s)
+        | '\x02' -> Ok (ED_mem i, s)
+        | '\x03' -> Ok (ED_global i, s)
+        | _ -> Error "invalid export desc"
+    in
+    let f (s : S.t) =
+      let* (name, s) = Value.name s in
+      let* (desc, s) = aux_desc s in
+      Ok ({ name; desc }, s)
+    in
+    aux_parse_section f ss
 
   let parse_module (src : S.t) : moduledef or_err =
     let magic = "\x00\x61\x73\x6d" in

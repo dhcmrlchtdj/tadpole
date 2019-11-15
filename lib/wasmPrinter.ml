@@ -359,9 +359,10 @@ module Module = struct
 
   let codesec (m : moduledef) =
     let code (func : func) =
-      let n = List.length func.locals in
-      let ts = List.map Type.valtype func.locals in
-      let t = vec (Value.uint n :: ts) in
+      let ts =
+        List.map (fun p -> concat [ Value.uint 1; Type.valtype p ]) func.locals
+      in
+      let t = vec ts in
       let e = Instruction.expr func.body in
       let f = concat [ t; e ] in
       let size = String.length f in
