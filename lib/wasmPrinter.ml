@@ -62,9 +62,9 @@ module Type = struct
 
   let memtype x = limits x
 
-  let tabletype ((l, e) : tabletype) = concat [ limits l; elemtype e ]
+  let tabletype ((l, e) : tabletype) = concat [ elemtype e; limits l ]
 
-  let globaltype ((m, v) : globaltype) = concat [ mut m; valtype v ]
+  let globaltype ((m, v) : globaltype) = concat [ valtype v; mut m ]
 end
 
 module Instruction = struct

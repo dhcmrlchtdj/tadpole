@@ -3,7 +3,7 @@ open Types
 
 let ( let* ) = Result.( >>= )
 
-let ( let+ ) = Result.( >|= )
+(* let ( let+ ) = Result.( >|= ) *)
 
 type 'a or_err = ('a, string) result
 
@@ -52,26 +52,30 @@ module S = struct
     let n = Char.code ch in
     Ok (n, src)
 
-  let peek_char (src : t) : (char * t) or_err =
+  let peek_char (src : t) : char or_err =
     let { s; left; right } = src in
     if left = right
     then Error "EOF"
     else (
       let ch = s.[left] in
-      Ok (ch, src)
+      Ok ch
     )
 
-  let peek_int (src : t) : (int * t) or_err =
-    let* (ch, src) = peek_char src in
+  let peek_int (src : t) : int or_err =
+    let* ch = peek_char src in
     let n = Char.code ch in
-    Ok (n, src)
+    Ok n
 
   let consume (pattern : string) (src : t) : t or_err =
     let len = String.length pattern in
     let* (sub, src) = take len src in
     if String.equal pattern (to_string sub)
     then Ok src
-    else Error "aux_consume | failure"
+    else Error "consume | failure"
+
+  let consume_char (p : char) (src : t) : t or_err =
+    let* (ch, src) = take_char src in
+    if Char.equal p ch then Ok src else Error "consume_char | failure"
 
   let skip (len : int) (src : t) : t or_err =
     let { left; right; _ } = src in
@@ -137,7 +141,86 @@ module Value = struct
   let idx = uint
 end
 
-module Type = struct end
+let aux_vec (src : S.t) (f : S.t -> ('a * S.t) or_err) : ('a list * S.t) or_err =
+  let rec aux (acc : 'a list) (src : S.t) n =
+    if n = 0
+    then (
+      let l = List.rev acc in
+      Ok (l, src)
+    )
+    else
+      let* (a, src) = f src in
+      aux (a :: acc) src (n - 1)
+  in
+  let* (n, src) = Value.uint src in
+  aux [] src n
+
+module Type = struct
+  let valtype (s : S.t) : (valtype * S.t) or_err =
+    let* (t, s) = S.take_char s in
+    match t with
+      | '\x7f' -> Ok (TI32, s)
+      | '\x7e' -> Ok (TI64, s)
+      | '\x7d' -> Ok (TF32, s)
+      | '\x7c' -> Ok (TF64, s)
+      | _ -> Error "Type.valtype"
+
+  let resulttype (s : S.t) : (resulttype * S.t) or_err =
+    let* c = S.peek_char s in
+    if Char.equal c '\x40'
+    then
+      let* s = S.skip 1 s in
+      Ok ([], s)
+    else
+      let* (v, s) = valtype s in
+      Ok ([ v ], s)
+
+  let functype (s : S.t) : (functype * S.t) or_err =
+    let* s = S.consume_char '\x60' s in
+    let* (t1, s) = aux_vec s valtype in
+    let* (t2, s) = aux_vec s valtype in
+    let func = (t1, t2) in
+    Ok (func, s)
+
+  let limits (s : S.t) : (limits * S.t) or_err =
+    let* (t, s) = S.take_char s in
+    match t with
+      | '\x00' ->
+        let* (n, s) = Value.uint s in
+        let limits = { min = n; max = None } in
+        Ok (limits, s)
+      | '\x01' ->
+        let* (n, s) = Value.uint s in
+        let* (m, s) = Value.uint s in
+        let limits = { min = n; max = Some m } in
+        Ok (limits, s)
+      | _ -> Error "Type.limits"
+
+  let memtype (s : S.t) : (memtype * S.t) or_err = limits s
+
+  let elemtype (s : S.t) : (elemtype * S.t) or_err =
+    let* s = S.consume_char '\x70' s in
+    Ok (FUNCREF, s)
+
+  let tabletype (s : S.t) : (tabletype * S.t) or_err =
+    let* (et, s) = elemtype s in
+    let* (lim, s) = limits s in
+    let table = (lim, et) in
+    Ok (table, s)
+
+  let mut (s : S.t) : (mut * S.t) or_err =
+    let* (t, s) = S.take_char s in
+    match t with
+      | '\x00' -> Ok (CONST, s)
+      | '\x01' -> Ok (VAR, s)
+      | _ -> Error "Type.mut"
+
+  let globaltype (s : S.t) : (globaltype * S.t) or_err =
+    let* (t, s) = valtype s in
+    let* (m, s) = mut s in
+    let g = (m, t) in
+    Ok (g, s)
+end
 
 module Instruction = struct end
 
@@ -244,6 +327,7 @@ module Module = struct
     let* start = parse_start sec.startsec in
     let* imports = parse_imports sec.importsec in
     let* exports = parse_exports sec.exportsec in
+
     let m =
       {
         types;
