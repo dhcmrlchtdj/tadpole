@@ -222,7 +222,50 @@ module Type = struct
     Ok (g, s)
 end
 
-module Instruction = struct end
+module Instruction = struct
+  let memarg (s : S.t) : (memarg * S.t) or_err = failwith "TODO"
+
+  let instr (s : S.t) : (instr * S.t) or_err =
+    let* (t, s) = S.take_char s in
+    match t with
+      (* parametric *)
+      | '\x1a' -> Ok (Iparametric Drop, s)
+      | '\x1b' -> Ok (Iparametric Select, s)
+      (* variable *)
+      | '\x20' ->
+        let* (n, s) = Value.idx s in
+        Ok (Ivariable (LocalGet n), s)
+      | '\x21' ->
+        let* (n, s) = Value.idx s in
+        Ok (Ivariable (LocalSet n), s)
+      | '\x22' ->
+        let* (n, s) = Value.idx s in
+        Ok (Ivariable (LocalTee n), s)
+      | '\x23' ->
+        let* (n, s) = Value.idx s in
+        Ok (Ivariable (GlobalGet n), s)
+      | '\x24' ->
+        let* (n, s) = Value.idx s in
+        Ok (Ivariable (GlobalSet n), s)
+      (* memory *)
+      (* control *)
+      (* numeric *)
+      | _ -> Error "invalid instr"
+
+  let expr (s : S.t) : (expr * S.t) or_err =
+    let rec aux (acc : instr list) (s : S.t) =
+      let* c = S.peek_char s in
+      if Char.equal c '\x0b'
+      then
+        let* s = S.skip 1 s in
+        let ins = List.rev acc in
+        Ok (ins, s)
+      else
+        let* (i, s) = instr s in
+        aux (i :: acc) s
+    in
+    aux [] s
+end
 
 module Module = struct
   type sections = {
