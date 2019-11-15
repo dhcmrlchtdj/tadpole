@@ -3,16 +3,16 @@ type t = float [@@deriving show]
 let equal = Float.equal
 
 let to_bytes x =
-    let x = Int64.bits_of_float x in
-    let b = Bytes.create 8 in
-    let () = Bytes.set_int64_be b 0 x in
-    b
+  let x = Int64.bits_of_float x in
+  let b = Bytes.create 8 in
+  let () = Bytes.set_int64_be b 0 x in
+  b
 
 let to_bytes_le x =
-    let x = Int64.bits_of_float x in
-    let b = Bytes.create 8 in
-    let () = Bytes.set_int64_le b 0 x in
-    b
+  let x = Int64.bits_of_float x in
+  let b = Bytes.create 8 in
+  let () = Bytes.set_int64_le b 0 x in
+  b
 
 let of_bytes b = Bytes.get_int64_be b 0 |> Int64.float_of_bits
 
@@ -70,21 +70,20 @@ module CvtOp = struct
   let convert_s_i32 x = Int32.to_float x
 
   let convert_u_i32 x =
-      let xx = Int64.logand (Int64.of_int32 x) 0x0000_0000_FFFF_FFFFL in
-      Int64.to_float xx
+    let xx = Int64.logand (Int64.of_int32 x) 0x0000_0000_FFFF_FFFFL in
+    Int64.to_float xx
 
   let convert_s_i64 x = Int64.to_float x
 
   let convert_u_i64 x =
-      if Int64.compare x 0L >= 0
-      then Int64.to_float x
-      else (
-        let xx =
-            Int64.(logor (shift_right_logical x 1) (logand x 1L))
-            |> Int64.to_float
-        in
-        xx *. 2.0
-      )
+    if Int64.compare x 0L >= 0
+    then Int64.to_float x
+    else (
+      let xx =
+        Int64.(logor (shift_right_logical x 1) (logand x 1L)) |> Int64.to_float
+      in
+      xx *. 2.0
+    )
 
   let promote_f32 x = Int32.float_of_bits x
 

@@ -17,63 +17,63 @@ let float_if_bits = Int64.float_of_bits
 let to_string = Int64.to_string
 
 let wrap_to n x =
-    match n with
-        | 8 -> Int64.logand x 0xffL
-        | 16 -> Int64.logand x 0xffffL
-        | 32 -> Int64.logand x 0xffff_ffffL
-        | _ -> failwith "never"
+  match n with
+    | 8 -> Int64.logand x 0xffL
+    | 16 -> Int64.logand x 0xffffL
+    | 32 -> Int64.logand x 0xffff_ffffL
+    | _ -> failwith "never"
 
 let to_bytes x =
-    let b = Bytes.create 8 in
-    let () = Bytes.set_int64_be b 0 x in
-    b
+  let b = Bytes.create 8 in
+  let () = Bytes.set_int64_be b 0 x in
+  b
 
 let of_bytes b = Bytes.get_int64_be b 0
 
 module UnOp = struct
   let clz i =
-      let j = ref i in
-      let cnt = ref 0 in
-      let break = ref false in
-      let loop = ref 1 in
-      while Bool.equal !break false && !loop <= 64 do
-        let r = Int64.logand 0x8000_0000_0000_0000L !j in
-        if Int64.equal r 0L
-        then (
-          incr cnt;
-          incr loop;
-          j := Int64.shift_left !j 1
-        )
-        else break := true
-      done;
-      Int64.of_int !cnt
+    let j = ref i in
+    let cnt = ref 0 in
+    let break = ref false in
+    let loop = ref 1 in
+    while Bool.equal !break false && !loop <= 64 do
+      let r = Int64.logand 0x8000_0000_0000_0000L !j in
+      if Int64.equal r 0L
+      then (
+        incr cnt;
+        incr loop;
+        j := Int64.shift_left !j 1
+      )
+      else break := true
+    done;
+    Int64.of_int !cnt
 
   let ctz i =
-      let j = ref i in
-      let cnt = ref 0 in
-      let break = ref false in
-      let loop = ref 1 in
-      while Bool.equal !break false && !loop <= 64 do
-        let r = Int64.logand 1L !j in
-        if Int64.equal r 0L
-        then (
-          incr cnt;
-          incr loop;
-          j := Int64.shift_right_logical !j 1
-        )
-        else break := true
-      done;
-      Int64.of_int !cnt
+    let j = ref i in
+    let cnt = ref 0 in
+    let break = ref false in
+    let loop = ref 1 in
+    while Bool.equal !break false && !loop <= 64 do
+      let r = Int64.logand 1L !j in
+      if Int64.equal r 0L
+      then (
+        incr cnt;
+        incr loop;
+        j := Int64.shift_right_logical !j 1
+      )
+      else break := true
+    done;
+    Int64.of_int !cnt
 
   let popcont i =
-      let j = ref i in
-      let cnt = ref 0 in
-      for _ = 1 to 64 do
-        let r = Int64.logand 1L !j in
-        if Int64.equal r 1L then incr cnt;
-        j := Int64.shift_right_logical !j 1
-      done;
-      Int64.of_int !cnt
+    let j = ref i in
+    let cnt = ref 0 in
+    for _ = 1 to 64 do
+      let r = Int64.logand 1L !j in
+      if Int64.equal r 1L then incr cnt;
+      j := Int64.shift_right_logical !j 1
+    done;
+    Int64.of_int !cnt
 end
 
 module BinOp = struct
@@ -98,28 +98,28 @@ module BinOp = struct
   let logxor = Int64.logxor
 
   let shl x y =
-      let k = Int64.to_int y mod 64 in
-      Int64.shift_left x k
+    let k = Int64.to_int y mod 64 in
+    Int64.shift_left x k
 
   let shr_s x y =
-      let k = Int64.to_int y mod 64 in
-      Int64.shift_right x k
+    let k = Int64.to_int y mod 64 in
+    Int64.shift_right x k
 
   let shr_u x y =
-      let k = Int64.to_int y mod 64 in
-      Int64.shift_right_logical x k
+    let k = Int64.to_int y mod 64 in
+    Int64.shift_right_logical x k
 
   let rotl x y =
-      let k = Int64.to_int y mod 64 in
-      let l = Int64.shift_left x k in
-      let r = Int64.shift_right_logical x (64 - k) in
-      Int64.add l r
+    let k = Int64.to_int y mod 64 in
+    let l = Int64.shift_left x k in
+    let r = Int64.shift_right_logical x (64 - k) in
+    Int64.add l r
 
   let rotr x y =
-      let k = Int64.to_int y mod 64 in
-      let l = Int64.shift_left x (64 - k) in
-      let r = Int64.shift_right_logical x k in
-      Int64.add l r
+    let k = Int64.to_int y mod 64 in
+    let l = Int64.shift_left x (64 - k) in
+    let r = Int64.shift_right_logical x k in
+    Int64.add l r
 end
 
 module RelOp = struct
@@ -150,40 +150,40 @@ module CvtOp = struct
   let extend_s_i32 x = Int64.of_int32 x
 
   let extend_u_i32 x =
-      let xx = Int64.of_int32 x in
-      Int64.logand xx 0x0000_0000_FFFF_FFFFL
+    let xx = Int64.of_int32 x in
+    Int64.logand xx 0x0000_0000_FFFF_FFFFL
 
   let trunc_s_f32 x =
-      let xf = Int32.float_of_bits x in
-      if Float.is_nan xf then failwith "integer nan";
-      if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int)
-      then failwith "integer overflow"
-      else Int64.of_float xf
+    let xf = Int32.float_of_bits x in
+    if Float.is_nan xf then failwith "integer nan";
+    if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int)
+    then failwith "integer overflow"
+    else Int64.of_float xf
 
   let trunc_u_f32 x =
-      let xf = Int32.float_of_bits x in
-      if Float.is_nan xf then failwith "integer nan";
-      if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0
-      then failwith "integer overflow"
-      else if xf >= -.Int64.(to_float min_int)
-      then Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
-      else Int64.of_float xf
+    let xf = Int32.float_of_bits x in
+    if Float.is_nan xf then failwith "integer nan";
+    if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0
+    then failwith "integer overflow"
+    else if xf >= -.Int64.(to_float min_int)
+    then Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
+    else Int64.of_float xf
 
   let trunc_s_f64 x =
-      let xf = x in
-      if Float.is_nan xf then failwith "integer nan";
-      if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int)
-      then failwith "integer overflow"
-      else Int64.of_float xf
+    let xf = x in
+    if Float.is_nan xf then failwith "integer nan";
+    if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int)
+    then failwith "integer overflow"
+    else Int64.of_float xf
 
   let trunc_u_f64 x =
-      let xf = x in
-      if Float.is_nan xf then failwith "integer nan";
-      if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0
-      then failwith "integer overflow"
-      else if xf >= -.Int64.(to_float min_int)
-      then Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
-      else Int64.of_float xf
+    let xf = x in
+    if Float.is_nan xf then failwith "integer nan";
+    if xf >= -.Int64.(to_float min_int) *. 2.0 || xf <= -1.0
+    then failwith "integer overflow"
+    else if xf >= -.Int64.(to_float min_int)
+    then Int64.(logxor (of_float (xf -. 9223372036854775808.0)) min_int)
+    else Int64.of_float xf
 
   let reinterpret_f64 x = Int64.bits_of_float x
 end
