@@ -3,14 +3,19 @@ open Types
 
 let concat = String.concat ""
 
-let uint (x : u32) : string =
-  x |> Int64.of_int |> Leb128.Unsigned.encode |> String.of_list
-
-let vec bs : string =
-  let size = List.length bs in
-  concat (uint size :: bs)
-
 module Value = struct
+  let uint (x : u32) : string = x |> Int64.of_int |> Leb128.Unsigned.encode
+
+  let i32 (x : Nint32.t) : string = x |> Int64.of_int32 |> Leb128.Signed.encode
+
+  let i64 (x : Nint64.t) : string = x |> Leb128.Signed.encode
+
+  let f32 (x : Nfloat32.t) : string =
+    x |> Nfloat32.to_bytes_le |> Bytes.to_string
+
+  let f64 (x : Nfloat64.t) : string =
+    x |> Nfloat64.to_bytes_le |> Bytes.to_string
+
   let byte (x : bytes) : string =
     let xx = Bytes.to_string x in
     let size = String.length xx in
@@ -21,18 +26,11 @@ module Value = struct
     concat [ uint size; x ]
 
   let idx = uint
-
-  let i32 (x : Nint32.t) : string =
-    x |> Int64.of_int32 |> Leb128.Signed.encode |> String.of_list
-
-  let i64 (x : Nint64.t) : string = x |> Leb128.Signed.encode |> String.of_list
-
-  let f32 (x : Nfloat32.t) : string =
-    x |> Nfloat32.to_bytes_le |> Bytes.to_string
-
-  let f64 (x : Nfloat64.t) : string =
-    x |> Nfloat64.to_bytes_le |> Bytes.to_string
 end
+
+let vec bs : string =
+  let size = List.length bs in
+  concat (Value.uint size :: bs)
 
 module Type = struct
   let valtype = function
@@ -59,8 +57,8 @@ module Type = struct
 
   let limits ({ min; max } : limits) =
     match max with
-      | None -> concat [ "\x00"; uint min ]
-      | Some max -> concat [ "\x01"; uint min; uint max ]
+      | None -> concat [ "\x00"; Value.uint min ]
+      | Some max -> concat [ "\x01"; Value.uint min; Value.uint max ]
 
   let memtype x = limits x
 
@@ -70,7 +68,8 @@ module Type = struct
 end
 
 module Instruction = struct
-  let memarg ({ align; offset } : memarg) = concat [ uint align; uint offset ]
+  let memarg ({ align; offset } : memarg) =
+    concat [ Value.uint align; Value.uint offset ]
 
   let rec expr is = concat [ instrs is; "\x0b" ]
 
@@ -291,7 +290,7 @@ module Instruction = struct
     | CallIndirect i -> concat [ "\x11"; Value.idx i; "\x00" ]
 
   and admin = function
-    | _ -> "TODO"
+    | _ -> failwith "never"
 end
 
 module Module = struct
@@ -302,7 +301,7 @@ module Module = struct
   let aux_section sid arr =
     let cont = vec (Array.to_list arr) in
     let size = String.length cont in
-    concat [ sid; uint size; cont ]
+    concat [ sid; Value.uint size; cont ]
 
   let typesec (m : moduledef) =
     aux_section "\x01" (Array.map Type.functype m.types)
@@ -347,7 +346,7 @@ module Module = struct
       | Some { func } ->
         let cont = Value.idx func in
         let size = String.length cont in
-        concat [ "\x08"; uint size; cont ]
+        concat [ "\x08"; Value.uint size; cont ]
 
   let elemsec (m : moduledef) =
     let elem (e : elem) =
@@ -362,11 +361,11 @@ module Module = struct
     let code (func : func) =
       let n = List.length func.locals in
       let ts = List.map Type.valtype func.locals in
-      let t = vec (uint n :: ts) in
+      let t = vec (Value.uint n :: ts) in
       let e = Instruction.expr func.body in
       let f = concat [ t; e ] in
       let size = String.length f in
-      concat [ uint size; f ]
+      concat [ Value.uint size; f ]
     in
     aux_section "\x0a" (Array.map code m.funcs)
 

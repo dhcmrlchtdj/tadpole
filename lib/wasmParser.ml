@@ -27,9 +27,9 @@ module S = struct
     let s = s1 ^ s2 in
     of_string s
 
-  let read (len : int) (src : t) : (t * t) or_err =
+  let take (len : int) (src : t) : (t * t) or_err =
     let { left; right; _ } = src in
-    if left < right && left + len <= right
+    if left + len <= right
     then (
       let sub = { src with right = left + len } in
       let src = { src with left = left + len } in
@@ -37,16 +37,104 @@ module S = struct
     )
     else Error "EOF"
 
+  let take_char (src : t) : (char * t) or_err =
+    let { s; left; right } = src in
+    if left = right
+    then Error "EOF"
+    else (
+      let ch = s.[left] in
+      let src = { src with left = left + 1 } in
+      Ok (ch, src)
+    )
+
+  let take_int (src : t) : (int * t) or_err =
+    let* (ch, src) = take_char src in
+    let n = Char.code ch in
+    Ok (n, src)
+
+  let peek_char (src : t) : (char * t) or_err =
+    let { s; left; right } = src in
+    if left = right
+    then Error "EOF"
+    else (
+      let ch = s.[left] in
+      Ok (ch, src)
+    )
+
+  let peek_int (src : t) : (int * t) or_err =
+    let* (ch, src) = peek_char src in
+    let n = Char.code ch in
+    Ok (n, src)
+
   let consume (pattern : string) (src : t) : t or_err =
     let len = String.length pattern in
-    let* (sub, src) = read len src in
+    let* (sub, src) = take len src in
     if String.equal pattern (to_string sub)
     then Ok src
     else Error "aux_consume | failure"
+
+  let skip (len : int) (src : t) : t or_err =
+    let { left; right; _ } = src in
+    if left + len <= right
+    then (
+      let src = { src with left = left + len } in
+      Ok src
+    )
+    else Error "EOF"
 end
 
 module Value = struct
-  let read_uint _ctx : (int * S.t) or_err = failwith "TODO"
+  let aux_leb128 (src : S.t) : (string * S.t) or_err =
+    let rec aux (acc : int list) (src : S.t) =
+      let* (n, src) = S.take_int src in
+      let acc = n :: acc in
+      if n land 0x80 = 0
+      then (
+        let s = acc |> List.rev_map Char.chr |> String.of_list in
+        Ok (s, src)
+      )
+      else aux acc src
+    in
+    aux [] src
+
+  let uint (src : S.t) : (int * S.t) or_err =
+    let* (s, src) = aux_leb128 src in
+    let i = s |> Leb128.Unsigned.decode |> Int64.to_int in
+    Ok (i, src)
+
+  let i32 (src : S.t) : (Nint32.t * S.t) or_err =
+    let* (s, src) = aux_leb128 src in
+    let i = s |> Leb128.Signed.decode |> Int64.to_int32 in
+    Ok (i, src)
+
+  let i64 (src : S.t) : (Nint64.t * S.t) or_err =
+    let* (s, src) = aux_leb128 src in
+    let i = s |> Leb128.Signed.decode in
+    Ok (i, src)
+
+  let f32 (src : S.t) : (Nfloat32.t * S.t) or_err =
+    let* (sub, src) = S.take 4 src in
+    let n = sub |> S.to_string |> Bytes.of_string |> Nfloat32.of_bytes_le in
+    Ok (n, src)
+
+  let f64 (src : S.t) : (Nfloat64.t * S.t) or_err =
+    let* (sub, src) = S.take 8 src in
+    let n = sub |> S.to_string |> Bytes.of_string |> Nfloat64.of_bytes_le in
+    Ok (n, src)
+
+  let byte (src : S.t) : (bytes * S.t) or_err =
+    let* (size, src) = uint src in
+    let* (b, src) = S.take size src in
+    let b = b |> S.to_string |> Bytes.of_string in
+    Ok (b, src)
+
+  let name (src : S.t) : (string * S.t) or_err =
+    let* (size, src) = uint src in
+    let* (n, src) = S.take size src in
+    let n = S.to_string n in
+    Ok (n, src)
+
+  let idx = uint
 end
 
 module Type = struct end
@@ -84,14 +172,12 @@ module Module = struct
     }
 
   let aux_read_section (src : S.t) : (int * S.t * S.t) or_err =
-    let* (id, src) = S.read 1 src in
-    let id = S.to_string id in
-    let id = Char.code id.[0] in
+    let* (id, src) = S.take_int src in
     if id > 11
-    then Error "TODO"
+    then Error "unsupported section"
     else
-      let* (size, src) = Value.read_uint src in
-      let* (sec, src) = S.read size src in
+      let* (size, src) = Value.uint src in
+      let* (sec, src) = S.take size src in
       Ok (id, sec, src)
 
   let aux_split_module (src : S.t) : sections or_err =
