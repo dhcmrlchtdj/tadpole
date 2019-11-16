@@ -655,9 +655,11 @@ module Module = struct
         Ok (Some sec, src)
       | Some _ | None -> Ok (None, src)
 
+  let magic = "\x00\x61\x73\x6d"
+
+  let version = "\x01\x00\x00\x00"
+
   let parse_module (src : S.t) : moduledef or_err =
-    let magic = "\x00\x61\x73\x6d" in
-    let version = "\x01\x00\x00\x00" in
     let* src = S.consume magic src in
     let* src = S.consume version src in
 

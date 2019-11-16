@@ -294,55 +294,56 @@ module Instruction = struct
 end
 
 module Module = struct
-  let magic = "\x00\x61\x73\x6d"
-
-  let version = "\x01\x00\x00\x00"
-
-  let aux_section sid arr =
+  let aux_section sid (mapf : 'a -> string) (arr : 'a array) : string =
     if Array.length arr = 0
     then ""
     else (
-      let cont = vec (Array.to_list arr) in
+      let cont = vec (arr |> Array.map mapf |> Array.to_list) in
       let size = String.length cont in
       concat [ sid; Value.u32 size; cont ]
     )
 
   let typesec (m : moduledef) =
-    aux_section "\x01" (Array.map Type.functype m.types)
+    let mapf = Type.functype in
+    aux_section "\x01" mapf m.types
 
   let importsec (m : moduledef) =
-    let rec import (i : import) =
-      concat [ Value.name i.modname; Value.name i.name; importdesc i.desc ]
-    and importdesc = function
+    let importdesc = function
       | ID_func x -> concat [ "\x00"; Value.idx x ]
       | ID_table tt -> concat [ "\x01"; Type.tabletype tt ]
       | ID_mem mt -> concat [ "\x02"; Type.memtype mt ]
       | ID_global gt -> concat [ "\x03"; Type.globaltype gt ]
     in
-    aux_section "\x02" (Array.map import m.imports)
+    let mapf (i : import) =
+      concat [ Value.name i.modname; Value.name i.name; importdesc i.desc ]
+    in
+    aux_section "\x02" mapf m.imports
 
   let funcsec (m : moduledef) =
-    aux_section "\x03" (Array.map (fun f -> Value.idx f.typei) m.funcs)
+    let mapf f = Value.idx f.typei in
+    aux_section "\x03" mapf m.funcs
 
   let tablesec (m : moduledef) =
-    aux_section "\x04" (Array.map (fun t -> Type.tabletype t.ttype) m.tables)
+    let mapf t = Type.tabletype t.ttype in
+    aux_section "\x04" mapf m.tables
 
   let memsec (m : moduledef) =
-    aux_section "\x05" (Array.map (fun m -> Type.memtype m.mtype) m.mems)
+    let mapf m = Type.memtype m.mtype in
+    aux_section "\x05" mapf m.mems
 
   let globalsec (m : moduledef) =
-    aux_section "\x06" (Array.map (fun g -> Type.globaltype g.gtype) m.globals)
+    let mapf g = Type.globaltype g.gtype in
+    aux_section "\x06" mapf m.globals
 
   let exportsec (m : moduledef) =
-    let rec export (e : export) =
-      concat [ Value.name e.name; exportdesc e.desc ]
-    and exportdesc = function
+    let exportdesc = function
       | ED_func i -> concat [ "\x00"; Value.idx i ]
       | ED_table i -> concat [ "\x01"; Value.idx i ]
       | ED_mem i -> concat [ "\x02"; Value.idx i ]
       | ED_global i -> concat [ "\x03"; Value.idx i ]
     in
-    aux_section "\x07" (Array.map export m.exports)
+    let mapf (e : export) = concat [ Value.name e.name; exportdesc e.desc ] in
+    aux_section "\x07" mapf m.exports
 
   let startsec (m : moduledef) =
     match m.start with
@@ -353,16 +354,16 @@ module Module = struct
         concat [ "\x08"; Value.u32 size; cont ]
 
   let elemsec (m : moduledef) =
-    let elem (e : elem) =
+    let mapf (e : elem) =
       let x = Value.idx e.table in
       let ee = Instruction.expr e.offset in
       let y = vec (List.map Value.idx e.init) in
       concat [ x; ee; y ]
     in
-    aux_section "\x09" (Array.map elem m.elem)
+    aux_section "\x09" mapf m.elem
 
   let codesec (m : moduledef) =
-    let code (func : func) =
+    let mapf (func : func) =
       let ts =
         List.map (fun p -> concat [ Value.u32 1; Type.valtype p ]) func.locals
       in
@@ -372,16 +373,20 @@ module Module = struct
       let size = String.length f in
       concat [ Value.u32 size; f ]
     in
-    aux_section "\x0a" (Array.map code m.funcs)
+    aux_section "\x0a" mapf m.funcs
 
   let datasec (m : moduledef) =
-    let data (d : data) =
+    let mapf (d : data) =
       let x = Value.idx d.data in
       let e = Instruction.expr d.offset in
       let b = Value.byte d.init in
       concat [ x; e; b ]
     in
-    aux_section "\x0b" (Array.map data m.data)
+    aux_section "\x0b" mapf m.data
+
+  let magic = "\x00\x61\x73\x6d"
+
+  let version = "\x01\x00\x00\x00"
 
   let to_string (m : moduledef) =
     concat
