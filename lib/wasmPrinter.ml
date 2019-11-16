@@ -4,7 +4,7 @@ open Types
 let concat = String.concat ""
 
 module Value = struct
-  let uint (x : u32) : string = x |> Int64.of_int |> Leb128.Unsigned.encode
+  let u32 (x : u32) : string = x |> Int64.of_int |> Leb128.Unsigned.encode
 
   let i32 (x : Nint32.t) : string = x |> Int64.of_int32 |> Leb128.Signed.encode
 
@@ -19,18 +19,18 @@ module Value = struct
   let byte (x : bytes) : string =
     let xx = Bytes.to_string x in
     let size = String.length xx in
-    concat [ uint size; xx ]
+    concat [ u32 size; xx ]
 
   let name (x : string) : string =
     let size = String.length x in
-    concat [ uint size; x ]
+    concat [ u32 size; x ]
 
-  let idx = uint
+  let idx = u32
 end
 
 let vec bs : string =
   let size = List.length bs in
-  concat (Value.uint size :: bs)
+  concat (Value.u32 size :: bs)
 
 module Type = struct
   let valtype = function
@@ -57,8 +57,8 @@ module Type = struct
 
   let limits ({ min; max } : limits) =
     match max with
-      | None -> concat [ "\x00"; Value.uint min ]
-      | Some max -> concat [ "\x01"; Value.uint min; Value.uint max ]
+      | None -> concat [ "\x00"; Value.u32 min ]
+      | Some max -> concat [ "\x01"; Value.u32 min; Value.u32 max ]
 
   let memtype x = limits x
 
@@ -69,7 +69,7 @@ end
 
 module Instruction = struct
   let memarg ({ align; offset } : memarg) =
-    concat [ Value.uint align; Value.uint offset ]
+    concat [ Value.u32 align; Value.u32 offset ]
 
   let rec expr is = concat [ instrs is; "\x0b" ]
 
@@ -299,9 +299,13 @@ module Module = struct
   let version = "\x01\x00\x00\x00"
 
   let aux_section sid arr =
-    let cont = vec (Array.to_list arr) in
-    let size = String.length cont in
-    concat [ sid; Value.uint size; cont ]
+    if Array.length arr = 0
+    then ""
+    else (
+      let cont = vec (Array.to_list arr) in
+      let size = String.length cont in
+      concat [ sid; Value.u32 size; cont ]
+    )
 
   let typesec (m : moduledef) =
     aux_section "\x01" (Array.map Type.functype m.types)
@@ -346,7 +350,7 @@ module Module = struct
       | Some { func } ->
         let cont = Value.idx func in
         let size = String.length cont in
-        concat [ "\x08"; Value.uint size; cont ]
+        concat [ "\x08"; Value.u32 size; cont ]
 
   let elemsec (m : moduledef) =
     let elem (e : elem) =
@@ -360,13 +364,13 @@ module Module = struct
   let codesec (m : moduledef) =
     let code (func : func) =
       let ts =
-        List.map (fun p -> concat [ Value.uint 1; Type.valtype p ]) func.locals
+        List.map (fun p -> concat [ Value.u32 1; Type.valtype p ]) func.locals
       in
       let t = vec ts in
       let e = Instruction.expr func.body in
       let f = concat [ t; e ] in
       let size = String.length f in
-      concat [ Value.uint size; f ]
+      concat [ Value.u32 size; f ]
     in
     aux_section "\x0a" (Array.map code m.funcs)
 
