@@ -13,3 +13,4 @@ $ wasm -i /path/to/wasm # internal
 
 - pretty printer for wat
 - parser for wat
+- WASI? (maybe)
