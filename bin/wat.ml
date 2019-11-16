@@ -2,28 +2,12 @@ open! Containers
 open Tadpole
 
 module Wat = Cli.Make (struct
-  let token s = s |> WatScanner.scan |> WatToken.to_string |> print_endline
+  let wat s = s |> WatParser.parse |> WatPrinter.to_string |> print_endline
 
-  let ast s =
-    s
-    |> WatScanner.scan
-    |> WatParser.parse
-    |> Types.moduledef_to_string
-    |> print_endline
+  let wasm s = s |> WatParser.parse |> WasmPrinter.to_string |> print_string
 
-  let wat s =
-    s
-    |> WatScanner.scan
-    |> WatParser.parse
-    |> WatPrinter.to_string
-    |> print_endline
-
-  let wasm s =
-    s
-    |> WatScanner.scan
-    |> WatParser.parse
-    |> WasmPrinter.to_string
-    |> print_string
+  let internal s =
+    s |> WatParser.parse |> Types.moduledef_to_string |> print_endline
 end)
 
 let () = Wat.run ()

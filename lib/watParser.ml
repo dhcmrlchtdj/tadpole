@@ -46,7 +46,7 @@ module Datum = struct
   let to_string (ds : t list) = ds |> List.map show |> String.concat "\n"
 end
 
-let parse (tokens : WatToken.t list) : Types.moduledef =
-  let _datum = Datum.of_tokens tokens in
+let parse (src : string) : Types.moduledef =
+  let _datum = src |> WatScanner.scan |> Datum.of_tokens in
   (* let _ = print_endline (Datum.to_string datum) in *)
   failwith "TODO"
