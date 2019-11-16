@@ -1,19 +1,19 @@
 open! Containers
 
 module type Impl = sig
-  val token : string -> string
+  val token : string -> unit
 
-  val ast : string -> string
+  val ast : string -> unit
 
-  val wat : string -> string
+  val wat : string -> unit
 
-  val wasm : string -> string
+  val wasm : string -> unit
 end
 
 module Make (I : Impl) = struct
   let p tr = function
-    | `Stdin -> IO.read_all stdin |> tr |> print_endline
-    | `File file -> IO.File.read_exn file |> tr |> print_endline
+    | `Stdin -> IO.read_all stdin |> tr
+    | `File file -> IO.File.read_exn file |> tr
 
   let run () =
     let exe = Sys.argv.(0) in

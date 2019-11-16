@@ -642,18 +642,18 @@ module Module = struct
     in
     aux_parse_section f s
 
-  let aux_take_section (sid : char) (src : S.t) : (S.t option * S.t) or_err =
+  let rec aux_take_sec (sid : char) (src : S.t) : (S.t option * S.t) or_err =
     let* id = S.peek_char src in
     match id with
+      | Some id when Char.equal id '\x00' ->
+        let* (size, src) = Value.u32 src in
+        let* (_, src) = S.take size src in
+        aux_take_sec sid src
       | Some id when Char.equal id sid ->
         let* (size, src) = Value.u32 src in
         let* (sec, src) = S.take size src in
         Ok (Some sec, src)
       | Some _ | None -> Ok (None, src)
-
-  let extract_sec (sid : char) (src : S.t) : (S.t option * S.t) or_err =
-    let* (_, src) = aux_take_section '\x00' src in
-    aux_take_section sid src
 
   let parse_module (src : S.t) : moduledef or_err =
     let magic = "\x00\x61\x73\x6d" in
@@ -661,17 +661,17 @@ module Module = struct
     let* src = S.consume magic src in
     let* src = S.consume version src in
 
-    let* (typesec, src) = extract_sec '\x01' src in
-    let* (importsec, src) = extract_sec '\x02' src in
-    let* (funcsec, src) = extract_sec '\x03' src in
-    let* (tablesec, src) = extract_sec '\x04' src in
-    let* (memsec, src) = extract_sec '\x05' src in
-    let* (globalsec, src) = extract_sec '\x06' src in
-    let* (exportsec, src) = extract_sec '\x07' src in
-    let* (startsec, src) = extract_sec '\x08' src in
-    let* (elemsec, src) = extract_sec '\x09' src in
-    let* (codesec, src) = extract_sec '\x0a' src in
-    let* (datasec, _src) = extract_sec '\x0b' src in
+    let* (typesec, src) = aux_take_sec '\x01' src in
+    let* (importsec, src) = aux_take_sec '\x02' src in
+    let* (funcsec, src) = aux_take_sec '\x03' src in
+    let* (tablesec, src) = aux_take_sec '\x04' src in
+    let* (memsec, src) = aux_take_sec '\x05' src in
+    let* (globalsec, src) = aux_take_sec '\x06' src in
+    let* (exportsec, src) = aux_take_sec '\x07' src in
+    let* (startsec, src) = aux_take_sec '\x08' src in
+    let* (elemsec, src) = aux_take_sec '\x09' src in
+    let* (codesec, src) = aux_take_sec '\x0a' src in
+    let* (datasec, _) = aux_take_sec '\x0b' src in
 
     let* types = parse_type typesec in
     let* funcs = parse_func funcsec codesec in
