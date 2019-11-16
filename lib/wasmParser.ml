@@ -25,12 +25,12 @@ module S = struct
       let src = { src with left = left + len } in
       Ok (sub, src)
     )
-    else Error "EOF | take"
+    else Error "take | EOF"
 
   let take_char (src : t) : (char * t) or_err =
     let { s; left; right } = src in
     if left = right
-    then Error "EOF | take_char"
+    then Error "take_char | EOF"
     else (
       let ch = s.[left] in
       let src = { src with left = left + 1 } in
@@ -56,11 +56,11 @@ module S = struct
     let* (sub, src) = take len src in
     if String.equal pattern (to_string sub)
     then Ok src
-    else Error "consume | failure"
+    else Error "consume | not match"
 
   let consume_char (p : char) (src : t) : t or_err =
     let* (ch, src) = take_char src in
-    if Char.equal p ch then Ok src else Error "consume_char | failure"
+    if Char.equal p ch then Ok src else Error "consume_char | not match"
 
   let skip (len : int) (src : t) : t or_err =
     let { left; right; _ } = src in
@@ -69,7 +69,7 @@ module S = struct
       let src = { src with left = left + len } in
       Ok src
     )
-    else Error "EOF | consume_char"
+    else Error "EOF | skip"
 end
 
 module Value = struct
@@ -702,9 +702,7 @@ module Module = struct
     in
     Ok m
 
-  let parse (src : S.t) : moduledef =
-    let m = parse_module src in
-    Result.get_or_failwith m
+  let parse = parse_module
 end
 
 let parse s = Module.parse (S.of_string s)

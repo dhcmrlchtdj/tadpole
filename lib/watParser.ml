@@ -1,5 +1,9 @@
 open! Containers
 
+let ( let* ) = Result.( >>= )
+
+type 'a or_err = ('a, string) result
+
 module Datum = struct
   module T = WatToken
 
