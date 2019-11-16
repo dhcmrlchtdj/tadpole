@@ -105,7 +105,7 @@ type import = {
 [@@deriving show]
 
 and importdesc =
-  | ID_func of funcidx
+  | ID_func of typeidx
   | ID_table of tabletype
   | ID_mem of memtype
   | ID_global of globaltype

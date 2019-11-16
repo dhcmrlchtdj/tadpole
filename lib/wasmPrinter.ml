@@ -71,14 +71,14 @@ module Instruction = struct
   let memarg ({ align; offset } : memarg) =
     concat [ Value.u32 align; Value.u32 offset ]
 
-  let rec expr is = concat [ instrs is; "\x0b" ]
+  let rec expr ins = concat [ instrs ins; "\x0b" ]
 
-  and instrs is =
+  and instrs ins =
     let rec aux acc = function
       | [] -> concat (List.rev acc)
       | h :: t -> aux (instr h :: acc) t
     in
-    aux [] is
+    aux [] ins
 
   and instr = function
     | Inumeric i -> numeric i
@@ -86,7 +86,7 @@ module Instruction = struct
     | Ivariable i -> variable i
     | Imemory i -> memory i
     | Icontrol i -> control i
-    | Iadmin i -> admin i
+    | Iadmin _ -> failwith "never"
 
   and numeric = function
     | Const (I32 v) -> concat [ "\x41"; Value.i32 v ]
@@ -269,8 +269,8 @@ module Instruction = struct
   and control = function
     | Unreachable -> "\x00"
     | Nop -> "\x01"
-    | Block (r, is) -> concat [ "\x02"; Type.resulttype r; instrs is; "\x0b" ]
-    | Loop (r, is) -> concat [ "\x03"; Type.resulttype r; instrs is; "\x0b" ]
+    | Block (r, ins) -> concat [ "\x02"; Type.resulttype r; instrs ins; "\x0b" ]
+    | Loop (r, ins) -> concat [ "\x03"; Type.resulttype r; instrs ins; "\x0b" ]
     | If (r, in1, []) ->
       concat [ "\x04"; Type.resulttype r; instrs in1; "\x0b" ]
     | If (r, in1, in2) ->
@@ -288,9 +288,6 @@ module Instruction = struct
     | Return -> "\x0f"
     | Call i -> concat [ "\x10"; Value.idx i ]
     | CallIndirect i -> concat [ "\x11"; Value.idx i; "\x00" ]
-
-  and admin = function
-    | _ -> failwith "never"
 end
 
 module Module = struct
