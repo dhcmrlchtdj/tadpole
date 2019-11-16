@@ -83,230 +83,248 @@ module Instruction = struct
       | (o, "") -> o
       | (o, a) -> sprintf "%s %s" o a
 
+  let aux_wrap stack =
+    match stack with
+      | [] -> ""
+      | [ h ] -> h
+      | stack -> stack |> List.rev |> concat |> sprintf "(%s)"
+
+  let aux_op1 stack op =
+    match stack with
+      | arg :: t -> sprintf "(%s %s)" op arg :: t
+      | [] -> failwith ""
+
+  let aux_op2 stack op =
+    match stack with
+      | arg2 :: arg1 :: t -> sprintf "(%s %s %s)" op arg1 arg2 :: t
+      | _ -> failwith ""
+
   let rec expr ins = instrs ins
 
   and instrs ins =
-    let rec aux acc = function
-      | [] -> concat (List.rev acc)
-      | h :: t -> aux (instr h :: acc) t
+    let rec aux stack = function
+      | [] -> aux_wrap stack
+      | h :: t ->
+        let stack = instr stack h in
+        aux stack t
     in
     aux [] ins
 
-  and instr = function
-    | Inumeric i -> numeric i
-    | Iparametric i -> parametric i
-    | Ivariable i -> variable i
-    | Imemory i -> memory i
-    | Icontrol i -> control i
+  and instr stack = function
+    | Inumeric i -> numeric stack i
+    | Iparametric i -> parametric stack i
+    | Ivariable i -> variable stack i
+    | Imemory i -> memory stack i
+    | Icontrol i -> control stack i
     | Iadmin _ -> failwith "never"
 
-  and numeric = function
-    | Const (I32 v) -> sprintf "(i32.const %s)" (Value.i32 v)
-    | Const (I64 v) -> sprintf "(i64.const %s)" (Value.i64 v)
-    | Const (F32 v) -> sprintf "(f32.const %s)" (Value.f32 v)
-    | Const (F64 v) -> sprintf "(f64.const %s)" (Value.f64 v)
+  and numeric stack = function
+    | Const (I32 v) -> sprintf "(i32.const %s)" (Value.i32 v) :: stack
+    | Const (I64 v) -> sprintf "(i64.const %s)" (Value.i64 v) :: stack
+    | Const (F32 v) -> sprintf "(f32.const %s)" (Value.f32 v) :: stack
+    | Const (F64 v) -> sprintf "(f64.const %s)" (Value.f64 v) :: stack
     (* i32 *)
-    | TestOp (TI32, I_EQZ) -> "i32.eqz"
-    | RelOp (TI32, I_EQ) -> "i32.eq"
-    | RelOp (TI32, I_NE) -> "i32.ne"
-    | RelOp (TI32, I_LT_S) -> "i32.lt_s"
-    | RelOp (TI32, I_LT_U) -> "i32.lt_u"
-    | RelOp (TI32, I_GT_S) -> "i32.gt_s"
-    | RelOp (TI32, I_GT_U) -> "i32.gt_u"
-    | RelOp (TI32, I_LE_S) -> "i32.le_s"
-    | RelOp (TI32, I_LE_U) -> "i32.le_u"
-    | RelOp (TI32, I_GE_S) -> "i32.ge_s"
-    | RelOp (TI32, I_GE_U) -> "i32.ge_u"
+    | TestOp (TI32, I_EQZ) -> aux_op1 stack "i32.eqz"
+    | RelOp (TI32, I_EQ) -> aux_op2 stack "i32.eq"
+    | RelOp (TI32, I_NE) -> aux_op2 stack "i32.ne"
+    | RelOp (TI32, I_LT_S) -> aux_op2 stack "i32.lt_s"
+    | RelOp (TI32, I_LT_U) -> aux_op2 stack "i32.lt_u"
+    | RelOp (TI32, I_GT_S) -> aux_op2 stack "i32.gt_s"
+    | RelOp (TI32, I_GT_U) -> aux_op2 stack "i32.gt_u"
+    | RelOp (TI32, I_LE_S) -> aux_op2 stack "i32.le_s"
+    | RelOp (TI32, I_LE_U) -> aux_op2 stack "i32.le_u"
+    | RelOp (TI32, I_GE_S) -> aux_op2 stack "i32.ge_s"
+    | RelOp (TI32, I_GE_U) -> aux_op2 stack "i32.ge_u"
     (* i64 *)
-    | TestOp (TI64, I_EQZ) -> "i64.eqz"
-    | RelOp (TI64, I_EQ) -> "i64.eq"
-    | RelOp (TI64, I_NE) -> "i64.ne"
-    | RelOp (TI64, I_LT_S) -> "i64.lt_s"
-    | RelOp (TI64, I_LT_U) -> "i64.lt_u"
-    | RelOp (TI64, I_GT_S) -> "i64.gt_s"
-    | RelOp (TI64, I_GT_U) -> "i64.gt_u"
-    | RelOp (TI64, I_LE_S) -> "i64.le_s"
-    | RelOp (TI64, I_LE_U) -> "i64.le_u"
-    | RelOp (TI64, I_GE_S) -> "i64.ge_s"
-    | RelOp (TI64, I_GE_U) -> "i64.ge_u"
+    | TestOp (TI64, I_EQZ) -> aux_op1 stack "i64.eqz"
+    | RelOp (TI64, I_EQ) -> aux_op2 stack "i64.eq"
+    | RelOp (TI64, I_NE) -> aux_op2 stack "i64.ne"
+    | RelOp (TI64, I_LT_S) -> aux_op2 stack "i64.lt_s"
+    | RelOp (TI64, I_LT_U) -> aux_op2 stack "i64.lt_u"
+    | RelOp (TI64, I_GT_S) -> aux_op2 stack "i64.gt_s"
+    | RelOp (TI64, I_GT_U) -> aux_op2 stack "i64.gt_u"
+    | RelOp (TI64, I_LE_S) -> aux_op2 stack "i64.le_s"
+    | RelOp (TI64, I_LE_U) -> aux_op2 stack "i64.le_u"
+    | RelOp (TI64, I_GE_S) -> aux_op2 stack "i64.ge_s"
+    | RelOp (TI64, I_GE_U) -> aux_op2 stack "i64.ge_u"
     (* f32 *)
-    | RelOp (TF32, F_EQ) -> "f32.eq"
-    | RelOp (TF32, F_NE) -> "f32.ne"
-    | RelOp (TF32, F_LT) -> "f32.lt"
-    | RelOp (TF32, F_GT) -> "f32.gt"
-    | RelOp (TF32, F_LE) -> "f32.le"
-    | RelOp (TF32, F_GE) -> "f32.ge"
+    | RelOp (TF32, F_EQ) -> aux_op2 stack "f32.eq"
+    | RelOp (TF32, F_NE) -> aux_op2 stack "f32.ne"
+    | RelOp (TF32, F_LT) -> aux_op2 stack "f32.lt"
+    | RelOp (TF32, F_GT) -> aux_op2 stack "f32.gt"
+    | RelOp (TF32, F_LE) -> aux_op2 stack "f32.le"
+    | RelOp (TF32, F_GE) -> aux_op2 stack "f32.ge"
     (* f64 *)
-    | RelOp (TF64, F_EQ) -> "f64.eq"
-    | RelOp (TF64, F_NE) -> "f64.ne"
-    | RelOp (TF64, F_LT) -> "f64.lt"
-    | RelOp (TF64, F_GT) -> "f64.gt"
-    | RelOp (TF64, F_LE) -> "f64.le"
-    | RelOp (TF64, F_GE) -> "f64.ge"
+    | RelOp (TF64, F_EQ) -> aux_op2 stack "f64.eq"
+    | RelOp (TF64, F_NE) -> aux_op2 stack "f64.ne"
+    | RelOp (TF64, F_LT) -> aux_op2 stack "f64.lt"
+    | RelOp (TF64, F_GT) -> aux_op2 stack "f64.gt"
+    | RelOp (TF64, F_LE) -> aux_op2 stack "f64.le"
+    | RelOp (TF64, F_GE) -> aux_op2 stack "f64.ge"
     (* i32 *)
-    | UnOp (TI32, I_CLZ) -> "i32.clz"
-    | UnOp (TI32, I_CTZ) -> "i32.ctz"
-    | UnOp (TI32, I_POPCONT) -> "i32.popcnt"
-    | BinOp (TI32, I_ADD) -> "i32.add"
-    | BinOp (TI32, I_SUB) -> "i32.sub"
-    | BinOp (TI32, I_MUL) -> "i32.mul"
-    | BinOp (TI32, I_DIV_S) -> "i32.div_s"
-    | BinOp (TI32, I_DIV_U) -> "i32.div_u"
-    | BinOp (TI32, I_REM_S) -> "i32.rem_s"
-    | BinOp (TI32, I_REM_U) -> "i32.rem_u"
-    | BinOp (TI32, I_AND) -> "i32.and"
-    | BinOp (TI32, I_OR) -> "i32.or"
-    | BinOp (TI32, I_XOR) -> "i32.xor"
-    | BinOp (TI32, I_SHL) -> "i32.shl"
-    | BinOp (TI32, I_SHR_S) -> "i32.shr_s"
-    | BinOp (TI32, I_SHR_U) -> "i32.shr_u"
-    | BinOp (TI32, I_ROTL) -> "i32.rotl"
-    | BinOp (TI32, I_ROTR) -> "i32.rotr"
+    | UnOp (TI32, I_CLZ) -> aux_op1 stack "i32.clz"
+    | UnOp (TI32, I_CTZ) -> aux_op1 stack "i32.ctz"
+    | UnOp (TI32, I_POPCONT) -> aux_op1 stack "i32.popcnt"
+    | BinOp (TI32, I_ADD) -> aux_op2 stack "i32.add"
+    | BinOp (TI32, I_SUB) -> aux_op2 stack "i32.sub"
+    | BinOp (TI32, I_MUL) -> aux_op2 stack "i32.mul"
+    | BinOp (TI32, I_DIV_S) -> aux_op2 stack "i32.div_s"
+    | BinOp (TI32, I_DIV_U) -> aux_op2 stack "i32.div_u"
+    | BinOp (TI32, I_REM_S) -> aux_op2 stack "i32.rem_s"
+    | BinOp (TI32, I_REM_U) -> aux_op2 stack "i32.rem_u"
+    | BinOp (TI32, I_AND) -> aux_op2 stack "i32.and"
+    | BinOp (TI32, I_OR) -> aux_op2 stack "i32.or"
+    | BinOp (TI32, I_XOR) -> aux_op2 stack "i32.xor"
+    | BinOp (TI32, I_SHL) -> aux_op2 stack "i32.shl"
+    | BinOp (TI32, I_SHR_S) -> aux_op2 stack "i32.shr_s"
+    | BinOp (TI32, I_SHR_U) -> aux_op2 stack "i32.shr_u"
+    | BinOp (TI32, I_ROTL) -> aux_op2 stack "i32.rotl"
+    | BinOp (TI32, I_ROTR) -> aux_op2 stack "i32.rotr"
     (* i64 *)
-    | UnOp (TI64, I_CLZ) -> "i64.clz"
-    | UnOp (TI64, I_CTZ) -> "i64.ctz"
-    | UnOp (TI64, I_POPCONT) -> "i64.popcnt"
-    | BinOp (TI64, I_ADD) -> "i64.add"
-    | BinOp (TI64, I_SUB) -> "i64.sub"
-    | BinOp (TI64, I_MUL) -> "i64.mul"
-    | BinOp (TI64, I_DIV_S) -> "i64.div_s"
-    | BinOp (TI64, I_DIV_U) -> "i64.div_u"
-    | BinOp (TI64, I_REM_S) -> "i64.rem_s"
-    | BinOp (TI64, I_REM_U) -> "i64.rem_u"
-    | BinOp (TI64, I_AND) -> "i64.and"
-    | BinOp (TI64, I_OR) -> "i64.or"
-    | BinOp (TI64, I_XOR) -> "i64.xor"
-    | BinOp (TI64, I_SHL) -> "i64.shl"
-    | BinOp (TI64, I_SHR_S) -> "i64.shr_s"
-    | BinOp (TI64, I_SHR_U) -> "i64.shr_u"
-    | BinOp (TI64, I_ROTL) -> "i64.rotl"
-    | BinOp (TI64, I_ROTR) -> "i64.rotr"
+    | UnOp (TI64, I_CLZ) -> aux_op1 stack "i64.clz"
+    | UnOp (TI64, I_CTZ) -> aux_op1 stack "i64.ctz"
+    | UnOp (TI64, I_POPCONT) -> aux_op1 stack "i64.popcnt"
+    | BinOp (TI64, I_ADD) -> aux_op2 stack "i64.add"
+    | BinOp (TI64, I_SUB) -> aux_op2 stack "i64.sub"
+    | BinOp (TI64, I_MUL) -> aux_op2 stack "i64.mul"
+    | BinOp (TI64, I_DIV_S) -> aux_op2 stack "i64.div_s"
+    | BinOp (TI64, I_DIV_U) -> aux_op2 stack "i64.div_u"
+    | BinOp (TI64, I_REM_S) -> aux_op2 stack "i64.rem_s"
+    | BinOp (TI64, I_REM_U) -> aux_op2 stack "i64.rem_u"
+    | BinOp (TI64, I_AND) -> aux_op2 stack "i64.and"
+    | BinOp (TI64, I_OR) -> aux_op2 stack "i64.or"
+    | BinOp (TI64, I_XOR) -> aux_op2 stack "i64.xor"
+    | BinOp (TI64, I_SHL) -> aux_op2 stack "i64.shl"
+    | BinOp (TI64, I_SHR_S) -> aux_op2 stack "i64.shr_s"
+    | BinOp (TI64, I_SHR_U) -> aux_op2 stack "i64.shr_u"
+    | BinOp (TI64, I_ROTL) -> aux_op2 stack "i64.rotl"
+    | BinOp (TI64, I_ROTR) -> aux_op2 stack "i64.rotr"
     (* f32 *)
-    | UnOp (TF32, F_ABS) -> "f32.abs"
-    | UnOp (TF32, F_NEG) -> "f32.neg"
-    | UnOp (TF32, F_CEIL) -> "f32.ceil"
-    | UnOp (TF32, F_FLOOR) -> "f32.floor"
-    | UnOp (TF32, F_TRUNC) -> "f32.trunc"
-    | UnOp (TF32, F_NEAREST) -> "f32.nearest"
-    | UnOp (TF32, F_SQRT) -> "f32.sqrt"
-    | BinOp (TF32, F_ADD) -> "f32.add"
-    | BinOp (TF32, F_SUB) -> "f32.sub"
-    | BinOp (TF32, F_MUL) -> "f32.mul"
-    | BinOp (TF32, F_DIV) -> "f32.div"
-    | BinOp (TF32, F_MIN) -> "f32.min"
-    | BinOp (TF32, F_MAX) -> "f32.max"
-    | BinOp (TF32, F_COPYSIGN) -> "f32.copysign"
+    | UnOp (TF32, F_ABS) -> aux_op1 stack "f32.abs"
+    | UnOp (TF32, F_NEG) -> aux_op1 stack "f32.neg"
+    | UnOp (TF32, F_CEIL) -> aux_op1 stack "f32.ceil"
+    | UnOp (TF32, F_FLOOR) -> aux_op1 stack "f32.floor"
+    | UnOp (TF32, F_TRUNC) -> aux_op1 stack "f32.trunc"
+    | UnOp (TF32, F_NEAREST) -> aux_op1 stack "f32.nearest"
+    | UnOp (TF32, F_SQRT) -> aux_op1 stack "f32.sqrt"
+    | BinOp (TF32, F_ADD) -> aux_op2 stack "f32.add"
+    | BinOp (TF32, F_SUB) -> aux_op2 stack "f32.sub"
+    | BinOp (TF32, F_MUL) -> aux_op2 stack "f32.mul"
+    | BinOp (TF32, F_DIV) -> aux_op2 stack "f32.div"
+    | BinOp (TF32, F_MIN) -> aux_op2 stack "f32.min"
+    | BinOp (TF32, F_MAX) -> aux_op2 stack "f32.max"
+    | BinOp (TF32, F_COPYSIGN) -> aux_op2 stack "f32.copysign"
     (* f64 *)
-    | UnOp (TF64, F_ABS) -> "f64.abs"
-    | UnOp (TF64, F_NEG) -> "f64.neg"
-    | UnOp (TF64, F_CEIL) -> "f64.ceil"
-    | UnOp (TF64, F_FLOOR) -> "f64.floor"
-    | UnOp (TF64, F_TRUNC) -> "f64.trunc"
-    | UnOp (TF64, F_NEAREST) -> "f64.nearest"
-    | UnOp (TF64, F_SQRT) -> "f64.sqrt"
-    | BinOp (TF64, F_ADD) -> "f64.add"
-    | BinOp (TF64, F_SUB) -> "f64.sub"
-    | BinOp (TF64, F_MUL) -> "f64.mul"
-    | BinOp (TF64, F_DIV) -> "f64.div"
-    | BinOp (TF64, F_MIN) -> "f64.min"
-    | BinOp (TF64, F_MAX) -> "f64.max"
-    | BinOp (TF64, F_COPYSIGN) -> "f64.copysign"
+    | UnOp (TF64, F_ABS) -> aux_op1 stack "f64.abs"
+    | UnOp (TF64, F_NEG) -> aux_op1 stack "f64.neg"
+    | UnOp (TF64, F_CEIL) -> aux_op1 stack "f64.ceil"
+    | UnOp (TF64, F_FLOOR) -> aux_op1 stack "f64.floor"
+    | UnOp (TF64, F_TRUNC) -> aux_op1 stack "f64.trunc"
+    | UnOp (TF64, F_NEAREST) -> aux_op1 stack "f64.nearest"
+    | UnOp (TF64, F_SQRT) -> aux_op1 stack "f64.sqrt"
+    | BinOp (TF64, F_ADD) -> aux_op2 stack "f64.add"
+    | BinOp (TF64, F_SUB) -> aux_op2 stack "f64.sub"
+    | BinOp (TF64, F_MUL) -> aux_op2 stack "f64.mul"
+    | BinOp (TF64, F_DIV) -> aux_op2 stack "f64.div"
+    | BinOp (TF64, F_MIN) -> aux_op2 stack "f64.min"
+    | BinOp (TF64, F_MAX) -> aux_op2 stack "f64.max"
+    | BinOp (TF64, F_COPYSIGN) -> aux_op2 stack "f64.copysign"
     (* cvt *)
-    | CvtOp (TI32, CVT_WRAP, TI64) -> "i32.wrap_i64"
-    | CvtOp (TI32, CVT_TRUNC_S, TF32) -> "i32.trunc_f32_s"
-    | CvtOp (TI32, CVT_TRUNC_U, TF32) -> "i32.trunc_f32_u"
-    | CvtOp (TI32, CVT_TRUNC_S, TF64) -> "i32.trunc_f64_s"
-    | CvtOp (TI32, CVT_TRUNC_U, TF64) -> "i32.trunc_f64_u"
-    | CvtOp (TI64, CVT_EXTEND_S, TI32) -> "i64.extend_i32_s"
-    | CvtOp (TI64, CVT_EXTEND_U, TI32) -> "i64.extend_i32_u"
-    | CvtOp (TI64, CVT_TRUNC_S, TF32) -> "i64.trunc_f32_s"
-    | CvtOp (TI64, CVT_TRUNC_U, TF32) -> "i64.trunc_f32_u"
-    | CvtOp (TI64, CVT_TRUNC_S, TF64) -> "i64.trunc_f64_s"
-    | CvtOp (TI64, CVT_TRUNC_U, TF64) -> "i64.trunc_f64_u"
-    | CvtOp (TF32, CVT_CONVERT_S, TI32) -> "f32.convert_i32_s"
-    | CvtOp (TF32, CVT_CONVERT_U, TI32) -> "f32.convert_i32_u"
-    | CvtOp (TF32, CVT_CONVERT_S, TI64) -> "f32.convert_i64_s"
-    | CvtOp (TF32, CVT_CONVERT_U, TI64) -> "f32.convert_i64_u"
-    | CvtOp (TF32, CVT_DEMOTE, TF64) -> "f32.demote_f64"
-    | CvtOp (TF64, CVT_CONVERT_S, TI32) -> "f64.convert_i32_s"
-    | CvtOp (TF64, CVT_CONVERT_U, TI32) -> "f64.convert_i32_u"
-    | CvtOp (TF64, CVT_CONVERT_S, TI64) -> "f64.convert_i64_s"
-    | CvtOp (TF64, CVT_CONVERT_U, TI64) -> "f64.convert_i64_u"
-    | CvtOp (TF64, CVT_PROMOTE, TF32) -> "f64.promote_f32"
-    | CvtOp (TI32, CVT_REINTERPRET, TF32) -> "i32.reinterpret_f32"
-    | CvtOp (TI64, CVT_REINTERPRET, TF64) -> "i64.reinterpret_f64"
-    | CvtOp (TF32, CVT_REINTERPRET, TI32) -> "f32.reinterpret_i32"
-    | CvtOp (TF64, CVT_REINTERPRET, TI64) -> "f64.reinterpret_i64"
+    | CvtOp (TI32, CVT_WRAP, TI64) -> aux_op2 stack "i32.wrap_i64"
+    | CvtOp (TI32, CVT_TRUNC_S, TF32) -> aux_op2 stack "i32.trunc_f32_s"
+    | CvtOp (TI32, CVT_TRUNC_U, TF32) -> aux_op2 stack "i32.trunc_f32_u"
+    | CvtOp (TI32, CVT_TRUNC_S, TF64) -> aux_op2 stack "i32.trunc_f64_s"
+    | CvtOp (TI32, CVT_TRUNC_U, TF64) -> aux_op2 stack "i32.trunc_f64_u"
+    | CvtOp (TI64, CVT_EXTEND_S, TI32) -> aux_op2 stack "i64.extend_i32_s"
+    | CvtOp (TI64, CVT_EXTEND_U, TI32) -> aux_op2 stack "i64.extend_i32_u"
+    | CvtOp (TI64, CVT_TRUNC_S, TF32) -> aux_op2 stack "i64.trunc_f32_s"
+    | CvtOp (TI64, CVT_TRUNC_U, TF32) -> aux_op2 stack "i64.trunc_f32_u"
+    | CvtOp (TI64, CVT_TRUNC_S, TF64) -> aux_op2 stack "i64.trunc_f64_s"
+    | CvtOp (TI64, CVT_TRUNC_U, TF64) -> aux_op2 stack "i64.trunc_f64_u"
+    | CvtOp (TF32, CVT_CONVERT_S, TI32) -> aux_op2 stack "f32.convert_i32_s"
+    | CvtOp (TF32, CVT_CONVERT_U, TI32) -> aux_op2 stack "f32.convert_i32_u"
+    | CvtOp (TF32, CVT_CONVERT_S, TI64) -> aux_op2 stack "f32.convert_i64_s"
+    | CvtOp (TF32, CVT_CONVERT_U, TI64) -> aux_op2 stack "f32.convert_i64_u"
+    | CvtOp (TF32, CVT_DEMOTE, TF64) -> aux_op2 stack "f32.demote_f64"
+    | CvtOp (TF64, CVT_CONVERT_S, TI32) -> aux_op2 stack "f64.convert_i32_s"
+    | CvtOp (TF64, CVT_CONVERT_U, TI32) -> aux_op2 stack "f64.convert_i32_u"
+    | CvtOp (TF64, CVT_CONVERT_S, TI64) -> aux_op2 stack "f64.convert_i64_s"
+    | CvtOp (TF64, CVT_CONVERT_U, TI64) -> aux_op2 stack "f64.convert_i64_u"
+    | CvtOp (TF64, CVT_PROMOTE, TF32) -> aux_op2 stack "f64.promote_f32"
+    | CvtOp (TI32, CVT_REINTERPRET, TF32) -> aux_op2 stack "i32.reinterpret_f32"
+    | CvtOp (TI64, CVT_REINTERPRET, TF64) -> aux_op2 stack "i64.reinterpret_f64"
+    | CvtOp (TF32, CVT_REINTERPRET, TI32) -> aux_op2 stack "f32.reinterpret_i32"
+    | CvtOp (TF64, CVT_REINTERPRET, TI64) -> aux_op2 stack "f64.reinterpret_i64"
     | _ -> failwith "never"
 
-  and parametric = function
-    | Drop -> "(drop)"
-    | Select -> "(select)"
+  and parametric stack = function
+    | Drop -> "(drop)" :: stack
+    | Select -> "(select)" :: stack
 
-  and variable = function
-    | LocalGet i -> sprintf "(local.get %s)" (Value.idx i)
-    | LocalSet i -> sprintf "(local.set %s)" (Value.idx i)
-    | LocalTee i -> sprintf "(local.tee %s)" (Value.idx i)
-    | GlobalGet i -> sprintf "(global.get %s)" (Value.idx i)
-    | GlobalSet i -> sprintf "(global.set %s)" (Value.idx i)
+  and variable stack = function
+    | LocalGet i -> sprintf "(local.get %s)" (Value.idx i) :: stack
+    | LocalSet i -> sprintf "(local.set %s)" (Value.idx i) :: stack
+    | LocalTee i -> sprintf "(local.tee %s)" (Value.idx i) :: stack
+    | GlobalGet i -> sprintf "(global.get %s)" (Value.idx i) :: stack
+    | GlobalSet i -> sprintf "(global.set %s)" (Value.idx i) :: stack
 
-  and memory = function
-    | Load (TI32, m) -> sprintf "(i32.load %s)" (memarg 4 m)
-    | Load (TI64, m) -> sprintf "(i64.load %s)" (memarg 8 m)
-    | Load (TF32, m) -> sprintf "(f32.load %s)" (memarg 4 m)
-    | Load (TF64, m) -> sprintf "(f64.load %s)" (memarg 8 m)
-    | Load8S (TI32, m) -> sprintf "(i32.load8_s %s)" (memarg 1 m)
-    | Load8U (TI32, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m)
-    | Load16S (TI32, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m)
-    | Load16U (TI32, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m)
-    | Load8S (TI64, m) -> sprintf "(i32.load8_s %s)" (memarg 1 m)
-    | Load8U (TI64, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m)
-    | Load16S (TI64, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m)
-    | Load16U (TI64, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m)
-    | Load32S (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m)
-    | Load32U (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m)
-    | Store (TI32, m) -> sprintf "(i32.store %s)" (memarg 4 m)
-    | Store (TI64, m) -> sprintf "(i64.store %s)" (memarg 8 m)
-    | Store (TF32, m) -> sprintf "(f32.store %s)" (memarg 4 m)
-    | Store (TF64, m) -> sprintf "(f64.store %s)" (memarg 8 m)
-    | Store8 (TI32, m) -> sprintf "(i32.store8 %s)" (memarg 1 m)
-    | Store16 (TI32, m) -> sprintf "(i32.store16 %s)" (memarg 2 m)
-    | Store8 (TI64, m) -> sprintf "(i64.store8 %s)" (memarg 1 m)
-    | Store16 (TI64, m) -> sprintf "(i64.store16 %s)" (memarg 2 m)
-    | Store32 (TI64, m) -> sprintf "(i64.store32 %s)" (memarg 4 m)
-    | MemorySize -> "(memory.size)"
-    | MemoryGrow -> "(memory.grow)"
+  and memory stack = function
+    | Load (TI32, m) -> sprintf "(i32.load %s)" (memarg 4 m) :: stack
+    | Load (TI64, m) -> sprintf "(i64.load %s)" (memarg 8 m) :: stack
+    | Load (TF32, m) -> sprintf "(f32.load %s)" (memarg 4 m) :: stack
+    | Load (TF64, m) -> sprintf "(f64.load %s)" (memarg 8 m) :: stack
+    | Load8S (TI32, m) -> sprintf "(i32.load8_s %s)" (memarg 1 m) :: stack
+    | Load8U (TI32, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m) :: stack
+    | Load16S (TI32, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m) :: stack
+    | Load16U (TI32, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m) :: stack
+    | Load8S (TI64, m) -> sprintf "(i32.load8_s %s)" (memarg 1 m) :: stack
+    | Load8U (TI64, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m) :: stack
+    | Load16S (TI64, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m) :: stack
+    | Load16U (TI64, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m) :: stack
+    | Load32S (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m) :: stack
+    | Load32U (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m) :: stack
+    | Store (TI32, m) -> sprintf "(i32.store %s)" (memarg 4 m) :: stack
+    | Store (TI64, m) -> sprintf "(i64.store %s)" (memarg 8 m) :: stack
+    | Store (TF32, m) -> sprintf "(f32.store %s)" (memarg 4 m) :: stack
+    | Store (TF64, m) -> sprintf "(f64.store %s)" (memarg 8 m) :: stack
+    | Store8 (TI32, m) -> sprintf "(i32.store8 %s)" (memarg 1 m) :: stack
+    | Store16 (TI32, m) -> sprintf "(i32.store16 %s)" (memarg 2 m) :: stack
+    | Store8 (TI64, m) -> sprintf "(i64.store8 %s)" (memarg 1 m) :: stack
+    | Store16 (TI64, m) -> sprintf "(i64.store16 %s)" (memarg 2 m) :: stack
+    | Store32 (TI64, m) -> sprintf "(i64.store32 %s)" (memarg 4 m) :: stack
+    | MemorySize -> "(memory.size)" :: stack
+    | MemoryGrow -> "(memory.grow)" :: stack
     | _ -> failwith "never"
 
-  and control = function
-    | Unreachable -> "(unreachable)"
-    | Nop -> "(nop)"
+  and control stack = function
+    | Unreachable -> "(unreachable)" :: stack
+    | Nop -> "(nop)" :: stack
     | Block (r, ins) ->
       let r = Type.resulttype r in
       let ins = instrs ins in
-      sprintf "(block %s%s)" r (add_space ins)
+      sprintf "(block %s%s)" r (add_space ins) :: stack
     | Loop (r, ins) ->
       let r = Type.resulttype r in
       let ins = instrs ins in
-      sprintf "(loop %s%s)" r (add_space ins)
+      sprintf "(loop %s%s)" r (add_space ins) :: stack
     | If (r, in1, []) ->
       let r = Type.resulttype r in
       let in1 = instrs in1 in
-      sprintf "if %s%s end" r (add_space in1)
+      [ sprintf "(if %s %s (then %s))" r (aux_wrap stack) in1 ]
     | If (r, in1, in2) ->
       let r = Type.resulttype r in
       let in1 = instrs in1 in
       let in2 = instrs in2 in
-      sprintf "if %s%s else%s end" r (add_space in1) (add_space in2)
-    | Br l -> sprintf "(br %s)" (Value.idx l)
-    | BrIf l -> sprintf "(br_if %s)" (Value.idx l)
+      [ sprintf "(if %s %s (then %s) (else %s))" r (aux_wrap stack) in1 in2 ]
+    | Br l -> sprintf "(br %s)" (Value.idx l) :: stack
+    | BrIf l -> sprintf "(br_if %s)" (Value.idx l) :: stack
     | BrTable (ls, l) ->
       let ls = ls |> Array.map Value.idx |> Array.to_list |> concat in
       let l = Value.idx l in
-      sprintf "(br_table%s%s)" (add_space ls) (add_space l)
-    | Return -> "return"
-    | Call i -> sprintf "(call %s)" (Value.idx i)
-    | CallIndirect i -> sprintf "(call_indirect %s)" (aux_typeuse i)
+      sprintf "(br_table%s%s)" (add_space ls) (add_space l) :: stack
+    | Return -> "return" :: stack
+    | Call i -> sprintf "(call %s)" (Value.idx i) :: stack
+    | CallIndirect i -> sprintf "(call_indirect %s)" (aux_typeuse i) :: stack
 end
 
 module Module = struct
