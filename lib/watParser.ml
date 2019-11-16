@@ -16,41 +16,40 @@ module Datum = struct
     | LIST of t list
   [@@deriving show]
 
-  let of_tokens (tokens : T.t list) : t list =
-    let rec aux (acc : t list) (t : T.t list) =
-      match tokens2datum t with
-        | Ok (Some datum, tt) -> aux (datum :: acc) tt
-        | Ok (None, []) -> Ok (List.rev acc)
-        | Ok (None, tt) -> aux acc tt
-        | Error s -> Error s
-    and tokens2datum = function
-      | [] -> Ok (None, [])
-      | T.COMMENT _ :: t -> Ok (None, t)
-      | T.NUM x :: t -> Ok (Some (NUM x), t)
-      | T.STRING x :: t -> Ok (Some (STRING x), t)
-      | T.ID x :: t -> Ok (Some (ID x), t)
-      | T.KEYWORD x :: t -> Ok (Some (KEYWORD x), t)
-      | T.RESERVED x :: t -> Ok (Some (RESERVED x), t)
+  let of_tokens (tokens : T.t list) : t or_err =
+    let rec aux : T.t list -> t option * T.t list = function
+      | [] -> (None, [])
+      | T.COMMENT _ :: t -> aux t
+      | T.NUM x :: t -> (Some (NUM x), t)
+      | T.STRING x :: t -> (Some (STRING x), t)
+      | T.ID x :: t -> (Some (ID x), t)
+      | T.KEYWORD x :: t -> (Some (KEYWORD x), t)
+      | T.RESERVED x :: t -> (Some (RESERVED x), t)
       | T.LEFT_PAREN :: t -> read_list [] t
-      | T.RIGHT_PAREN :: _ -> Error "[tokens2datum] unexpected ')'"
-    and read_list acc = function
-      | T.RIGHT_PAREN :: tt -> Ok (Some (LIST (List.rev acc)), tt)
-      | t -> (
-        match tokens2datum t with
-          | Ok (Some datum, tt) -> read_list (datum :: acc) tt
-          | Ok (None, []) -> Error "[read_list] empty datum"
-          | Ok (None, tt) -> read_list acc tt
-          | Error err -> Error ("[read_list] error | " ^ err)
-      )
+      | T.RIGHT_PAREN :: _ as t -> (None, t)
+    and read_list acc t =
+      match aux t with
+        | (Some datum, tt) -> read_list (datum :: acc) tt
+        | (None, T.RIGHT_PAREN :: tt) -> (Some (LIST (List.rev acc)), tt)
+        | (None, _) -> (None, [])
     in
-    match aux [] tokens with
-      | Ok s -> s
-      | Error s -> failwith s
-
-  let to_string (ds : t list) = ds |> List.map show |> String.concat "\n"
+    match aux tokens with
+      | (Some datum, []) -> Ok datum
+      | (Some _, _) -> Error "unused token"
+      | (None, _) -> Error "unexpected token list"
 end
 
-let parse (src : string) : Types.moduledef =
-  let _datum = src |> WatScanner.scan |> Datum.of_tokens in
-  (* let _ = print_endline (Datum.to_string datum) in *)
-  failwith "TODO"
+module D = Datum
+
+module Module = struct
+  let parse (_d : D.t) : Types.moduledef or_err = failwith "TODO"
+end
+
+let parse (src : string) : Types.moduledef or_err =
+  let tokens = WatScanner.scan src in
+  let* datum = Datum.of_tokens tokens in
+  let () = print_endline (WatToken.to_string tokens) in
+  let () = print_newline () in
+  let () = print_endline (Datum.show datum) in
+  let () = print_newline () in
+  Module.parse datum
