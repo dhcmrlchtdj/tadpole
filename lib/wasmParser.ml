@@ -657,10 +657,12 @@ module Module = struct
     let* id = S.peek_char src in
     match id with
     | Some id when Char.equal id '\x00' ->
+      let* src = S.skip 1 src in
       let* (size, src) = Value.u32 src in
       let* (_, src) = S.take size src in
       aux_take_sec sid src
     | Some id when Char.equal id sid ->
+      let* src = S.skip 1 src in
       let* (size, src) = Value.u32 src in
       let* (sec, src) = S.take size src in
       Ok (Some sec, src)

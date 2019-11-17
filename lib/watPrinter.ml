@@ -37,7 +37,7 @@ module Type = struct
 
   let resulttype = function
     | [] -> ""
-    | [ t ] -> sprintf "(%s)" (valtype t)
+    | [ t ] -> sprintf "(result %s)" (valtype t)
     | _ -> failwith "Type.resulttype | invalid"
 
   let functype ((p, r) : functype) =
@@ -342,7 +342,7 @@ module Module = struct
         | ID_mem t -> sprintf "(memory %s)" (Type.memtype t)
         | ID_global t -> sprintf "(global %s)" (Type.globaltype t)
       in
-      sprintf "(import %s %s %s)" modname name desc
+      sprintf "(import %S %S %s)" modname name desc
     in
     aux_section mapf m.imports
 
@@ -355,7 +355,7 @@ module Module = struct
         |> concat
       in
       let b = Instruction.expr f.body in
-      sprintf "(func%s%s%s)" t l b
+      sprintf "(func %s%s%s)" t (add_space l) (add_space b)
     in
     aux_section mapf m.funcs
 
@@ -386,7 +386,7 @@ module Module = struct
         | ED_mem i -> sprintf "(memory %s)" (Value.idx i)
         | ED_global i -> sprintf "(global %s)" (Value.idx i)
       in
-      sprintf "(export %s %s)" name desc
+      sprintf "(export %S %s)" name desc
     in
     aux_section mapf m.exports
 
@@ -409,7 +409,7 @@ module Module = struct
       let x = Value.idx d.data in
       let o = Instruction.expr d.offset in
       let i = Value.byte d.init in
-      sprintf "(data %s (offset %s) %s)" x o i
+      sprintf "(data %s (offset %s) %S)" x o i
     in
     aux_section mapf m.data
 
