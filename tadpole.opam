@@ -20,5 +20,5 @@ depends: [
 ]
 
 build: [
-    [ "make" "build" ]
+    ["dune" "build" "@install" "-p" name]
 ]
