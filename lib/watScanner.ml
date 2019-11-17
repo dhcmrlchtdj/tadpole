@@ -191,9 +191,9 @@ let scan (src : string) : WatToken.t list or_err =
     in
     let (acc, tt) =
       match t with
-      | '+' :: tt -> ([ '+' ], tt)
+      | '+' :: tt -> ([], tt)
       | '-' :: tt -> ([ '-' ], tt)
-      | tt -> ([ '+' ], tt)
+      | tt -> ([], tt)
     in
     aux acc tt
   and scan_token = function

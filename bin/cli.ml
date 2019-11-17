@@ -18,6 +18,7 @@ module Make (I : Impl) = struct
     |> I.parse
     |> Result.get_or_failwith
     |> WatPrinter.to_string
+    |> WatPrettyPrinter.pretty
     |> print_endline
 
   let to_internal s =
