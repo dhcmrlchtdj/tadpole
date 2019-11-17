@@ -41,7 +41,7 @@ module Type = struct
   let resulttype = function
     | [] -> ""
     | [ t ] -> sprintf "(%s)" (valtype t)
-    | _ -> failwith "Typ.resulttype | invalid"
+    | _ -> failwith "Type.resulttype | invalid"
 
   let functype ((p, r) : functype) =
     let ps =
@@ -92,12 +92,12 @@ module Instruction = struct
   let aux_op1 stack op =
     match stack with
       | arg :: t -> sprintf "(%s %s)" op arg :: t
-      | [] -> failwith ""
+      | [] -> failwith "op1 | invalid module"
 
   let aux_op2 stack op =
     match stack with
       | arg2 :: arg1 :: t -> sprintf "(%s %s %s)" op arg1 arg2 :: t
-      | _ -> failwith ""
+      | _ -> failwith "op2 | invalid module"
 
   let rec expr ins = instrs ins
 

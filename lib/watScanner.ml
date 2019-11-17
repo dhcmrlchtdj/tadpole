@@ -1,30 +1,35 @@
 open! Containers
 open WatToken
 
-let codepoint_to_chars (codepoint : int) : char list =
+let ( let* ) = Result.( >>= )
+
+type 'a or_err = ('a, string) result
+
+let codepoint_to_chars (codepoint : int) : char list or_err =
   let aux = function
     | t when t < 0x80 ->
       let b1 = t land 0x8f lor 0x00 in
-      [ b1 ]
+      Ok [ b1 ]
     | t when t < 0x800 ->
       let b1 = (t lsr 6) land 0x1f lor 0xc0 in
       let b2 = t land 0x3f lor 0x80 in
-      [ b1; b2 ]
+      Ok [ b1; b2 ]
     | t when t < 0xd800 ->
       let b1 = (t lsr 12) land 0x0f lor 0xe0 in
       let b2 = (t lsr 6) land 0x3f lor 0x80 in
       let b3 = t land 0x3f lor 0x80 in
-      [ b1; b2; b3 ]
-    | t when t < 0xe000 -> failwith "invalid uchar"
+      Ok [ b1; b2; b3 ]
+    | t when t < 0xe000 -> Error "invalid uchar"
     | t when t < 0x110000 ->
       let b1 = (t lsr 18) land 0x07 lor 0xf0 in
       let b2 = (t lsr 12) land 0x3f lor 0x80 in
       let b3 = (t lsr 6) land 0x3f lor 0x80 in
       let b4 = t land 0x3f lor 0x80 in
-      [ b1; b2; b3; b4 ]
-    | _ -> failwith "invalid uchar"
+      Ok [ b1; b2; b3; b4 ]
+    | _ -> Error "invalid uchar"
   in
-  aux codepoint |> List.map char_of_int
+  let* cp = aux codepoint in
+  Ok (List.map Char.chr cp)
 
 let hex_of_char_list (chars : char list) : int =
   let rec aux (acc : int) = function
@@ -102,13 +107,13 @@ let is_space = function
   | ' ' | '\t' | '\n' | '\r' -> true
   | _ -> false
 
-let scan (src : string) : WatToken.t list =
+let scan (src : string) : WatToken.t list or_err =
   let rec scan_all_token (acc : WatToken.t list) (t : char list) =
     match scan_token t with
       | Ok (Some tok, tt) -> scan_all_token (tok :: acc) tt
-      | Ok (None, []) -> List.rev acc
-      | Ok (None, _) -> failwith "[scan_] never"
-      | Error s -> failwith s
+      | Ok (None, []) -> Ok (List.rev acc)
+      | Ok (None, _) -> failwith "never"
+      | Error s -> Error s
   and scan_hexdigit (acc : char list) = function
     | '_' :: h :: t when is_hexdigit h -> scan_hexdigit (h :: acc) t
     | h :: t when is_hexdigit h -> scan_hexdigit (h :: acc) t
@@ -158,13 +163,13 @@ let scan (src : string) : WatToken.t list =
       let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
       match scan_hexdigit [] t with
         | Ok (Some codepoint, tt) when is_valid codepoint -> (
-          let chs = codepoint_to_chars codepoint in
+          let* chs = codepoint_to_chars codepoint in
           let chs_rev = List.rev chs in
           match tt with
             | '}' :: tt -> scan_string (chs_rev @ acc) tt
-            | _ -> failwith "[scan_string] invalid unicode"
+            | _ -> Error "invalid unicode"
         )
-        | _ -> failwith "[scan_string] invalid codepoint"
+        | _ -> Error "invalid codepoint"
     )
     | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t
     | '\\' :: 'n' :: t -> scan_string ('\n' :: acc) t
@@ -172,10 +177,10 @@ let scan (src : string) : WatToken.t list =
     | '\\' :: '"' :: t -> scan_string ('"' :: acc) t
     | '\\' :: '\'' :: t -> scan_string ('\'' :: acc) t
     | '\\' :: '\\' :: t -> scan_string ('\\' :: acc) t
-    | '\\' :: _ -> failwith "[scan_string] invalid slash"
+    | '\\' :: _ -> Error "invalid slash"
     | '"' :: t -> Ok (Some (STRING (acc |> str_of_rev_char_list)), t)
     | h :: t -> scan_string (h :: acc) t
-    | [] -> failwith "[scan_string] unexpected eof"
+    | [] -> Error "unexpected EOF"
   and scan_num (t : char list) =
     let rec aux (acc : char list) = function
       | '_' :: t -> aux acc t
@@ -221,4 +226,5 @@ let scan (src : string) : WatToken.t list =
     | h :: t when is_idchar h -> scan_reserved [ h ] t
     | _ -> failwith "never"
   in
-  scan_all_token [] (String.to_list src)
+  let chs = String.to_list src in
+  scan_all_token [] chs

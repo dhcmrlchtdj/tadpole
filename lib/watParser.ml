@@ -46,7 +46,7 @@ module Module = struct
 end
 
 let parse (src : string) : Types.moduledef or_err =
-  let tokens = WatScanner.scan src in
+  let* tokens = WatScanner.scan src in
   let* datum = Datum.of_tokens tokens in
   let () = print_endline (WatToken.to_string tokens) in
   let () = print_newline () in

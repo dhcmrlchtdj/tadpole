@@ -48,7 +48,7 @@ module Type = struct
   let resulttype = function
     | [] -> "\x40"
     | [ t ] -> valtype t
-    | _ -> failwith "Typ.resulttype | invalid"
+    | _ -> failwith "Type.resulttype | invalid"
 
   let functype ((ps, rs) : functype) =
     let pss = vec (List.map valtype ps) in
