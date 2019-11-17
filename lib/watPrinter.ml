@@ -20,13 +20,10 @@ module Value = struct
 
   let byte (x : bytes) : string = Bytes.to_string x
 
-  let name (x : string) : string = x
-
   let idx = u32
 end
 
 let aux_typeuse (typei : typeidx) : string =
-  (* TODO: http://webassembly.github.io/spec/core/text/modules.html#type-uses *)
   sprintf "(type %s)" (Value.idx typei)
 
 module Type = struct

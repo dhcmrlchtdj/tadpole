@@ -12,6 +12,8 @@ let float32_of_bits x = x
 
 let to_string = Int32.to_string
 
+let of_string = Int32.of_string_opt
+
 let wrap_to n x =
   match n with
   | 8 -> Int32.logand x 0xffl

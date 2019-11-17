@@ -16,6 +16,8 @@ let float_if_bits = Int64.float_of_bits
 
 let to_string = Int64.to_string
 
+let of_string = Int64.of_string_opt
+
 let wrap_to n x =
   match n with
   | 8 -> Int64.logand x 0xffL

@@ -86,7 +86,7 @@ module Value = struct
     in
     aux [] src
 
-  let u32 (src : S.t) : (int * S.t) or_err =
+  let u32 (src : S.t) : (u32 * S.t) or_err =
     let* (s, src) = aux_leb128 src in
     let i = s |> Leb128.Unsigned.decode |> Int64.to_int in
     Ok (i, src)
@@ -171,14 +171,25 @@ module Type = struct
     let* (t, s) = S.take_char s in
     match t with
     | '\x00' ->
-      let* (n, s) = Value.u32 s in
-      let limits = { min = n; max = None } in
-      Ok (limits, s)
+      let* (min, s) = Value.u32 s in
+      if min < 0 || min > (* 4GiB *) 0x10000
+      then Error "limits | min size"
+      else (
+        let limits = { min; max = None } in
+        Ok (limits, s)
+      )
     | '\x01' ->
-      let* (n, s) = Value.u32 s in
-      let* (m, s) = Value.u32 s in
-      let limits = { min = n; max = Some m } in
-      Ok (limits, s)
+      let* (min, s) = Value.u32 s in
+      let* (max, s) = Value.u32 s in
+      if min < 0
+         || min > (* 4GiB *) 0x10000
+         || max < min
+         || max > (* 4GiB *) 0x10000
+      then Error "limits | size"
+      else (
+        let limits = { min; max = Some max } in
+        Ok (limits, s)
+      )
     | _ -> Error "Type.limits"
 
   let memtype (s : S.t) : (memtype * S.t) or_err = limits s

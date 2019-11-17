@@ -10,15 +10,15 @@ module Make (I : Impl) = struct
     s
     |> I.parse
     |> Result.get_or_failwith
-    |> WatPrinter.to_string
-    |> print_endline
+    |> WasmPrinter.to_string
+    |> print_string
 
   let to_wat s =
     s
     |> I.parse
     |> Result.get_or_failwith
-    |> WasmPrinter.to_string
-    |> print_string
+    |> WatPrinter.to_string
+    |> print_endline
 
   let to_internal s =
     s

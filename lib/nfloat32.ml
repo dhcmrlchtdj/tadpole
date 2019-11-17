@@ -199,3 +199,5 @@ let of_bytes b = Bytes.get_int32_be b 0
 let of_bytes_le b = Bytes.get_int32_le b 0
 
 let to_string x = x |> to_float |> Float.to_string
+
+let of_string x = x |> Float.of_string_opt |> Option.map of_float
