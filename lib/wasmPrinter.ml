@@ -57,8 +57,8 @@ module Type = struct
 
   let limits ({ min; max } : limits) =
     match max with
-      | None -> concat [ "\x00"; Value.u32 min ]
-      | Some max -> concat [ "\x01"; Value.u32 min; Value.u32 max ]
+    | None -> concat [ "\x00"; Value.u32 min ]
+    | Some max -> concat [ "\x01"; Value.u32 min; Value.u32 max ]
 
   let memtype x = limits x
 
@@ -344,11 +344,11 @@ module Module = struct
 
   let startsec (m : moduledef) =
     match m.start with
-      | None -> ""
-      | Some { func } ->
-        let cont = Value.idx func in
-        let size = String.length cont in
-        concat [ "\x08"; Value.u32 size; cont ]
+    | None -> ""
+    | Some { func } ->
+      let cont = Value.idx func in
+      let size = String.length cont in
+      concat [ "\x08"; Value.u32 size; cont ]
 
   let elemsec (m : moduledef) =
     let mapf (e : elem) =

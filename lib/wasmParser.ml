@@ -144,11 +144,11 @@ module Type = struct
   let valtype (s : S.t) : (valtype * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x7f' -> Ok (TI32, s)
-      | '\x7e' -> Ok (TI64, s)
-      | '\x7d' -> Ok (TF32, s)
-      | '\x7c' -> Ok (TF64, s)
-      | _ -> Error "Type.valtype"
+    | '\x7f' -> Ok (TI32, s)
+    | '\x7e' -> Ok (TI64, s)
+    | '\x7d' -> Ok (TF32, s)
+    | '\x7c' -> Ok (TF64, s)
+    | _ -> Error "Type.valtype"
 
   let resulttype (s : S.t) : (resulttype * S.t) or_err =
     let* c = S.peek_char s in
@@ -170,16 +170,16 @@ module Type = struct
   let limits (s : S.t) : (limits * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x00' ->
-        let* (n, s) = Value.u32 s in
-        let limits = { min = n; max = None } in
-        Ok (limits, s)
-      | '\x01' ->
-        let* (n, s) = Value.u32 s in
-        let* (m, s) = Value.u32 s in
-        let limits = { min = n; max = Some m } in
-        Ok (limits, s)
-      | _ -> Error "Type.limits"
+    | '\x00' ->
+      let* (n, s) = Value.u32 s in
+      let limits = { min = n; max = None } in
+      Ok (limits, s)
+    | '\x01' ->
+      let* (n, s) = Value.u32 s in
+      let* (m, s) = Value.u32 s in
+      let limits = { min = n; max = Some m } in
+      Ok (limits, s)
+    | _ -> Error "Type.limits"
 
   let memtype (s : S.t) : (memtype * S.t) or_err = limits s
 
@@ -196,9 +196,9 @@ module Type = struct
   let mut (s : S.t) : (mut * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x00' -> Ok (CONST, s)
-      | '\x01' -> Ok (VAR, s)
-      | _ -> Error "Type.mut"
+    | '\x00' -> Ok (CONST, s)
+    | '\x01' -> Ok (VAR, s)
+    | _ -> Error "Type.mut"
 
   let globaltype (s : S.t) : (globaltype * S.t) or_err =
     let* (t, s) = valtype s in
@@ -217,280 +217,280 @@ module Instruction = struct
   and icontrol (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x00' -> Ok (Icontrol Unreachable, s)
-      | '\x01' -> Ok (Icontrol Nop, s)
-      | '\x02' ->
-        let* (rt, s) = Type.resulttype s in
-        let* (ins, s) = instrs s in
-        let* s = S.consume_char '\x0b' s in
-        Ok (Icontrol (Block (rt, ins)), s)
-      | '\x03' ->
-        let* (rt, s) = Type.resulttype s in
-        let* (ins, s) = instrs s in
-        let* s = S.consume_char '\x0b' s in
-        Ok (Icontrol (Loop (rt, ins)), s)
-      | '\x04' ->
-        let* (rt, s) = Type.resulttype s in
-        let* (in1, s) = instrs s in
-        let* (in2, s) =
-          let* (c, s) = S.take_char s in
-          match c with
-            | '\x0b' -> Ok ([], s)
-            | '\x05' ->
-              let* (in2, s) = instrs s in
-              let* s = S.consume_char '\x0b' s in
-              Ok (in2, s)
-            | _ -> Error "invalid control instr | if_else"
-        in
-        Ok (Icontrol (If (rt, in1, in2)), s)
-      | '\x0c' ->
-        let* (x, s) = Value.idx s in
-        Ok (Icontrol (Br x), s)
-      | '\x0d' ->
-        let* (x, s) = Value.idx s in
-        Ok (Icontrol (BrIf x), s)
-      | '\x0e' ->
-        let* (ls, s) = aux_vec Value.idx s in
-        let ls = Array.of_list ls in
-        let* (l, s) = Value.idx s in
-        Ok (Icontrol (BrTable (ls, l)), s)
-      | '\x0f' -> Ok (Icontrol Return, s)
-      | '\x10' ->
-        let* (x, s) = Value.idx s in
-        Ok (Icontrol (Call x), s)
-      | '\x11' ->
-        let* (x, s) = Value.idx s in
-        let* s = S.consume_char '\x00' s in
-        Ok (Icontrol (CallIndirect x), s)
-      | _ -> Error "invalid control instr"
+    | '\x00' -> Ok (Icontrol Unreachable, s)
+    | '\x01' -> Ok (Icontrol Nop, s)
+    | '\x02' ->
+      let* (rt, s) = Type.resulttype s in
+      let* (ins, s) = instrs s in
+      let* s = S.consume_char '\x0b' s in
+      Ok (Icontrol (Block (rt, ins)), s)
+    | '\x03' ->
+      let* (rt, s) = Type.resulttype s in
+      let* (ins, s) = instrs s in
+      let* s = S.consume_char '\x0b' s in
+      Ok (Icontrol (Loop (rt, ins)), s)
+    | '\x04' ->
+      let* (rt, s) = Type.resulttype s in
+      let* (in1, s) = instrs s in
+      let* (in2, s) =
+        let* (c, s) = S.take_char s in
+        match c with
+        | '\x0b' -> Ok ([], s)
+        | '\x05' ->
+          let* (in2, s) = instrs s in
+          let* s = S.consume_char '\x0b' s in
+          Ok (in2, s)
+        | _ -> Error "invalid control instr | if_else"
+      in
+      Ok (Icontrol (If (rt, in1, in2)), s)
+    | '\x0c' ->
+      let* (x, s) = Value.idx s in
+      Ok (Icontrol (Br x), s)
+    | '\x0d' ->
+      let* (x, s) = Value.idx s in
+      Ok (Icontrol (BrIf x), s)
+    | '\x0e' ->
+      let* (ls, s) = aux_vec Value.idx s in
+      let ls = Array.of_list ls in
+      let* (l, s) = Value.idx s in
+      Ok (Icontrol (BrTable (ls, l)), s)
+    | '\x0f' -> Ok (Icontrol Return, s)
+    | '\x10' ->
+      let* (x, s) = Value.idx s in
+      Ok (Icontrol (Call x), s)
+    | '\x11' ->
+      let* (x, s) = Value.idx s in
+      let* s = S.consume_char '\x00' s in
+      Ok (Icontrol (CallIndirect x), s)
+    | _ -> Error "invalid control instr"
 
   and iparametric (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x1a' -> Ok (Iparametric Drop, s)
-      | '\x1b' -> Ok (Iparametric Select, s)
-      | _ -> Error "invalid parameteric instr"
+    | '\x1a' -> Ok (Iparametric Drop, s)
+    | '\x1b' -> Ok (Iparametric Select, s)
+    | _ -> Error "invalid parameteric instr"
 
   and ivariable (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     let* (idx, s) = Value.idx s in
     match t with
-      | '\x20' -> Ok (Ivariable (LocalGet idx), s)
-      | '\x21' -> Ok (Ivariable (LocalSet idx), s)
-      | '\x22' -> Ok (Ivariable (LocalTee idx), s)
-      | '\x23' -> Ok (Ivariable (GlobalGet idx), s)
-      | '\x24' -> Ok (Ivariable (GlobalSet idx), s)
-      | _ -> Error "invalid variable instr"
+    | '\x20' -> Ok (Ivariable (LocalGet idx), s)
+    | '\x21' -> Ok (Ivariable (LocalSet idx), s)
+    | '\x22' -> Ok (Ivariable (LocalTee idx), s)
+    | '\x23' -> Ok (Ivariable (GlobalGet idx), s)
+    | '\x24' -> Ok (Ivariable (GlobalSet idx), s)
+    | _ -> Error "invalid variable instr"
 
   and imemory (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x3f' ->
-        let* s = S.consume_char '\x00' s in
-        Ok (Imemory MemorySize, s)
-      | '\x40' ->
-        let* s = S.consume_char '\x00' s in
-        Ok (Imemory MemoryGrow, s)
-      | '\x28' .. '\x3e' -> (
-        let* (m, s) = memarg s in
-        match t with
-          | '\x28' -> Ok (Imemory (Load (TI32, m)), s)
-          | '\x29' -> Ok (Imemory (Load (TI64, m)), s)
-          | '\x2a' -> Ok (Imemory (Load (TF32, m)), s)
-          | '\x2b' -> Ok (Imemory (Load (TF64, m)), s)
-          | '\x2c' -> Ok (Imemory (Load8S (TI32, m)), s)
-          | '\x2d' -> Ok (Imemory (Load8S (TI32, m)), s)
-          | '\x2e' -> Ok (Imemory (Load16S (TI32, m)), s)
-          | '\x2f' -> Ok (Imemory (Load16S (TI32, m)), s)
-          | '\x30' -> Ok (Imemory (Load8S (TI64, m)), s)
-          | '\x31' -> Ok (Imemory (Load8U (TI64, m)), s)
-          | '\x32' -> Ok (Imemory (Load16S (TI64, m)), s)
-          | '\x33' -> Ok (Imemory (Load16U (TI64, m)), s)
-          | '\x34' -> Ok (Imemory (Load32S (TI64, m)), s)
-          | '\x35' -> Ok (Imemory (Load32U (TI64, m)), s)
-          | '\x36' -> Ok (Imemory (Store (TI32, m)), s)
-          | '\x37' -> Ok (Imemory (Store (TI32, m)), s)
-          | '\x38' -> Ok (Imemory (Store (TF32, m)), s)
-          | '\x39' -> Ok (Imemory (Store (TF64, m)), s)
-          | '\x3a' -> Ok (Imemory (Store8 (TI32, m)), s)
-          | '\x3b' -> Ok (Imemory (Store16 (TI32, m)), s)
-          | '\x3c' -> Ok (Imemory (Store8 (TI64, m)), s)
-          | '\x3d' -> Ok (Imemory (Store16 (TI64, m)), s)
-          | '\x3e' -> Ok (Imemory (Store32 (TI64, m)), s)
-          | _ -> failwith "never"
-      )
-      | _ -> Error "invalid memory instr"
+    | '\x3f' ->
+      let* s = S.consume_char '\x00' s in
+      Ok (Imemory MemorySize, s)
+    | '\x40' ->
+      let* s = S.consume_char '\x00' s in
+      Ok (Imemory MemoryGrow, s)
+    | '\x28' .. '\x3e' -> (
+      let* (m, s) = memarg s in
+      match t with
+      | '\x28' -> Ok (Imemory (Load (TI32, m)), s)
+      | '\x29' -> Ok (Imemory (Load (TI64, m)), s)
+      | '\x2a' -> Ok (Imemory (Load (TF32, m)), s)
+      | '\x2b' -> Ok (Imemory (Load (TF64, m)), s)
+      | '\x2c' -> Ok (Imemory (Load8S (TI32, m)), s)
+      | '\x2d' -> Ok (Imemory (Load8S (TI32, m)), s)
+      | '\x2e' -> Ok (Imemory (Load16S (TI32, m)), s)
+      | '\x2f' -> Ok (Imemory (Load16S (TI32, m)), s)
+      | '\x30' -> Ok (Imemory (Load8S (TI64, m)), s)
+      | '\x31' -> Ok (Imemory (Load8U (TI64, m)), s)
+      | '\x32' -> Ok (Imemory (Load16S (TI64, m)), s)
+      | '\x33' -> Ok (Imemory (Load16U (TI64, m)), s)
+      | '\x34' -> Ok (Imemory (Load32S (TI64, m)), s)
+      | '\x35' -> Ok (Imemory (Load32U (TI64, m)), s)
+      | '\x36' -> Ok (Imemory (Store (TI32, m)), s)
+      | '\x37' -> Ok (Imemory (Store (TI32, m)), s)
+      | '\x38' -> Ok (Imemory (Store (TF32, m)), s)
+      | '\x39' -> Ok (Imemory (Store (TF64, m)), s)
+      | '\x3a' -> Ok (Imemory (Store8 (TI32, m)), s)
+      | '\x3b' -> Ok (Imemory (Store16 (TI32, m)), s)
+      | '\x3c' -> Ok (Imemory (Store8 (TI64, m)), s)
+      | '\x3d' -> Ok (Imemory (Store16 (TI64, m)), s)
+      | '\x3e' -> Ok (Imemory (Store32 (TI64, m)), s)
+      | _ -> failwith "never"
+    )
+    | _ -> Error "invalid memory instr"
 
   and inumric (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
-      | '\x41' ->
-        let* (n, s) = Value.i32 s in
-        Ok (Inumeric (Const (I32 n)), s)
-      | '\x42' ->
-        let* (n, s) = Value.i64 s in
-        Ok (Inumeric (Const (I64 n)), s)
-      | '\x43' ->
-        let* (n, s) = Value.f32 s in
-        Ok (Inumeric (Const (F32 n)), s)
-      | '\x44' ->
-        let* (n, s) = Value.f64 s in
-        Ok (Inumeric (Const (F64 n)), s)
-      (* i32 *)
-      | '\x45' -> Ok (Inumeric (TestOp (TI32, I_EQZ)), s)
-      | '\x46' -> Ok (Inumeric (RelOp (TI32, I_EQ)), s)
-      | '\x47' -> Ok (Inumeric (RelOp (TI32, I_NE)), s)
-      | '\x48' -> Ok (Inumeric (RelOp (TI32, I_LT_S)), s)
-      | '\x49' -> Ok (Inumeric (RelOp (TI32, I_LT_U)), s)
-      | '\x4a' -> Ok (Inumeric (RelOp (TI32, I_GT_S)), s)
-      | '\x4b' -> Ok (Inumeric (RelOp (TI32, I_GT_U)), s)
-      | '\x4c' -> Ok (Inumeric (RelOp (TI32, I_LE_S)), s)
-      | '\x4d' -> Ok (Inumeric (RelOp (TI32, I_LE_U)), s)
-      | '\x4e' -> Ok (Inumeric (RelOp (TI32, I_GE_S)), s)
-      | '\x4f' -> Ok (Inumeric (RelOp (TI32, I_GE_U)), s)
-      (* i64 *)
-      | '\x50' -> Ok (Inumeric (TestOp (TI64, I_EQZ)), s)
-      | '\x51' -> Ok (Inumeric (RelOp (TI64, I_EQ)), s)
-      | '\x52' -> Ok (Inumeric (RelOp (TI64, I_NE)), s)
-      | '\x53' -> Ok (Inumeric (RelOp (TI64, I_LT_S)), s)
-      | '\x54' -> Ok (Inumeric (RelOp (TI64, I_LT_U)), s)
-      | '\x55' -> Ok (Inumeric (RelOp (TI64, I_GT_S)), s)
-      | '\x56' -> Ok (Inumeric (RelOp (TI64, I_GT_U)), s)
-      | '\x57' -> Ok (Inumeric (RelOp (TI64, I_LE_S)), s)
-      | '\x58' -> Ok (Inumeric (RelOp (TI64, I_LE_U)), s)
-      | '\x59' -> Ok (Inumeric (RelOp (TI64, I_GE_S)), s)
-      | '\x5a' -> Ok (Inumeric (RelOp (TI64, I_GE_U)), s)
-      (* f32 *)
-      | '\x5b' -> Ok (Inumeric (RelOp (TF32, F_EQ)), s)
-      | '\x5c' -> Ok (Inumeric (RelOp (TF32, F_NE)), s)
-      | '\x5d' -> Ok (Inumeric (RelOp (TF32, F_LT)), s)
-      | '\x5e' -> Ok (Inumeric (RelOp (TF32, F_GT)), s)
-      | '\x5f' -> Ok (Inumeric (RelOp (TF32, F_LE)), s)
-      | '\x60' -> Ok (Inumeric (RelOp (TF32, F_GE)), s)
-      (* f64 *)
-      | '\x61' -> Ok (Inumeric (RelOp (TF64, F_EQ)), s)
-      | '\x62' -> Ok (Inumeric (RelOp (TF64, F_NE)), s)
-      | '\x63' -> Ok (Inumeric (RelOp (TF64, F_LT)), s)
-      | '\x64' -> Ok (Inumeric (RelOp (TF64, F_GT)), s)
-      | '\x65' -> Ok (Inumeric (RelOp (TF64, F_LE)), s)
-      | '\x66' -> Ok (Inumeric (RelOp (TF64, F_GE)), s)
-      (* i32 *)
-      | '\x67' -> Ok (Inumeric (UnOp (TI32, I_CLZ)), s)
-      | '\x68' -> Ok (Inumeric (UnOp (TI32, I_CTZ)), s)
-      | '\x69' -> Ok (Inumeric (UnOp (TI32, I_POPCONT)), s)
-      | '\x6a' -> Ok (Inumeric (BinOp (TI32, I_ADD)), s)
-      | '\x6b' -> Ok (Inumeric (BinOp (TI32, I_SUB)), s)
-      | '\x6c' -> Ok (Inumeric (BinOp (TI32, I_MUL)), s)
-      | '\x6d' -> Ok (Inumeric (BinOp (TI32, I_DIV_S)), s)
-      | '\x6e' -> Ok (Inumeric (BinOp (TI32, I_DIV_U)), s)
-      | '\x6f' -> Ok (Inumeric (BinOp (TI32, I_REM_S)), s)
-      | '\x70' -> Ok (Inumeric (BinOp (TI32, I_REM_U)), s)
-      | '\x71' -> Ok (Inumeric (BinOp (TI32, I_AND)), s)
-      | '\x72' -> Ok (Inumeric (BinOp (TI32, I_OR)), s)
-      | '\x73' -> Ok (Inumeric (BinOp (TI32, I_XOR)), s)
-      | '\x74' -> Ok (Inumeric (BinOp (TI32, I_SHL)), s)
-      | '\x75' -> Ok (Inumeric (BinOp (TI32, I_SHR_S)), s)
-      | '\x76' -> Ok (Inumeric (BinOp (TI32, I_SHR_U)), s)
-      | '\x77' -> Ok (Inumeric (BinOp (TI32, I_ROTL)), s)
-      | '\x78' -> Ok (Inumeric (BinOp (TI32, I_ROTR)), s)
-      (* i64 *)
-      | '\x79' -> Ok (Inumeric (UnOp (TI64, I_CLZ)), s)
-      | '\x7a' -> Ok (Inumeric (UnOp (TI64, I_CTZ)), s)
-      | '\x7b' -> Ok (Inumeric (UnOp (TI64, I_POPCONT)), s)
-      | '\x7c' -> Ok (Inumeric (BinOp (TI64, I_ADD)), s)
-      | '\x7d' -> Ok (Inumeric (BinOp (TI64, I_SUB)), s)
-      | '\x7e' -> Ok (Inumeric (BinOp (TI64, I_MUL)), s)
-      | '\x7f' -> Ok (Inumeric (BinOp (TI64, I_DIV_S)), s)
-      | '\x80' -> Ok (Inumeric (BinOp (TI64, I_DIV_U)), s)
-      | '\x81' -> Ok (Inumeric (BinOp (TI64, I_REM_S)), s)
-      | '\x82' -> Ok (Inumeric (BinOp (TI64, I_REM_U)), s)
-      | '\x83' -> Ok (Inumeric (BinOp (TI64, I_AND)), s)
-      | '\x84' -> Ok (Inumeric (BinOp (TI64, I_OR)), s)
-      | '\x85' -> Ok (Inumeric (BinOp (TI64, I_XOR)), s)
-      | '\x86' -> Ok (Inumeric (BinOp (TI64, I_SHL)), s)
-      | '\x87' -> Ok (Inumeric (BinOp (TI64, I_SHR_S)), s)
-      | '\x88' -> Ok (Inumeric (BinOp (TI64, I_SHR_U)), s)
-      | '\x89' -> Ok (Inumeric (BinOp (TI64, I_ROTL)), s)
-      | '\x8a' -> Ok (Inumeric (BinOp (TI64, I_ROTR)), s)
-      (* f32 *)
-      | '\x8b' -> Ok (Inumeric (UnOp (TF32, F_ABS)), s)
-      | '\x8c' -> Ok (Inumeric (UnOp (TF32, F_NEG)), s)
-      | '\x8d' -> Ok (Inumeric (UnOp (TF32, F_CEIL)), s)
-      | '\x8e' -> Ok (Inumeric (UnOp (TF32, F_FLOOR)), s)
-      | '\x8f' -> Ok (Inumeric (UnOp (TF32, F_TRUNC)), s)
-      | '\x90' -> Ok (Inumeric (UnOp (TF32, F_NEAREST)), s)
-      | '\x91' -> Ok (Inumeric (UnOp (TF32, F_SQRT)), s)
-      | '\x92' -> Ok (Inumeric (BinOp (TF32, F_ADD)), s)
-      | '\x93' -> Ok (Inumeric (BinOp (TF32, F_SUB)), s)
-      | '\x94' -> Ok (Inumeric (BinOp (TF32, F_MUL)), s)
-      | '\x95' -> Ok (Inumeric (BinOp (TF32, F_DIV)), s)
-      | '\x96' -> Ok (Inumeric (BinOp (TF32, F_MIN)), s)
-      | '\x97' -> Ok (Inumeric (BinOp (TF32, F_MAX)), s)
-      | '\x98' -> Ok (Inumeric (BinOp (TF32, F_COPYSIGN)), s)
-      (* f64 *)
-      | '\x99' -> Ok (Inumeric (UnOp (TF64, F_ABS)), s)
-      | '\x9a' -> Ok (Inumeric (UnOp (TF64, F_NEG)), s)
-      | '\x9b' -> Ok (Inumeric (UnOp (TF64, F_CEIL)), s)
-      | '\x9c' -> Ok (Inumeric (UnOp (TF64, F_FLOOR)), s)
-      | '\x9d' -> Ok (Inumeric (UnOp (TF64, F_TRUNC)), s)
-      | '\x9e' -> Ok (Inumeric (UnOp (TF64, F_NEAREST)), s)
-      | '\x9f' -> Ok (Inumeric (UnOp (TF64, F_SQRT)), s)
-      | '\xa0' -> Ok (Inumeric (BinOp (TF64, F_ADD)), s)
-      | '\xa1' -> Ok (Inumeric (BinOp (TF64, F_SUB)), s)
-      | '\xa2' -> Ok (Inumeric (BinOp (TF64, F_MUL)), s)
-      | '\xa3' -> Ok (Inumeric (BinOp (TF64, F_DIV)), s)
-      | '\xa4' -> Ok (Inumeric (BinOp (TF64, F_MIN)), s)
-      | '\xa5' -> Ok (Inumeric (BinOp (TF64, F_MAX)), s)
-      | '\xa6' -> Ok (Inumeric (BinOp (TF64, F_COPYSIGN)), s)
-      (* cvt *)
-      | '\xa7' -> Ok (Inumeric (CvtOp (TI32, CVT_WRAP, TI64)), s)
-      | '\xa8' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_S, TF32)), s)
-      | '\xa9' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_U, TF32)), s)
-      | '\xaa' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_S, TF64)), s)
-      | '\xab' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_U, TF64)), s)
-      | '\xac' -> Ok (Inumeric (CvtOp (TI64, CVT_EXTEND_S, TI32)), s)
-      | '\xad' -> Ok (Inumeric (CvtOp (TI64, CVT_EXTEND_U, TI32)), s)
-      | '\xae' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_S, TF32)), s)
-      | '\xaf' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_U, TF32)), s)
-      | '\xb0' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_S, TF64)), s)
-      | '\xb1' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_U, TF64)), s)
-      | '\xb2' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_S, TI32)), s)
-      | '\xb3' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_U, TI32)), s)
-      | '\xb4' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_S, TI64)), s)
-      | '\xb5' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_U, TI64)), s)
-      | '\xb6' -> Ok (Inumeric (CvtOp (TF32, CVT_DEMOTE, TF64)), s)
-      | '\xb7' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_S, TI32)), s)
-      | '\xb8' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_U, TI32)), s)
-      | '\xb9' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_S, TI64)), s)
-      | '\xba' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_U, TI64)), s)
-      | '\xbb' -> Ok (Inumeric (CvtOp (TF64, CVT_PROMOTE, TF32)), s)
-      | '\xbc' -> Ok (Inumeric (CvtOp (TI32, CVT_REINTERPRET, TF32)), s)
-      | '\xbd' -> Ok (Inumeric (CvtOp (TI64, CVT_REINTERPRET, TF64)), s)
-      | '\xbe' -> Ok (Inumeric (CvtOp (TF32, CVT_REINTERPRET, TI32)), s)
-      | '\xbf' -> Ok (Inumeric (CvtOp (TF64, CVT_REINTERPRET, TI64)), s)
-      | _ -> Error "invalid numeric instr"
+    | '\x41' ->
+      let* (n, s) = Value.i32 s in
+      Ok (Inumeric (Const (I32 n)), s)
+    | '\x42' ->
+      let* (n, s) = Value.i64 s in
+      Ok (Inumeric (Const (I64 n)), s)
+    | '\x43' ->
+      let* (n, s) = Value.f32 s in
+      Ok (Inumeric (Const (F32 n)), s)
+    | '\x44' ->
+      let* (n, s) = Value.f64 s in
+      Ok (Inumeric (Const (F64 n)), s)
+    (* i32 *)
+    | '\x45' -> Ok (Inumeric (TestOp (TI32, I_EQZ)), s)
+    | '\x46' -> Ok (Inumeric (RelOp (TI32, I_EQ)), s)
+    | '\x47' -> Ok (Inumeric (RelOp (TI32, I_NE)), s)
+    | '\x48' -> Ok (Inumeric (RelOp (TI32, I_LT_S)), s)
+    | '\x49' -> Ok (Inumeric (RelOp (TI32, I_LT_U)), s)
+    | '\x4a' -> Ok (Inumeric (RelOp (TI32, I_GT_S)), s)
+    | '\x4b' -> Ok (Inumeric (RelOp (TI32, I_GT_U)), s)
+    | '\x4c' -> Ok (Inumeric (RelOp (TI32, I_LE_S)), s)
+    | '\x4d' -> Ok (Inumeric (RelOp (TI32, I_LE_U)), s)
+    | '\x4e' -> Ok (Inumeric (RelOp (TI32, I_GE_S)), s)
+    | '\x4f' -> Ok (Inumeric (RelOp (TI32, I_GE_U)), s)
+    (* i64 *)
+    | '\x50' -> Ok (Inumeric (TestOp (TI64, I_EQZ)), s)
+    | '\x51' -> Ok (Inumeric (RelOp (TI64, I_EQ)), s)
+    | '\x52' -> Ok (Inumeric (RelOp (TI64, I_NE)), s)
+    | '\x53' -> Ok (Inumeric (RelOp (TI64, I_LT_S)), s)
+    | '\x54' -> Ok (Inumeric (RelOp (TI64, I_LT_U)), s)
+    | '\x55' -> Ok (Inumeric (RelOp (TI64, I_GT_S)), s)
+    | '\x56' -> Ok (Inumeric (RelOp (TI64, I_GT_U)), s)
+    | '\x57' -> Ok (Inumeric (RelOp (TI64, I_LE_S)), s)
+    | '\x58' -> Ok (Inumeric (RelOp (TI64, I_LE_U)), s)
+    | '\x59' -> Ok (Inumeric (RelOp (TI64, I_GE_S)), s)
+    | '\x5a' -> Ok (Inumeric (RelOp (TI64, I_GE_U)), s)
+    (* f32 *)
+    | '\x5b' -> Ok (Inumeric (RelOp (TF32, F_EQ)), s)
+    | '\x5c' -> Ok (Inumeric (RelOp (TF32, F_NE)), s)
+    | '\x5d' -> Ok (Inumeric (RelOp (TF32, F_LT)), s)
+    | '\x5e' -> Ok (Inumeric (RelOp (TF32, F_GT)), s)
+    | '\x5f' -> Ok (Inumeric (RelOp (TF32, F_LE)), s)
+    | '\x60' -> Ok (Inumeric (RelOp (TF32, F_GE)), s)
+    (* f64 *)
+    | '\x61' -> Ok (Inumeric (RelOp (TF64, F_EQ)), s)
+    | '\x62' -> Ok (Inumeric (RelOp (TF64, F_NE)), s)
+    | '\x63' -> Ok (Inumeric (RelOp (TF64, F_LT)), s)
+    | '\x64' -> Ok (Inumeric (RelOp (TF64, F_GT)), s)
+    | '\x65' -> Ok (Inumeric (RelOp (TF64, F_LE)), s)
+    | '\x66' -> Ok (Inumeric (RelOp (TF64, F_GE)), s)
+    (* i32 *)
+    | '\x67' -> Ok (Inumeric (UnOp (TI32, I_CLZ)), s)
+    | '\x68' -> Ok (Inumeric (UnOp (TI32, I_CTZ)), s)
+    | '\x69' -> Ok (Inumeric (UnOp (TI32, I_POPCONT)), s)
+    | '\x6a' -> Ok (Inumeric (BinOp (TI32, I_ADD)), s)
+    | '\x6b' -> Ok (Inumeric (BinOp (TI32, I_SUB)), s)
+    | '\x6c' -> Ok (Inumeric (BinOp (TI32, I_MUL)), s)
+    | '\x6d' -> Ok (Inumeric (BinOp (TI32, I_DIV_S)), s)
+    | '\x6e' -> Ok (Inumeric (BinOp (TI32, I_DIV_U)), s)
+    | '\x6f' -> Ok (Inumeric (BinOp (TI32, I_REM_S)), s)
+    | '\x70' -> Ok (Inumeric (BinOp (TI32, I_REM_U)), s)
+    | '\x71' -> Ok (Inumeric (BinOp (TI32, I_AND)), s)
+    | '\x72' -> Ok (Inumeric (BinOp (TI32, I_OR)), s)
+    | '\x73' -> Ok (Inumeric (BinOp (TI32, I_XOR)), s)
+    | '\x74' -> Ok (Inumeric (BinOp (TI32, I_SHL)), s)
+    | '\x75' -> Ok (Inumeric (BinOp (TI32, I_SHR_S)), s)
+    | '\x76' -> Ok (Inumeric (BinOp (TI32, I_SHR_U)), s)
+    | '\x77' -> Ok (Inumeric (BinOp (TI32, I_ROTL)), s)
+    | '\x78' -> Ok (Inumeric (BinOp (TI32, I_ROTR)), s)
+    (* i64 *)
+    | '\x79' -> Ok (Inumeric (UnOp (TI64, I_CLZ)), s)
+    | '\x7a' -> Ok (Inumeric (UnOp (TI64, I_CTZ)), s)
+    | '\x7b' -> Ok (Inumeric (UnOp (TI64, I_POPCONT)), s)
+    | '\x7c' -> Ok (Inumeric (BinOp (TI64, I_ADD)), s)
+    | '\x7d' -> Ok (Inumeric (BinOp (TI64, I_SUB)), s)
+    | '\x7e' -> Ok (Inumeric (BinOp (TI64, I_MUL)), s)
+    | '\x7f' -> Ok (Inumeric (BinOp (TI64, I_DIV_S)), s)
+    | '\x80' -> Ok (Inumeric (BinOp (TI64, I_DIV_U)), s)
+    | '\x81' -> Ok (Inumeric (BinOp (TI64, I_REM_S)), s)
+    | '\x82' -> Ok (Inumeric (BinOp (TI64, I_REM_U)), s)
+    | '\x83' -> Ok (Inumeric (BinOp (TI64, I_AND)), s)
+    | '\x84' -> Ok (Inumeric (BinOp (TI64, I_OR)), s)
+    | '\x85' -> Ok (Inumeric (BinOp (TI64, I_XOR)), s)
+    | '\x86' -> Ok (Inumeric (BinOp (TI64, I_SHL)), s)
+    | '\x87' -> Ok (Inumeric (BinOp (TI64, I_SHR_S)), s)
+    | '\x88' -> Ok (Inumeric (BinOp (TI64, I_SHR_U)), s)
+    | '\x89' -> Ok (Inumeric (BinOp (TI64, I_ROTL)), s)
+    | '\x8a' -> Ok (Inumeric (BinOp (TI64, I_ROTR)), s)
+    (* f32 *)
+    | '\x8b' -> Ok (Inumeric (UnOp (TF32, F_ABS)), s)
+    | '\x8c' -> Ok (Inumeric (UnOp (TF32, F_NEG)), s)
+    | '\x8d' -> Ok (Inumeric (UnOp (TF32, F_CEIL)), s)
+    | '\x8e' -> Ok (Inumeric (UnOp (TF32, F_FLOOR)), s)
+    | '\x8f' -> Ok (Inumeric (UnOp (TF32, F_TRUNC)), s)
+    | '\x90' -> Ok (Inumeric (UnOp (TF32, F_NEAREST)), s)
+    | '\x91' -> Ok (Inumeric (UnOp (TF32, F_SQRT)), s)
+    | '\x92' -> Ok (Inumeric (BinOp (TF32, F_ADD)), s)
+    | '\x93' -> Ok (Inumeric (BinOp (TF32, F_SUB)), s)
+    | '\x94' -> Ok (Inumeric (BinOp (TF32, F_MUL)), s)
+    | '\x95' -> Ok (Inumeric (BinOp (TF32, F_DIV)), s)
+    | '\x96' -> Ok (Inumeric (BinOp (TF32, F_MIN)), s)
+    | '\x97' -> Ok (Inumeric (BinOp (TF32, F_MAX)), s)
+    | '\x98' -> Ok (Inumeric (BinOp (TF32, F_COPYSIGN)), s)
+    (* f64 *)
+    | '\x99' -> Ok (Inumeric (UnOp (TF64, F_ABS)), s)
+    | '\x9a' -> Ok (Inumeric (UnOp (TF64, F_NEG)), s)
+    | '\x9b' -> Ok (Inumeric (UnOp (TF64, F_CEIL)), s)
+    | '\x9c' -> Ok (Inumeric (UnOp (TF64, F_FLOOR)), s)
+    | '\x9d' -> Ok (Inumeric (UnOp (TF64, F_TRUNC)), s)
+    | '\x9e' -> Ok (Inumeric (UnOp (TF64, F_NEAREST)), s)
+    | '\x9f' -> Ok (Inumeric (UnOp (TF64, F_SQRT)), s)
+    | '\xa0' -> Ok (Inumeric (BinOp (TF64, F_ADD)), s)
+    | '\xa1' -> Ok (Inumeric (BinOp (TF64, F_SUB)), s)
+    | '\xa2' -> Ok (Inumeric (BinOp (TF64, F_MUL)), s)
+    | '\xa3' -> Ok (Inumeric (BinOp (TF64, F_DIV)), s)
+    | '\xa4' -> Ok (Inumeric (BinOp (TF64, F_MIN)), s)
+    | '\xa5' -> Ok (Inumeric (BinOp (TF64, F_MAX)), s)
+    | '\xa6' -> Ok (Inumeric (BinOp (TF64, F_COPYSIGN)), s)
+    (* cvt *)
+    | '\xa7' -> Ok (Inumeric (CvtOp (TI32, CVT_WRAP, TI64)), s)
+    | '\xa8' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_S, TF32)), s)
+    | '\xa9' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_U, TF32)), s)
+    | '\xaa' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_S, TF64)), s)
+    | '\xab' -> Ok (Inumeric (CvtOp (TI32, CVT_TRUNC_U, TF64)), s)
+    | '\xac' -> Ok (Inumeric (CvtOp (TI64, CVT_EXTEND_S, TI32)), s)
+    | '\xad' -> Ok (Inumeric (CvtOp (TI64, CVT_EXTEND_U, TI32)), s)
+    | '\xae' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_S, TF32)), s)
+    | '\xaf' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_U, TF32)), s)
+    | '\xb0' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_S, TF64)), s)
+    | '\xb1' -> Ok (Inumeric (CvtOp (TI64, CVT_TRUNC_U, TF64)), s)
+    | '\xb2' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_S, TI32)), s)
+    | '\xb3' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_U, TI32)), s)
+    | '\xb4' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_S, TI64)), s)
+    | '\xb5' -> Ok (Inumeric (CvtOp (TF32, CVT_CONVERT_U, TI64)), s)
+    | '\xb6' -> Ok (Inumeric (CvtOp (TF32, CVT_DEMOTE, TF64)), s)
+    | '\xb7' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_S, TI32)), s)
+    | '\xb8' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_U, TI32)), s)
+    | '\xb9' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_S, TI64)), s)
+    | '\xba' -> Ok (Inumeric (CvtOp (TF64, CVT_CONVERT_U, TI64)), s)
+    | '\xbb' -> Ok (Inumeric (CvtOp (TF64, CVT_PROMOTE, TF32)), s)
+    | '\xbc' -> Ok (Inumeric (CvtOp (TI32, CVT_REINTERPRET, TF32)), s)
+    | '\xbd' -> Ok (Inumeric (CvtOp (TI64, CVT_REINTERPRET, TF64)), s)
+    | '\xbe' -> Ok (Inumeric (CvtOp (TF32, CVT_REINTERPRET, TI32)), s)
+    | '\xbf' -> Ok (Inumeric (CvtOp (TF64, CVT_REINTERPRET, TI64)), s)
+    | _ -> Error "invalid numeric instr"
 
   and instr (s : S.t) : (instr option * S.t) or_err =
     let wrap = Result.map (fun (i, s) -> (Some i, s)) in
     let* t = S.peek_char s in
     match t with
-      | None -> Ok (None, s)
-      | Some t -> (
-        match t with
-          | '\x00' .. '\x04' | '\x0c' .. '\x11' -> icontrol s |> wrap
-          | '\x1a' .. '\x1b' -> iparametric s |> wrap
-          | '\x20' .. '\x24' -> ivariable s |> wrap
-          | '\x28' .. '\x40' -> imemory s |> wrap
-          | '\x41' .. '\xbf' -> inumric s |> wrap
-          | _ -> Ok (None, s)
-      )
+    | None -> Ok (None, s)
+    | Some t -> (
+      match t with
+      | '\x00' .. '\x04' | '\x0c' .. '\x11' -> icontrol s |> wrap
+      | '\x1a' .. '\x1b' -> iparametric s |> wrap
+      | '\x20' .. '\x24' -> ivariable s |> wrap
+      | '\x28' .. '\x40' -> imemory s |> wrap
+      | '\x41' .. '\xbf' -> inumric s |> wrap
+      | _ -> Ok (None, s)
+    )
 
   and instrs (s : S.t) : (instr list * S.t) or_err =
     let rec aux acc s =
       let* (i, s) = instr s in
       match i with
-        | None -> Ok (List.rev acc, s)
-        | Some i -> aux (i :: acc) s
+      | None -> Ok (List.rev acc, s)
+      | Some i -> aux (i :: acc) s
     in
     aux [] s
 
@@ -505,10 +505,10 @@ module Module = struct
       : 'a array or_err
     =
     match src with
-      | None -> Ok [||]
-      | Some src ->
-        let* (x, _) = aux_vec f src in
-        Ok (Array.of_list x)
+    | None -> Ok [||]
+    | Some src ->
+      let* (x, _) = aux_vec f src in
+      Ok (Array.of_list x)
 
   let parse_type (src : S.t option) : functype array or_err =
     let f = Type.functype in
@@ -516,40 +516,40 @@ module Module = struct
 
   let parse_func (idx : S.t option) (code : S.t option) : func array or_err =
     match (idx, code) with
-      | (None, Some _) -> Error "invalid funcsec"
-      | (Some _, None) -> Error "invalid codesec"
-      | (None, None) -> Ok [||]
-      | (Some idx, Some code) ->
-        let aux_locals (s : S.t) : (valtype list * S.t) or_err =
-          let* (n, s) = Value.u32 s in
-          let* (t, s) = Type.valtype s in
-          let rec aux acc = function
-            | 0 -> Ok (acc, s)
-            | n -> aux (t :: acc) (n - 1)
-          in
-          aux [] n
+    | (None, Some _) -> Error "invalid funcsec"
+    | (Some _, None) -> Error "invalid codesec"
+    | (None, None) -> Ok [||]
+    | (Some idx, Some code) ->
+      let aux_locals (s : S.t) : (valtype list * S.t) or_err =
+        let* (n, s) = Value.u32 s in
+        let* (t, s) = Type.valtype s in
+        let rec aux acc = function
+          | 0 -> Ok (acc, s)
+          | n -> aux (t :: acc) (n - 1)
         in
-        let fcode (s : S.t) : ((valtype list * expr) * S.t) or_err =
-          let* (size, s) = Value.u32 s in
-          let* (code, s) = S.take size s in
-          let* (locals, code) = aux_vec aux_locals code in
-          let locals = List.flatten locals in
-          let* (body, _) = Instruction.expr code in
-          Ok ((locals, body), s)
+        aux [] n
+      in
+      let fcode (s : S.t) : ((valtype list * expr) * S.t) or_err =
+        let* (size, s) = Value.u32 s in
+        let* (code, s) = S.take size s in
+        let* (locals, code) = aux_vec aux_locals code in
+        let locals = List.flatten locals in
+        let* (body, _) = Instruction.expr code in
+        Ok ((locals, body), s)
+      in
+      let fidx (s : S.t) : (typeidx * S.t) or_err = Value.idx s in
+      let mapf (sidx : S.t) (scode : S.t) : func array or_err =
+        let* (idx, _) = aux_vec fidx sidx in
+        let* (code, _) = aux_vec fcode scode in
+        let f =
+          List.map2
+            (fun typei (locals, body) -> { typei; locals; body })
+            idx
+            code
         in
-        let fidx (s : S.t) : (typeidx * S.t) or_err = Value.idx s in
-        let mapf (sidx : S.t) (scode : S.t) : func array or_err =
-          let* (idx, _) = aux_vec fidx sidx in
-          let* (code, _) = aux_vec fcode scode in
-          let f =
-            List.map2
-              (fun typei (locals, body) -> { typei; locals; body })
-              idx
-              code
-          in
-          Ok (Array.of_list f)
-        in
-        mapf idx code
+        Ok (Array.of_list f)
+      in
+      mapf idx code
 
   let parse_table (s : S.t option) : table array or_err =
     let f (s : S.t) =
@@ -593,28 +593,28 @@ module Module = struct
 
   let parse_start (s : S.t option) : start option or_err =
     match s with
-      | None -> Ok None
-      | Some s ->
-        let* (func, _) = Value.idx s in
-        Ok (Some { func })
+    | None -> Ok None
+    | Some s ->
+      let* (func, _) = Value.idx s in
+      Ok (Some { func })
 
   let parse_import (s : S.t option) : import array or_err =
     let aux_desc (s : S.t) : (importdesc * S.t) or_err =
       let* (t, s) = S.take_char s in
       match t with
-        | '\x00' ->
-          let* (x, s) = Value.idx s in
-          Ok (ID_func x, s)
-        | '\x01' ->
-          let* (tt, s) = Type.tabletype s in
-          Ok (ID_table tt, s)
-        | '\x02' ->
-          let* (mt, s) = Type.memtype s in
-          Ok (ID_mem mt, s)
-        | '\x03' ->
-          let* (gt, s) = Type.globaltype s in
-          Ok (ID_global gt, s)
-        | _ -> Error "invalid import desc"
+      | '\x00' ->
+        let* (x, s) = Value.idx s in
+        Ok (ID_func x, s)
+      | '\x01' ->
+        let* (tt, s) = Type.tabletype s in
+        Ok (ID_table tt, s)
+      | '\x02' ->
+        let* (mt, s) = Type.memtype s in
+        Ok (ID_mem mt, s)
+      | '\x03' ->
+        let* (gt, s) = Type.globaltype s in
+        Ok (ID_global gt, s)
+      | _ -> Error "invalid import desc"
     in
     let f (s : S.t) =
       let* (modname, s) = Value.name s in
@@ -629,11 +629,11 @@ module Module = struct
       let* (t, s) = S.take_char s in
       let* (i, s) = Value.idx s in
       match t with
-        | '\x00' -> Ok (ED_func i, s)
-        | '\x01' -> Ok (ED_table i, s)
-        | '\x02' -> Ok (ED_mem i, s)
-        | '\x03' -> Ok (ED_global i, s)
-        | _ -> Error "invalid export desc"
+      | '\x00' -> Ok (ED_func i, s)
+      | '\x01' -> Ok (ED_table i, s)
+      | '\x02' -> Ok (ED_mem i, s)
+      | '\x03' -> Ok (ED_global i, s)
+      | _ -> Error "invalid export desc"
     in
     let f (s : S.t) =
       let* (name, s) = Value.name s in
@@ -645,15 +645,15 @@ module Module = struct
   let rec aux_take_sec (sid : char) (src : S.t) : (S.t option * S.t) or_err =
     let* id = S.peek_char src in
     match id with
-      | Some id when Char.equal id '\x00' ->
-        let* (size, src) = Value.u32 src in
-        let* (_, src) = S.take size src in
-        aux_take_sec sid src
-      | Some id when Char.equal id sid ->
-        let* (size, src) = Value.u32 src in
-        let* (sec, src) = S.take size src in
-        Ok (Some sec, src)
-      | Some _ | None -> Ok (None, src)
+    | Some id when Char.equal id '\x00' ->
+      let* (size, src) = Value.u32 src in
+      let* (_, src) = S.take size src in
+      aux_take_sec sid src
+    | Some id when Char.equal id sid ->
+      let* (size, src) = Value.u32 src in
+      let* (sec, src) = S.take size src in
+      Ok (Some sec, src)
+    | Some _ | None -> Ok (None, src)
 
   let magic = "\x00\x61\x73\x6d"
 

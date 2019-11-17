@@ -14,9 +14,9 @@ let to_string = Int32.to_string
 
 let wrap_to n x =
   match n with
-    | 8 -> Int32.logand x 0xffl
-    | 16 -> Int32.logand x 0xffffl
-    | _ -> failwith "never"
+  | 8 -> Int32.logand x 0xffl
+  | 16 -> Int32.logand x 0xffffl
+  | _ -> failwith "never"
 
 let to_bytes x =
   let b = Bytes.create 4 in

@@ -110,10 +110,10 @@ let is_space = function
 let scan (src : string) : WatToken.t list or_err =
   let rec scan_all_token (acc : WatToken.t list) (t : char list) =
     match scan_token t with
-      | Ok (Some tok, tt) -> scan_all_token (tok :: acc) tt
-      | Ok (None, []) -> Ok (List.rev acc)
-      | Ok (None, _) -> failwith "never"
-      | Error s -> Error s
+    | Ok (Some tok, tt) -> scan_all_token (tok :: acc) tt
+    | Ok (None, []) -> Ok (List.rev acc)
+    | Ok (None, _) -> failwith "never"
+    | Error s -> Error s
   and scan_hexdigit (acc : char list) = function
     | '_' :: h :: t when is_hexdigit h -> scan_hexdigit (h :: acc) t
     | h :: t when is_hexdigit h -> scan_hexdigit (h :: acc) t
@@ -162,14 +162,14 @@ let scan (src : string) : WatToken.t list or_err =
     | '\\' :: 'u' :: '{' :: t -> (
       let is_valid hex = hex < 0xd800 || (hex >= 0xe000 && hex < 0x110000) in
       match scan_hexdigit [] t with
-        | Ok (Some codepoint, tt) when is_valid codepoint -> (
-          let* chs = codepoint_to_chars codepoint in
-          let chs_rev = List.rev chs in
-          match tt with
-            | '}' :: tt -> scan_string (chs_rev @ acc) tt
-            | _ -> Error "invalid unicode"
-        )
-        | _ -> Error "invalid codepoint"
+      | Ok (Some codepoint, tt) when is_valid codepoint -> (
+        let* chs = codepoint_to_chars codepoint in
+        let chs_rev = List.rev chs in
+        match tt with
+        | '}' :: tt -> scan_string (chs_rev @ acc) tt
+        | _ -> Error "invalid unicode"
+      )
+      | _ -> Error "invalid codepoint"
     )
     | '\\' :: 't' :: t -> scan_string ('\t' :: acc) t
     | '\\' :: 'n' :: t -> scan_string ('\n' :: acc) t
@@ -191,9 +191,9 @@ let scan (src : string) : WatToken.t list or_err =
     in
     let (acc, tt) =
       match t with
-        | '+' :: tt -> ([ '+' ], tt)
-        | '-' :: tt -> ([ '-' ], tt)
-        | tt -> ([ '+' ], tt)
+      | '+' :: tt -> ([ '+' ], tt)
+      | '-' :: tt -> ([ '-' ], tt)
+      | tt -> ([ '+' ], tt)
     in
     aux acc tt
   and scan_token = function
@@ -216,11 +216,11 @@ let scan (src : string) : WatToken.t list or_err =
     (* keyword or float *)
     | 'a' .. 'z' :: _ as t -> (
       match scan_keyword [] t with
-        | Ok (Some (KEYWORD k), tt) when String.equal k "inf" ->
-          Ok (Some (NUM (Float.to_string infinity)), tt)
-        | Ok (Some (KEYWORD k), tt) when String.equal k "nan" ->
-          Ok (Some (NUM (Float.to_string nan)), tt)
-        | s -> s
+      | Ok (Some (KEYWORD k), tt) when String.equal k "inf" ->
+        Ok (Some (NUM (Float.to_string infinity)), tt)
+      | Ok (Some (KEYWORD k), tt) when String.equal k "nan" ->
+        Ok (Some (NUM (Float.to_string nan)), tt)
+      | s -> s
     )
     (* reserved *)
     | h :: t when is_idchar h -> scan_reserved [ h ] t

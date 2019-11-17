@@ -46,21 +46,20 @@ module Type = struct
   let functype ((p, r) : functype) =
     let ps =
       match p with
-        | [] -> ""
-        | _ ->
-          p |> List.map (fun s -> sprintf "(param %s)" (valtype s)) |> concat
+      | [] -> ""
+      | _ -> p |> List.map (fun s -> sprintf "(param %s)" (valtype s)) |> concat
     and rs =
       match r with
-        | [] -> ""
-        | _ ->
-          r |> List.map (fun s -> sprintf "(result %s)" (valtype s)) |> concat
+      | [] -> ""
+      | _ ->
+        r |> List.map (fun s -> sprintf "(result %s)" (valtype s)) |> concat
     in
     sprintf "(func%s%s)" (add_space ps) (add_space rs)
 
   let limits ({ min; max } : limits) =
     match max with
-      | None -> Value.u32 min
-      | Some max -> sprintf "%s %s" (Value.u32 min) (Value.u32 max)
+    | None -> Value.u32 min
+    | Some max -> sprintf "%s %s" (Value.u32 min) (Value.u32 max)
 
   let memtype x = limits x
 
@@ -69,8 +68,8 @@ module Type = struct
   let globaltype ((m, v) : globaltype) =
     let v = valtype v in
     match m with
-      | CONST -> v
-      | VAR -> sprintf "(mut %s)" v
+    | CONST -> v
+    | VAR -> sprintf "(mut %s)" v
 end
 
 module Instruction = struct
@@ -78,26 +77,26 @@ module Instruction = struct
     let a = if align = n then "" else sprintf "align=%s" (Value.u32 align) in
     let o = if offset = 0 then "" else sprintf "offset=%s" (Value.u32 offset) in
     match (o, a) with
-      | ("", "") -> ""
-      | ("", a) -> a
-      | (o, "") -> o
-      | (o, a) -> sprintf "%s %s" o a
+    | ("", "") -> ""
+    | ("", a) -> a
+    | (o, "") -> o
+    | (o, a) -> sprintf "%s %s" o a
 
   let aux_wrap stack =
     match stack with
-      | [] -> ""
-      | [ h ] -> h
-      | stack -> stack |> List.rev |> concat |> sprintf "(%s)"
+    | [] -> ""
+    | [ h ] -> h
+    | stack -> stack |> List.rev |> concat |> sprintf "(%s)"
 
   let aux_op1 stack op =
     match stack with
-      | arg :: t -> sprintf "(%s %s)" op arg :: t
-      | [] -> failwith "op1 | invalid module"
+    | arg :: t -> sprintf "(%s %s)" op arg :: t
+    | [] -> failwith "op1 | invalid module"
 
   let aux_op2 stack op =
     match stack with
-      | arg2 :: arg1 :: t -> sprintf "(%s %s %s)" op arg1 arg2 :: t
-      | _ -> failwith "op2 | invalid module"
+    | arg2 :: arg1 :: t -> sprintf "(%s %s %s)" op arg1 arg2 :: t
+    | _ -> failwith "op2 | invalid module"
 
   let rec expr ins = instrs ins
 
@@ -341,10 +340,10 @@ module Module = struct
       let name = i.name in
       let desc =
         match i.desc with
-          | ID_func x -> sprintf "(func %s)" (aux_typeuse x)
-          | ID_table t -> sprintf "(table %s)" (Type.tabletype t)
-          | ID_mem t -> sprintf "(memory %s)" (Type.memtype t)
-          | ID_global t -> sprintf "(global %s)" (Type.globaltype t)
+        | ID_func x -> sprintf "(func %s)" (aux_typeuse x)
+        | ID_table t -> sprintf "(table %s)" (Type.tabletype t)
+        | ID_mem t -> sprintf "(memory %s)" (Type.memtype t)
+        | ID_global t -> sprintf "(global %s)" (Type.globaltype t)
       in
       sprintf "(import %s %s %s)" modname name desc
     in
@@ -385,10 +384,10 @@ module Module = struct
       let name = e.name in
       let desc =
         match e.desc with
-          | ED_func i -> sprintf "(func %s)" (Value.idx i)
-          | ED_table i -> sprintf "(table %s)" (Value.idx i)
-          | ED_mem i -> sprintf "(memory %s)" (Value.idx i)
-          | ED_global i -> sprintf "(global %s)" (Value.idx i)
+        | ED_func i -> sprintf "(func %s)" (Value.idx i)
+        | ED_table i -> sprintf "(table %s)" (Value.idx i)
+        | ED_mem i -> sprintf "(memory %s)" (Value.idx i)
+        | ED_global i -> sprintf "(global %s)" (Value.idx i)
       in
       sprintf "(export %s %s)" name desc
     in
@@ -396,8 +395,8 @@ module Module = struct
 
   let startsec (m : moduledef) =
     match m.start with
-      | None -> ""
-      | Some { func } -> sprintf "(start %s)" (Value.idx func)
+    | None -> ""
+    | Some { func } -> sprintf "(start %s)" (Value.idx func)
 
   let elemsec (m : moduledef) =
     let mapf (e : elem) =
