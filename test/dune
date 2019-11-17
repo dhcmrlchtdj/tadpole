@@ -1,6 +1,6 @@
 (executable
  (name test)
- (libraries alcotest tadpole)
+ (libraries containers tadpole)
  (flags
   (:standard -warn-error -a)))
 
