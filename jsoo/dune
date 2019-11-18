@@ -1,0 +1,13 @@
+(executable
+ (name jsoo)
+ (js_of_ocaml
+  (flags --opt=3 --no-source-map))
+ (libraries js_of_ocaml containers tadpole)
+ (preprocess
+  (pps js_of_ocaml.ppx))
+ (flags
+  (:standard -warn-error -a)))
+
+(alias
+ (name default)
+ (deps jsoo.bc.js))
