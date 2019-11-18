@@ -116,7 +116,7 @@ and importdesc =
 type unop =
   | I_CLZ
   | I_CTZ
-  | I_POPCONT
+  | I_POPCNT
   | F_ABS
   | F_NEG
   | F_SQRT

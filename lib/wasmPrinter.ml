@@ -134,7 +134,7 @@ module Instruction = struct
     (* i32 *)
     | UnOp (TI32, I_CLZ) -> "\x67"
     | UnOp (TI32, I_CTZ) -> "\x68"
-    | UnOp (TI32, I_POPCONT) -> "\x69"
+    | UnOp (TI32, I_POPCNT) -> "\x69"
     | BinOp (TI32, I_ADD) -> "\x6a"
     | BinOp (TI32, I_SUB) -> "\x6b"
     | BinOp (TI32, I_MUL) -> "\x6c"
@@ -153,7 +153,7 @@ module Instruction = struct
     (* i64 *)
     | UnOp (TI64, I_CLZ) -> "\x79"
     | UnOp (TI64, I_CTZ) -> "\x7a"
-    | UnOp (TI64, I_POPCONT) -> "\x7b"
+    | UnOp (TI64, I_POPCNT) -> "\x7b"
     | BinOp (TI64, I_ADD) -> "\x7c"
     | BinOp (TI64, I_SUB) -> "\x7d"
     | BinOp (TI64, I_MUL) -> "\x7e"

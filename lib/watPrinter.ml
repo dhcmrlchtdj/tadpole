@@ -70,20 +70,20 @@ module Type = struct
 end
 
 module Instruction = struct
-  let memarg n ({ align; offset } : memarg) =
-    let a = if align = n then "" else sprintf "align=%s" (Value.u32 align) in
+  let memarg n ({ offset; align } : memarg) =
     let o = if offset = 0 then "" else sprintf "offset=%s" (Value.u32 offset) in
+    let a = if align = n then "" else sprintf "align=%s" (Value.u32 align) in
     match (o, a) with
     | ("", "") -> ""
-    | ("", a) -> a
     | (o, "") -> o
+    | ("", a) -> a
     | (o, a) -> sprintf "%s %s" o a
 
   let aux_wrap stack =
     match stack with
     | [] -> ""
     | [ h ] -> h
-    | stack -> stack |> List.rev |> concat |> sprintf "(%s)"
+    | stack -> stack |> List.rev |> concat
 
   let aux_op1 stack op =
     match stack with
@@ -160,7 +160,7 @@ module Instruction = struct
     (* i32 *)
     | UnOp (TI32, I_CLZ) -> aux_op1 stack "i32.clz"
     | UnOp (TI32, I_CTZ) -> aux_op1 stack "i32.ctz"
-    | UnOp (TI32, I_POPCONT) -> aux_op1 stack "i32.popcnt"
+    | UnOp (TI32, I_POPCNT) -> aux_op1 stack "i32.popcnt"
     | BinOp (TI32, I_ADD) -> aux_op2 stack "i32.add"
     | BinOp (TI32, I_SUB) -> aux_op2 stack "i32.sub"
     | BinOp (TI32, I_MUL) -> aux_op2 stack "i32.mul"
@@ -179,7 +179,7 @@ module Instruction = struct
     (* i64 *)
     | UnOp (TI64, I_CLZ) -> aux_op1 stack "i64.clz"
     | UnOp (TI64, I_CTZ) -> aux_op1 stack "i64.ctz"
-    | UnOp (TI64, I_POPCONT) -> aux_op1 stack "i64.popcnt"
+    | UnOp (TI64, I_POPCNT) -> aux_op1 stack "i64.popcnt"
     | BinOp (TI64, I_ADD) -> aux_op2 stack "i64.add"
     | BinOp (TI64, I_SUB) -> aux_op2 stack "i64.sub"
     | BinOp (TI64, I_MUL) -> aux_op2 stack "i64.mul"
@@ -226,31 +226,31 @@ module Instruction = struct
     | BinOp (TF64, F_MAX) -> aux_op2 stack "f64.max"
     | BinOp (TF64, F_COPYSIGN) -> aux_op2 stack "f64.copysign"
     (* cvt *)
-    | CvtOp (TI32, CVT_WRAP, TI64) -> aux_op2 stack "i32.wrap_i64"
-    | CvtOp (TI32, CVT_TRUNC_S, TF32) -> aux_op2 stack "i32.trunc_f32_s"
-    | CvtOp (TI32, CVT_TRUNC_U, TF32) -> aux_op2 stack "i32.trunc_f32_u"
-    | CvtOp (TI32, CVT_TRUNC_S, TF64) -> aux_op2 stack "i32.trunc_f64_s"
-    | CvtOp (TI32, CVT_TRUNC_U, TF64) -> aux_op2 stack "i32.trunc_f64_u"
-    | CvtOp (TI64, CVT_EXTEND_S, TI32) -> aux_op2 stack "i64.extend_i32_s"
-    | CvtOp (TI64, CVT_EXTEND_U, TI32) -> aux_op2 stack "i64.extend_i32_u"
-    | CvtOp (TI64, CVT_TRUNC_S, TF32) -> aux_op2 stack "i64.trunc_f32_s"
-    | CvtOp (TI64, CVT_TRUNC_U, TF32) -> aux_op2 stack "i64.trunc_f32_u"
-    | CvtOp (TI64, CVT_TRUNC_S, TF64) -> aux_op2 stack "i64.trunc_f64_s"
-    | CvtOp (TI64, CVT_TRUNC_U, TF64) -> aux_op2 stack "i64.trunc_f64_u"
-    | CvtOp (TF32, CVT_CONVERT_S, TI32) -> aux_op2 stack "f32.convert_i32_s"
-    | CvtOp (TF32, CVT_CONVERT_U, TI32) -> aux_op2 stack "f32.convert_i32_u"
-    | CvtOp (TF32, CVT_CONVERT_S, TI64) -> aux_op2 stack "f32.convert_i64_s"
-    | CvtOp (TF32, CVT_CONVERT_U, TI64) -> aux_op2 stack "f32.convert_i64_u"
-    | CvtOp (TF32, CVT_DEMOTE, TF64) -> aux_op2 stack "f32.demote_f64"
-    | CvtOp (TF64, CVT_CONVERT_S, TI32) -> aux_op2 stack "f64.convert_i32_s"
-    | CvtOp (TF64, CVT_CONVERT_U, TI32) -> aux_op2 stack "f64.convert_i32_u"
-    | CvtOp (TF64, CVT_CONVERT_S, TI64) -> aux_op2 stack "f64.convert_i64_s"
-    | CvtOp (TF64, CVT_CONVERT_U, TI64) -> aux_op2 stack "f64.convert_i64_u"
-    | CvtOp (TF64, CVT_PROMOTE, TF32) -> aux_op2 stack "f64.promote_f32"
-    | CvtOp (TI32, CVT_REINTERPRET, TF32) -> aux_op2 stack "i32.reinterpret_f32"
-    | CvtOp (TI64, CVT_REINTERPRET, TF64) -> aux_op2 stack "i64.reinterpret_f64"
-    | CvtOp (TF32, CVT_REINTERPRET, TI32) -> aux_op2 stack "f32.reinterpret_i32"
-    | CvtOp (TF64, CVT_REINTERPRET, TI64) -> aux_op2 stack "f64.reinterpret_i64"
+    | CvtOp (TI32, CVT_WRAP, TI64) -> aux_op1 stack "i32.wrap_i64"
+    | CvtOp (TI32, CVT_TRUNC_S, TF32) -> aux_op1 stack "i32.trunc_f32_s"
+    | CvtOp (TI32, CVT_TRUNC_U, TF32) -> aux_op1 stack "i32.trunc_f32_u"
+    | CvtOp (TI32, CVT_TRUNC_S, TF64) -> aux_op1 stack "i32.trunc_f64_s"
+    | CvtOp (TI32, CVT_TRUNC_U, TF64) -> aux_op1 stack "i32.trunc_f64_u"
+    | CvtOp (TI64, CVT_EXTEND_S, TI32) -> aux_op1 stack "i64.extend_i32_s"
+    | CvtOp (TI64, CVT_EXTEND_U, TI32) -> aux_op1 stack "i64.extend_i32_u"
+    | CvtOp (TI64, CVT_TRUNC_S, TF32) -> aux_op1 stack "i64.trunc_f32_s"
+    | CvtOp (TI64, CVT_TRUNC_U, TF32) -> aux_op1 stack "i64.trunc_f32_u"
+    | CvtOp (TI64, CVT_TRUNC_S, TF64) -> aux_op1 stack "i64.trunc_f64_s"
+    | CvtOp (TI64, CVT_TRUNC_U, TF64) -> aux_op1 stack "i64.trunc_f64_u"
+    | CvtOp (TF32, CVT_CONVERT_S, TI32) -> aux_op1 stack "f32.convert_i32_s"
+    | CvtOp (TF32, CVT_CONVERT_U, TI32) -> aux_op1 stack "f32.convert_i32_u"
+    | CvtOp (TF32, CVT_CONVERT_S, TI64) -> aux_op1 stack "f32.convert_i64_s"
+    | CvtOp (TF32, CVT_CONVERT_U, TI64) -> aux_op1 stack "f32.convert_i64_u"
+    | CvtOp (TF32, CVT_DEMOTE, TF64) -> aux_op1 stack "f32.demote_f64"
+    | CvtOp (TF64, CVT_CONVERT_S, TI32) -> aux_op1 stack "f64.convert_i32_s"
+    | CvtOp (TF64, CVT_CONVERT_U, TI32) -> aux_op1 stack "f64.convert_i32_u"
+    | CvtOp (TF64, CVT_CONVERT_S, TI64) -> aux_op1 stack "f64.convert_i64_s"
+    | CvtOp (TF64, CVT_CONVERT_U, TI64) -> aux_op1 stack "f64.convert_i64_u"
+    | CvtOp (TF64, CVT_PROMOTE, TF32) -> aux_op1 stack "f64.promote_f32"
+    | CvtOp (TI32, CVT_REINTERPRET, TF32) -> aux_op1 stack "i32.reinterpret_f32"
+    | CvtOp (TI64, CVT_REINTERPRET, TF64) -> aux_op1 stack "i64.reinterpret_f64"
+    | CvtOp (TF32, CVT_REINTERPRET, TI32) -> aux_op1 stack "f32.reinterpret_i32"
+    | CvtOp (TF64, CVT_REINTERPRET, TI64) -> aux_op1 stack "f64.reinterpret_i64"
     | _ -> failwith "never"
 
   and parametric stack = function
@@ -273,12 +273,12 @@ module Instruction = struct
     | Load8U (TI32, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m) :: stack
     | Load16S (TI32, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m) :: stack
     | Load16U (TI32, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m) :: stack
-    | Load8S (TI64, m) -> sprintf "(i32.load8_s %s)" (memarg 1 m) :: stack
-    | Load8U (TI64, m) -> sprintf "(i32.load8_u %s)" (memarg 1 m) :: stack
-    | Load16S (TI64, m) -> sprintf "(i32.load16_s %s)" (memarg 2 m) :: stack
-    | Load16U (TI64, m) -> sprintf "(i32.load16_u %s)" (memarg 2 m) :: stack
-    | Load32S (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m) :: stack
-    | Load32U (TI64, m) -> sprintf "(i32.load32_s %s)" (memarg 4 m) :: stack
+    | Load8S (TI64, m) -> sprintf "(i64.load8_s %s)" (memarg 1 m) :: stack
+    | Load8U (TI64, m) -> sprintf "(i64.load8_u %s)" (memarg 1 m) :: stack
+    | Load16S (TI64, m) -> sprintf "(i64.load16_s %s)" (memarg 2 m) :: stack
+    | Load16U (TI64, m) -> sprintf "(i64.load16_u %s)" (memarg 2 m) :: stack
+    | Load32S (TI64, m) -> sprintf "(i64.load32_s %s)" (memarg 4 m) :: stack
+    | Load32U (TI64, m) -> sprintf "(i64.load32_u %s)" (memarg 4 m) :: stack
     | Store (TI32, m) -> sprintf "(i32.store %s)" (memarg 4 m) :: stack
     | Store (TI64, m) -> sprintf "(i64.store %s)" (memarg 8 m) :: stack
     | Store (TF32, m) -> sprintf "(f32.store %s)" (memarg 4 m) :: stack

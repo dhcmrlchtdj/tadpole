@@ -62,7 +62,7 @@ module UnOp = struct
     done;
     Int32.of_int !cnt
 
-  let popcont i =
+  let popcnt i =
     let j = ref i in
     let cnt = ref 0 in
     for _ = 1 to 32 do

@@ -280,7 +280,7 @@ module Instruction = struct
     match t with
     | '\x1a' -> Ok (Iparametric Drop, s)
     | '\x1b' -> Ok (Iparametric Select, s)
-    | _ -> Error "invalid parameteric instr"
+    | _ -> Error "invalid parametric instr"
 
   and ivariable (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
@@ -388,7 +388,7 @@ module Instruction = struct
     (* i32 *)
     | '\x67' -> Ok (Inumeric (UnOp (TI32, I_CLZ)), s)
     | '\x68' -> Ok (Inumeric (UnOp (TI32, I_CTZ)), s)
-    | '\x69' -> Ok (Inumeric (UnOp (TI32, I_POPCONT)), s)
+    | '\x69' -> Ok (Inumeric (UnOp (TI32, I_POPCNT)), s)
     | '\x6a' -> Ok (Inumeric (BinOp (TI32, I_ADD)), s)
     | '\x6b' -> Ok (Inumeric (BinOp (TI32, I_SUB)), s)
     | '\x6c' -> Ok (Inumeric (BinOp (TI32, I_MUL)), s)
@@ -407,7 +407,7 @@ module Instruction = struct
     (* i64 *)
     | '\x79' -> Ok (Inumeric (UnOp (TI64, I_CLZ)), s)
     | '\x7a' -> Ok (Inumeric (UnOp (TI64, I_CTZ)), s)
-    | '\x7b' -> Ok (Inumeric (UnOp (TI64, I_POPCONT)), s)
+    | '\x7b' -> Ok (Inumeric (UnOp (TI64, I_POPCNT)), s)
     | '\x7c' -> Ok (Inumeric (BinOp (TI64, I_ADD)), s)
     | '\x7d' -> Ok (Inumeric (BinOp (TI64, I_SUB)), s)
     | '\x7e' -> Ok (Inumeric (BinOp (TI64, I_MUL)), s)

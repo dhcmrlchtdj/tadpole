@@ -4,7 +4,7 @@
     (type (func))
     (import "foo" "bar" (func (type 1)))
     (func (type 2))
-    (func (type 1) ((i32.const 42) (drop)))
+    (func (type 1) (i32.const 42) (drop))
     (table 0 1 funcref)
     (memory 1 1)
     (export "e" (func 1))
