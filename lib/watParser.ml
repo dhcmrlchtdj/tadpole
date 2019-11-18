@@ -34,7 +34,10 @@ module Value = struct
 
   let byte (x : string) : bytes = Bytes.of_string x
 
-  let idx (_tm : tm) (_d : D.t) : u32 or_err = failwith "TODO"
+  let idx (_tm : tm) (d : D.t) : u32 or_err =
+    match d with
+    | D.NUM s -> u32 s
+    | _ -> failwith "unsupported idx"
 end
 
 module Type = struct
@@ -125,7 +128,7 @@ module Type = struct
 end
 
 module Instruction = struct
-  let expr _ : expr or_err = failwith "TODO"
+  let expr _ : expr or_err = failwith "TODO expr"
 end
 
 module Module = struct
@@ -216,10 +219,33 @@ module Module = struct
       Ok tm
     | _ -> Error "importsec | invalid"
 
-  and parse_funcsec (_tm : tm) (ds : D.t list) : tm or_err =
+  and parse_funcsec (tm : tm) (ds : D.t list) : tm or_err =
+    let aux_parse_type ds =
+      match ds with
+      | (D.LIST (D.KEYWORD "type" :: _) as h) :: t ->
+        let* typei = aux_parse_typeuse tm [ h ] in
+        Ok (typei, t)
+      | _ -> Error "unsupported func type"
+    in
+    let aux_parse_local ds =
+      let rec aux acc = function
+        | D.LIST [ D.KEYWORD "local"; D.ID _; D.KEYWORD v ] :: t ->
+          let* v = Type.valtype v in
+          aux (v :: acc) t
+        | D.LIST [ D.KEYWORD "local"; D.KEYWORD v ] :: t ->
+          let* v = Type.valtype v in
+          aux (v :: acc) t
+        | ds -> Ok (List.rev acc, ds)
+      in
+      aux [] ds
+    in
     let (_id, ds) = aux_match_id ds in
-    match ds with
-    | _ -> failwith "TODO"
+    let* (typei, ds) = aux_parse_type ds in
+    let* (locals, ds) = aux_parse_local ds in
+    let* body = Instruction.expr ds in
+    let f = { typei; locals; body } in
+    let () = Vector.push tm.funcs f in
+    Ok tm
 
   and parse_tablesec (tm : tm) (ds : D.t list) : tm or_err =
     let (id, ds) = aux_match_id ds in
