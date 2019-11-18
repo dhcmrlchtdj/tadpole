@@ -1,13 +1,13 @@
 (library
-        (public_name tadpole)
-        (name tadpole)
-        (libraries containers)
-        (preprocess
-                (pps ppx_deriving.std))
-        (flags
-                (:standard -warn-error -a -w -30)))
+ (public_name tadpole)
+ (name tadpole)
+ (libraries containers)
+ (preprocess
+  (pps ppx_deriving.std))
+ (flags
+  (:standard -warn-error -a -w -30)))
 
-    (alias
-            (name default)
-            (deps
-                    (alias_rec all)))
+(alias
+ (name default)
+ (deps
+  (alias_rec all)))
