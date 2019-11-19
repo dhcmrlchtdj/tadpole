@@ -17,9 +17,14 @@ fmt:
 doc:
 	dune build @doc
 
+release:
+	dune build --profile=release @default
+
 install:
-	dune build @install
-	dune install
+	opam install .
+
+uninstall:
+	opam remove .
 
 .PHONY: run build test clean fmt doc
-.PHONY: install
+.PHONY: release install uninstall

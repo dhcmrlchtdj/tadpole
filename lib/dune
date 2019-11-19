@@ -9,5 +9,4 @@
 
 (alias
  (name default)
- (deps
-  (alias_rec all)))
+ (deps tadpole.cmxs))

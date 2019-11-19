@@ -3,7 +3,7 @@
 ## usage
 
 ```
-$ make build
+$ make install
 
 $ wasm -wasm /path/to/wasm # wasm2wasm (strip custom sections)
 $ wasm -wat /path/to/wasm # wasm2wat
