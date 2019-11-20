@@ -628,7 +628,7 @@ module Instruction = struct
       | l :: ls ->
         let ls = ls |> List.rev |> Array.of_list in
         Ok [ Icontrol (BrTable (ls, l)) ]
-      | [] -> Error ""
+      | [] -> Error "br_table | invalid"
     )
     | [ D.KEYWORD "return" ] -> Ok [ Icontrol Return ]
     | [ D.KEYWORD "call"; x ] ->

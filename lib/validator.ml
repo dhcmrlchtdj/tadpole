@@ -48,135 +48,114 @@ module Type = struct
 end
 
 module Instruction = struct
-  let aux_is_const (ctx : context) (i : instr) =
-    match i with
-    | Inumeric (Const _) -> true
-    | Ivariable (GlobalGet i) -> (
-      let g = aux_idx ctx.globals i in
-      match g with
-      | Ok (CONST, _) -> true
-      | _ -> false
-    )
-    | _ -> false
-
-  let rec expr (ctx : context) (rt : resulttype) (ins : instr list) =
-    let rts = instrs ctx [ [] ] ins in
-    let err = Error "expr | returntype doesnot match" in
-    let f _ rt_actual =
-      if Types.equal_resulttype rt rt_actual
-      then (pass, `Stop)
-      else (err, `Continue)
-    in
-    List.fold_while f err rts
-
-  and instrs (ctx : context) (stacks : valtype list list) (ins : instr list)
-      : resulttype list
+  let rec instrs
+      (ctx : context)
+      (ins : instr list)
+      (l : valtype list)
+      (r : valtype list)
     =
-    let mapf (stack : valtype list) =
-      match ins with
-      | [] -> [ stack ]
-      | h :: t -> (
-        let stacks = instr ctx stack h in
-        match stacks with
-        | Error _ -> []
-        | Ok stacks -> instrs ctx stacks t
-      )
-    in
-    List.flat_map mapf stacks
+    match ins with
+    | [] ->
+      if Types.equal_resulttype l r
+      then pass
+      else Error "instrs | does not match"
+    | Inumeric i :: t -> numeric ctx t l r i
+    | Iparametric i :: t -> parametric ctx t l r i
+    | Ivariable i :: t -> variable ctx t l r i
+    | Imemory i :: t -> memory ctx t l r i
+    | Icontrol i :: t -> control ctx t l r i
+    | Iadmin _ :: _ -> Error "instr | never Iadmin"
 
-  and instr ctx stack : instr -> resulttype list or_err = function
-    | Inumeric i -> numeric ctx stack i
-    | Iparametric i -> parametric ctx stack i
-    | Ivariable i -> variable ctx stack i
-    | Imemory i -> memory ctx stack i
-    | Icontrol i -> control ctx stack i
-    | Iadmin _ -> Error "instr | never Iadmin"
-
-  and numeric _ctx stack = function
-    | Const (I32 _) -> Ok [ TI32 :: stack ]
-    | Const (I64 _) -> Ok [ TI64 :: stack ]
-    | Const (F32 _) -> Ok [ TF32 :: stack ]
-    | Const (F64 _) -> Ok [ TF64 :: stack ]
+  and numeric ctx ins l r = function
+    | Const (I32 _) -> instrs ctx ins (TI32 :: l) r
+    | Const (I64 _) -> instrs ctx ins (TI64 :: l) r
+    | Const (F32 _) -> instrs ctx ins (TF32 :: l) r
+    | Const (F64 _) -> instrs ctx ins (TF64 :: l) r
     | UnOp (t, _) -> (
-      match stack with
-      | h :: _ when Types.equal_valtype h t -> Ok [ stack ]
+      match l with
+      | h :: _ when Types.equal_valtype h t -> instrs ctx ins l r
       | _ -> Error "UnOp | invalid"
     )
     | BinOp (t, _) -> (
-      match stack with
+      match l with
       | h2 :: h1 :: tt when Types.equal_valtype h1 t && Types.equal_valtype h2 t
-        -> Ok [ t :: tt ]
+        -> instrs ctx ins (t :: tt) r
       | _ -> Error "BinOp | invalid"
     )
     | TestOp (t, _) -> (
-      match stack with
-      | h :: tt when Types.equal_valtype h t -> Ok [ TI32 :: tt ]
+      match l with
+      | h :: tt when Types.equal_valtype h t -> instrs ctx ins (TI32 :: tt) r
       | _ -> Error "TestOp | invalid"
     )
     | RelOp (t, _) -> (
-      match stack with
+      match l with
       | h2 :: h1 :: tt when Types.equal_valtype h1 t && Types.equal_valtype h2 t
-        -> Ok [ TI32 :: tt ]
+        -> instrs ctx ins (TI32 :: tt) r
       | _ -> Error "RelOp | invalid"
     )
     | CvtOp (t2, _, t1) -> (
-      match stack with
-      | h :: tt when Types.equal_valtype h t1 -> Ok [ t2 :: tt ]
+      match l with
+      | h :: tt when Types.equal_valtype h t1 -> instrs ctx ins (t2 :: tt) r
       | _ -> Error "CvtOp | invalid"
     )
 
-  and parametric _ctx stack = function
+  and parametric ctx ins l r = function
     | Drop -> (
-      match stack with
-      | _ :: t -> Ok [ t ]
+      match l with
+      | _ :: t -> instrs ctx ins t r
       | [] -> Error "Drop | invalid"
     )
     | Select -> (
-      match stack with
-      | TI32 :: t2 :: t1 :: t -> Ok [ t2 :: t; t1 :: t ]
+      match l with
+      | TI32 :: t2 :: t1 :: t ->
+        let foldf _ curr =
+          let res = instrs ctx ins curr r in
+          match res with
+          | Ok _ -> (res, `Stop)
+          | Error _ -> (res, `Continue)
+        in
+        List.fold_while foldf (Error "Select | invalid") [ t1 :: t; t2 :: t ]
       | _ -> Error "Select | invalid"
     )
 
-  and variable ctx stack = function
-    | LocalGet x ->
-      let* x = aux_idx ctx.locals x in
-      Ok [ x :: stack ]
-    | LocalSet x -> (
-      let* x = aux_idx ctx.locals x in
-      match stack with
-      | h :: t when Types.equal_valtype x h -> Ok [ t ]
+  and variable ctx ins l r = function
+    | LocalGet i ->
+      let* x = aux_idx ctx.locals i in
+      instrs ctx ins (x :: l) r
+    | LocalSet i -> (
+      let* x = aux_idx ctx.locals i in
+      match l with
+      | h :: t when Types.equal_valtype x h -> instrs ctx ins t r
       | _ -> Error "LocalSet | invalid"
     )
-    | LocalTee x -> (
-      let* x = aux_idx ctx.locals x in
-      match stack with
-      | h :: _ when Types.equal_valtype x h -> Ok [ stack ]
+    | LocalTee i -> (
+      let* x = aux_idx ctx.locals i in
+      match l with
+      | h :: _ when Types.equal_valtype x h -> instrs ctx ins l r
       | _ -> Error "LocalSet | invalid"
     )
-    | GlobalGet x ->
-      let* x = aux_idx ctx.globals x in
-      let (_, x) = x in
-      Ok [ x :: stack ]
-    | GlobalSet x -> (
-      let* x = aux_idx ctx.globals x in
-      let* x =
-        match x with
-        | (VAR, x) -> Ok x
-        | (CONST, _) -> Error "GlobalSet | invalid | const"
-      in
-      match stack with
-      | h :: t when Types.equal_valtype x h -> Ok [ t ]
-      | _ -> Error "GlobalSet | invalid"
+    | GlobalGet i ->
+      let* (_, x) = aux_idx ctx.globals i in
+      instrs ctx ins (x :: l) r
+    | GlobalSet i -> (
+      let* x = aux_idx ctx.globals i in
+      match x with
+      | (CONST, _) -> Error "GlobalSet | invalid | const"
+      | (VAR, x) -> (
+        match l with
+        | h :: t when Types.equal_valtype x h -> instrs ctx ins t r
+        | _ -> Error "GlobalSet | invalid"
+      )
     )
 
-  and memory ctx stack =
+  and memory ctx ins l r =
     let aux_load max_align t memarg =
       let* _ = aux_idx ctx.mems 0 in
       if memarg.align > max_align
       then Error "Load | invalid | align"
       else (
-        match stack with
-        | TI32 :: tt -> Ok [ t :: tt ]
+        match l with
+        | TI32 :: tt -> instrs ctx ins (t :: tt) r
         | _ -> Error "Load | invalid"
       )
     and aux_store max_align memarg =
@@ -184,8 +163,8 @@ module Instruction = struct
       if memarg.align > max_align
       then Error "Store | invalid | align"
       else (
-        match stack with
-        | _ :: TI32 :: tt -> Ok [ tt ]
+        match l with
+        | _ :: TI32 :: tt -> instrs ctx ins tt r
         | _ -> Error "Store | invalid"
       )
     in
@@ -206,49 +185,58 @@ module Instruction = struct
       | Store (TF64, memarg) -> aux_store 3 memarg
       | MemorySize ->
         let* _ = aux_idx ctx.mems 0 in
-        Ok [ TI32 :: stack ]
+        instrs ctx ins (TI32 :: l) r
       | MemoryGrow -> (
         let* _ = aux_idx ctx.mems 0 in
-        match stack with
-        | TI32 :: _ -> Ok [ stack ]
-        | _ -> Error ""
+        match l with
+        | TI32 :: _ -> instrs ctx ins l r
+        | _ -> Error "MemorrGrow"
       )
 
-  and control ctx stack = function
-    | Nop -> Ok [ stack ]
+  and control ctx ins l r = function
+    | Nop -> instrs ctx ins l r
     | Unreachable -> Error "Unreachable"
     | Block (rt, ins) ->
       let labels = Array.concat [ [| rt |]; ctx.labels ] in
       let newctx = { ctx with labels } in
-      let* () = expr newctx rt ins in
-      Ok [ rt @ stack ]
+      let* () = instrs newctx ins [] rt in
+      instrs ctx ins (List.rev rt @ l) r
     | Loop (rt, ins) ->
       let labels = Array.concat [ [| rt |]; ctx.labels ] in
       let newctx = { ctx with labels } in
-      let* () = expr newctx rt ins in
-      Ok [ rt @ stack ]
+      let* () = instrs newctx ins [] rt in
+      instrs ctx ins (List.rev rt @ l) r
     | If (rt, ins1, ins2) -> (
       let labels = Array.concat [ [| rt |]; ctx.labels ] in
       let newctx = { ctx with labels } in
-      let* () = expr newctx rt ins1 in
-      let* () = expr newctx rt ins2 in
-      match stack with
-      | TI32 :: t -> Ok [ rt @ t ]
+      let* () = instrs newctx ins1 [] rt in
+      let* () = instrs newctx ins2 [] rt in
+      match l with
+      | TI32 :: t -> instrs newctx ins1 (List.rev rt @ t) r
       | _ -> Error "If"
     )
-    | Br l ->
-      let* _rt = aux_idx ctx.labels l in
-      failwith "TODO: stack polymorphic"
-    | BrIf l ->
-      let* rt = aux_idx ctx.labels l in
+    | Br label ->
+      let* rt = aux_idx ctx.labels label in
       let rec aux = function
-        | ([], TI32 :: t) -> Ok [ t ]
+        | ([], _) -> pass
         | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
-        | _ -> Error "BrIf"
+        | _ -> Error "Br"
       in
-      aux (List.rev rt, stack)
-    | BrTable (ls, l) ->
-      let* rt = aux_idx ctx.labels l in
+      aux (List.rev rt, l)
+    | BrIf label -> (
+      let* rt = aux_idx ctx.labels label in
+      match l with
+      | TI32 :: t ->
+        let rec aux = function
+          | ([], bt) -> instrs ctx ins (List.rev rt @ bt) r
+          | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
+          | _ -> Error "Br"
+        in
+        aux (List.rev rt, t)
+      | _ -> Error "BrIf"
+    )
+    | BrTable (ls, label) -> (
+      let* rt = aux_idx ctx.labels label in
       let* _lss =
         let mapf x =
           let* xrt = aux_idx ctx.labels x in
@@ -258,29 +246,61 @@ module Instruction = struct
         in
         ls |> Array.to_list |> List.map mapf |> Result.flatten_l
       in
-      failwith "TODO: stack polymorphic"
+      match l with
+      | TI32 :: t ->
+        let rec aux = function
+          | ([], _) -> pass
+          | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
+          | _ -> Error "Br"
+        in
+        aux (List.rev rt, t)
+      | _ -> Error ""
+    )
     | Return ->
-      let* _t = Result.of_opt ctx.return in
-      failwith "TODO: stack polymorphic"
-    | Call x ->
-      let* (p, r) = aux_idx ctx.funcs x in
+      let* rt = Result.of_opt ctx.return in
       let rec aux = function
-        | ([], t) -> Ok [ r @ t ]
+        | ([], _) -> pass
+        | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
+        | _ -> Error "Return"
+      in
+      aux (List.rev rt, l)
+    | Call x ->
+      let* (p, rt) = aux_idx ctx.funcs x in
+      let rec aux = function
+        | ([], bt) -> instrs ctx ins (List.rev rt @ bt) r
         | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
         | _ -> Error "Call"
       in
-      aux (List.rev p, stack)
-    | CallIndirect x ->
+      aux (List.rev p, l)
+    | CallIndirect x -> (
       let* _ = aux_idx ctx.tables 0 in
-      let* (p, r) = aux_idx ctx.types x in
-      let rec aux = function
-        | ([], TI32 :: t) -> Ok [ r @ t ]
-        | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
-        | _ -> Error "CallIndirect"
-      in
-      aux (p, stack)
+      let* (p, rt) = aux_idx ctx.types x in
+      match l with
+      | TI32 :: t ->
+        let rec aux = function
+          | ([], bt) -> instrs ctx ins (List.rev rt @ bt) r
+          | (a :: at, b :: bt) when Types.equal_valtype a b -> aux (at, bt)
+          | _ -> Error "Br"
+        in
+        aux (List.rev p, t)
+      | _ -> Error "CallIndirect"
+    )
+
+  let expr (ctx : context) (rt : resulttype) (ins : instr list) : pass_or_err =
+    instrs ctx ins [] rt
 
   let expr_const (ctx : context) (rt : resulttype) (ins : instr list) =
+    let aux_is_const (ctx : context) (i : instr) =
+      match i with
+      | Inumeric (Const _) -> true
+      | Ivariable (GlobalGet i) -> (
+        let g = aux_idx ctx.globals i in
+        match g with
+        | Ok (CONST, _) -> true
+        | _ -> false
+      )
+      | _ -> false
+    in
     let all_const = List.for_all (aux_is_const ctx) ins in
     if all_const then expr ctx rt ins else Error "expr_const"
 end
