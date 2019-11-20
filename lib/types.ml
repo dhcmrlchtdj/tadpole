@@ -1,5 +1,7 @@
 open! Containers
 
+(* ******** *)
+
 type u32 = int [@@deriving show]
 
 (* ******** *)
@@ -48,7 +50,7 @@ type valtype =
   | TF64
 [@@deriving show, eq]
 
-type resulttype = valtype list [@@deriving show]
+type resulttype = valtype list [@@deriving show, eq]
 
 type functype = valtype list * valtype list [@@deriving show]
 
@@ -78,6 +80,26 @@ type externtype =
   | ET_global of globaltype
 [@@deriving show]
 
+let extern_funcs =
+  Array.filter_map (function
+    | ET_func i -> Some i
+    | _ -> None)
+
+let extern_tables =
+  Array.filter_map (function
+    | ET_table i -> Some i
+    | _ -> None)
+
+let extern_mems =
+  Array.filter_map (function
+    | ET_mem i -> Some i
+    | _ -> None)
+
+let extern_globals =
+  Array.filter_map (function
+    | ET_global i -> Some i
+    | _ -> None)
+
 (* ******** *)
 
 type table = { ttype: tabletype } [@@deriving show]
@@ -97,6 +119,36 @@ and exportdesc =
   | ED_global of globalidx
 [@@deriving show]
 
+let aux_export f = Array.filter_map (fun ({ desc; _ } : export) -> f desc)
+
+let export_funcs =
+  let f = function
+    | ED_func i -> Some i
+    | _ -> None
+  in
+  aux_export f
+
+let export_tables =
+  let f = function
+    | ED_table i -> Some i
+    | _ -> None
+  in
+  aux_export f
+
+let export_mems =
+  let f = function
+    | ED_mem i -> Some i
+    | _ -> None
+  in
+  aux_export f
+
+let export_globals =
+  let f = function
+    | ED_global i -> Some i
+    | _ -> None
+  in
+  aux_export f
+
 type import = {
   modname: string;
   name: string;
@@ -110,6 +162,36 @@ and importdesc =
   | ID_mem of memtype
   | ID_global of globaltype
 [@@deriving show]
+
+let aux_import f = Array.filter_map (fun ({ desc; _ } : import) -> f desc)
+
+let import_funcs =
+  let f = function
+    | ID_func i -> Some i
+    | _ -> None
+  in
+  aux_import f
+
+let import_tables =
+  let f = function
+    | ID_table i -> Some i
+    | _ -> None
+  in
+  aux_import f
+
+let import_mems =
+  let f = function
+    | ID_mem i -> Some i
+    | _ -> None
+  in
+  aux_import f
+
+let import_globals =
+  let f = function
+    | ID_global i -> Some i
+    | _ -> None
+  in
+  aux_import f
 
 (* ******** *)
 
@@ -207,6 +289,26 @@ and externval =
   | EV_mem of memaddr
   | EV_global of globaladdr
 [@@deriving show]
+
+let externval_funcs =
+  Array.filter_map (function
+    | EV_func i -> Some i
+    | _ -> None)
+
+let externval_tables =
+  Array.filter_map (function
+    | EV_table i -> Some i
+    | _ -> None)
+
+let externval_mems =
+  Array.filter_map (function
+    | EV_mem i -> Some i
+    | _ -> None)
+
+let externval_globals =
+  Array.filter_map (function
+    | EV_global i -> Some i
+    | _ -> None)
 
 type tableinst = {
   elem: funcaddr option array;
@@ -310,7 +412,7 @@ and numeric_instr =
   | BinOp of valtype * binop
   | TestOp of valtype * testop
   | RelOp of valtype * relop
-  (*i32.wrap_i64 -> t1.op_t2 *)
+  (*i32.wrap_i64 -> i32 * wrap * i64 *)
   | CvtOp of valtype * cvtop * valtype
 [@@deriving show]
 

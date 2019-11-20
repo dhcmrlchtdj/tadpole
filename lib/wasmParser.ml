@@ -172,24 +172,13 @@ module Type = struct
     match t with
     | '\x00' ->
       let* (min, s) = Value.u32 s in
-      if min < 0 || min > (* 4GiB *) 0x10000
-      then Error "limits | min size"
-      else (
-        let limits = { min; max = None } in
-        Ok (limits, s)
-      )
+      let limits = { min; max = None } in
+      Ok (limits, s)
     | '\x01' ->
       let* (min, s) = Value.u32 s in
       let* (max, s) = Value.u32 s in
-      if min < 0
-         || min > (* 4GiB *) 0x10000
-         || max < min
-         || max > (* 4GiB *) 0x10000
-      then Error "limits | size"
-      else (
-        let limits = { min; max = Some max } in
-        Ok (limits, s)
-      )
+      let limits = { min; max = Some max } in
+      Ok (limits, s)
     | _ -> Error "Type.limits"
 
   let memtype (s : S.t) : (memtype * S.t) or_err = limits s
@@ -225,7 +214,7 @@ module Instruction = struct
     let m = { align; offset } in
     Ok (m, s)
 
-  and icontrol (s : S.t) : (instr * S.t) or_err =
+  and control (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
     | '\x00' -> Ok (Icontrol Unreachable, s)
@@ -275,14 +264,14 @@ module Instruction = struct
       Ok (Icontrol (CallIndirect x), s)
     | _ -> Error "invalid control instr"
 
-  and iparametric (s : S.t) : (instr * S.t) or_err =
+  and parametric (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
     | '\x1a' -> Ok (Iparametric Drop, s)
     | '\x1b' -> Ok (Iparametric Select, s)
     | _ -> Error "invalid parametric instr"
 
-  and ivariable (s : S.t) : (instr * S.t) or_err =
+  and variable (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     let* (idx, s) = Value.idx s in
     match t with
@@ -293,7 +282,7 @@ module Instruction = struct
     | '\x24' -> Ok (Ivariable (GlobalSet idx), s)
     | _ -> Error "invalid variable instr"
 
-  and imemory (s : S.t) : (instr * S.t) or_err =
+  and memory (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
     | '\x3f' ->
@@ -332,7 +321,7 @@ module Instruction = struct
     )
     | _ -> Error "invalid memory instr"
 
-  and inumric (s : S.t) : (instr * S.t) or_err =
+  and numric (s : S.t) : (instr * S.t) or_err =
     let* (t, s) = S.take_char s in
     match t with
     | '\x41' ->
@@ -488,11 +477,11 @@ module Instruction = struct
     | None -> Ok (None, s)
     | Some t -> (
       match t with
-      | '\x00' .. '\x04' | '\x0c' .. '\x11' -> icontrol s |> wrap
-      | '\x1a' .. '\x1b' -> iparametric s |> wrap
-      | '\x20' .. '\x24' -> ivariable s |> wrap
-      | '\x28' .. '\x40' -> imemory s |> wrap
-      | '\x41' .. '\xbf' -> inumric s |> wrap
+      | '\x00' .. '\x04' | '\x0c' .. '\x11' -> control s |> wrap
+      | '\x1a' .. '\x1b' -> parametric s |> wrap
+      | '\x20' .. '\x24' -> variable s |> wrap
+      | '\x28' .. '\x40' -> memory s |> wrap
+      | '\x41' .. '\xbf' -> numric s |> wrap
       | _ -> Ok (None, s)
     )
 
@@ -714,8 +703,6 @@ module Module = struct
       }
     in
     Ok m
-
-  let parse = parse_module
 end
 
-let parse s = Module.parse (S.of_string s)
+let parse s = Module.parse_module (S.of_string s)

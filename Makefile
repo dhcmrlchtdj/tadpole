@@ -3,7 +3,7 @@ SHELL := /bin/bash
 run: build
 
 build:
-	dune build @default
+	dune build @default --profile=dev
 
 test:
 	dune runtest
@@ -18,7 +18,7 @@ doc:
 	dune build @doc
 
 release:
-	dune build --profile=release @default
+	dune build @default --profile=release
 
 install:
 	opam install .

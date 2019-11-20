@@ -97,7 +97,7 @@ module Type = struct
 
   let limits (n : string) (m : string option) : limits or_err =
     let* min = Value.u32 n in
-    if min < 0 || min > (* 4GiB *) 0x10000
+    if min < 0 || min > (* 4GiB *) 0x1_0000
     then Error "limits | min size"
     else
       let* max =
@@ -105,7 +105,7 @@ module Type = struct
         | None -> Ok None
         | Some m ->
           let* m = Value.u32 m in
-          if m < min || m > (* 4GiB *) 0x10000
+          if m < min || m > (* 4GiB *) 0x1_0000
           then Error "limits | max size"
           else Ok (Some m)
       in
@@ -284,12 +284,12 @@ module Instruction = struct
       | "i32.reinterpret_f32"
       | "i64.reinterpret_f64"
       | "f32.reinterpret_i32"
-      | "f64.reinterpret_i64" -> inumric tm ds
+      | "f64.reinterpret_i64" -> numric tm ds
       (* parametric *)
-      | "drop" | "select" -> iparametric ds
+      | "drop" | "select" -> parametric ds
       (* variable *)
       | "local.get" | "local.set" | "local.tee" | "global.get" | "global.set" ->
-        ivariable tm ds
+        variable tm ds
       (* memory *)
       | "i32.load"
       | "i64.load"
@@ -315,7 +315,7 @@ module Instruction = struct
       | "i64.store16"
       | "i64.store32"
       | "memory.size"
-      | "memory.grow" -> imemory ds
+      | "memory.grow" -> memory ds
       (* control *)
       | "unreachable"
       | "nop"
@@ -327,12 +327,12 @@ module Instruction = struct
       | "br_table"
       | "return"
       | "call"
-      | "call_indirect" -> icontrol tm ds
+      | "call_indirect" -> control tm ds
       | _ -> Error "invalid op"
     )
     | _ -> Error "unsupported instr"
 
-  and inumric tm (ds : D.t list) : instr list or_err =
+  and numric tm (ds : D.t list) : instr list or_err =
     match ds with
     | [ D.KEYWORD "i32.const"; D.NUM n ] ->
       let* n = Value.i32 n in
@@ -502,13 +502,13 @@ module Instruction = struct
       Ok (List.flatten ins)
     | _ -> Error "numeric | invalid"
 
-  and iparametric (ds : D.t list) : instr list or_err =
+  and parametric (ds : D.t list) : instr list or_err =
     match ds with
     | [ D.KEYWORD "drop" ] -> Ok [ Iparametric Drop ]
     | [ D.KEYWORD "select" ] -> Ok [ Iparametric Select ]
     | _ -> Error "parametric | invalid"
 
-  and ivariable tm (ds : D.t list) : instr list or_err =
+  and variable tm (ds : D.t list) : instr list or_err =
     match ds with
     | [ D.KEYWORD op; a ] ->
       let* i = Value.idx tm a in
@@ -524,7 +524,7 @@ module Instruction = struct
       Ok [ ins ]
     | _ -> Error "variable | invalid"
 
-  and imemory (ds : D.t list) : instr list or_err =
+  and memory (ds : D.t list) : instr list or_err =
     match ds with
     | [ D.KEYWORD "memory.size" ] -> Ok [ Imemory MemorySize ]
     | [ D.KEYWORD "memory.grow" ] -> Ok [ Imemory MemoryGrow ]
@@ -585,7 +585,7 @@ module Instruction = struct
       Ok [ Imemory op ]
     | _ -> Error "memory | invalid"
 
-  and icontrol tm (ds : D.t list) : instr list or_err =
+  and control tm (ds : D.t list) : instr list or_err =
     match ds with
     | D.KEYWORD "block" :: rt :: ins ->
       let* rt = Type.resulttype rt in
@@ -940,8 +940,6 @@ module Module = struct
       in
       Ok m
     | _ -> Error "parse_module"
-
-  let parse = parse_module
 end
 
 let parse (src : string) : Types.moduledef or_err =
@@ -949,4 +947,4 @@ let parse (src : string) : Types.moduledef or_err =
   let* datum = D.of_tokens tokens in
   (* let () = prerr_endline (D.show datum) in *)
   (* let () = prerr_newline () in *)
-  Module.parse datum
+  Module.parse_module datum
