@@ -2,23 +2,25 @@ opam-version: "2.0"
 
 version: "1.0"
 name: "tadpole"
-synopsis: "A WASM/WAT (MVP) evaluator"
+synopsis: "WASM/WAT toolkit"
+license: "MIT"
 homepage: "https://github.com/dhcmrlchtdj/tadpole"
 bug-reports: "https://github.com/dhcmrlchtdj/tadpole/issues"
-license: "UNLICENSE"
-
+dev-repo: "git+https://github.com/dhcmrlchtdj/tadpole"
 authors: "h11 <nirisix@gmail.com>"
 maintainer: "h11 <nirisix@gmail.com>"
-dev-repo: "git+https://github.com/dhcmrlchtdj/tadpole"
 
 depends: [
     "containers"
-    "ppx_deriving"
+    "js_of_ocaml" {build}
+    "js_of_ocaml-compiler" {build}
+    "js_of_ocaml-ppx" {build}
+    "ppx_deriving" {build}
     "dune" {build}
     "alcotest" {dev}
     "ocamlformat" {dev}
 ]
 
 build: [
-    ["dune" "build" "@install" "-p" name]
+    ["dune" "build" "@install" "-p" name "-j" jobs]
 ]
