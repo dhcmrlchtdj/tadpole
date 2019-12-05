@@ -1,4 +1,5 @@
 (executable
+ (modes js)
  (name jsoo)
  (js_of_ocaml
   (flags --opt=3 --no-source-map))

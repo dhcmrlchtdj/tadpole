@@ -1,10 +1,5 @@
-(executable
+(test
  (name test)
  (libraries containers tadpole)
  (flags
   (:standard -warn-error -a)))
-
-(alias
- (name runtest)
- (action
-  (run ./test.exe)))
