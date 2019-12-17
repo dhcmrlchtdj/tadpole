@@ -1,4 +1,4 @@
-SHELL := /bin/bash
+SHELL := bash
 
 build:
 	dune build @install --profile=dev

@@ -2,7 +2,7 @@ open! Containers
 open Types
 module D = WatDatum
 
-let ( let* ) = Result.( >>= )
+let ( let* ) = Result.( let* )
 
 type 'a or_err = ('a, string) result
 

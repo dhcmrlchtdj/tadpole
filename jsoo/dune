@@ -1,6 +1,7 @@
 (executable
  (modes js)
  (name jsoo)
+ (promote (until-clean) (into ../_build) (only *.bc.js))
  (js_of_ocaml
   (flags --opt=3 --no-source-map))
  (libraries js_of_ocaml containers tadpole)
@@ -10,5 +11,5 @@
   (:standard -warn-error -a)))
 
 (alias
- (name default)
+ (name install)
  (deps jsoo.bc.js))

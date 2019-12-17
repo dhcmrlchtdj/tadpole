@@ -2,7 +2,7 @@
 
 (name tadpole)
 
-(version 1.0.1)
+(version 1.0.2)
 (authors "H11 <nirisix@gmail.com>")
 (maintainers "H11 <nirisix@gmail.com>")
 (source
@@ -13,7 +13,7 @@
  (name tadpole)
  (synopsis "WASM/WAT toolkit")
  (depends
-  (containers           (and (>= 2.7)))
+  (containers           (and (>= 2.8)))
   (ppx_deriving         (and :build (>= 4.4)))
   (dune                 (and :build (>= 2.0.0)))
   (js_of_ocaml          (and :dev (>= 3.5.1)))

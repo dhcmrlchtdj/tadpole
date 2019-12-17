@@ -1,7 +1,7 @@
 open! Containers
 open WatToken
 
-let ( let* ) = Result.( >>= )
+let ( let* ) = Result.( let* )
 
 type 'a or_err = ('a, string) result
 

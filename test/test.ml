@@ -1,7 +1,7 @@
 open! Containers
 open Tadpole
 
-let ( let* ) = Result.( >>= )
+let ( let* ) = Result.( let* )
 
 let _ =
   let wasm =

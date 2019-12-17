@@ -6,7 +6,3 @@
   (pps ppx_deriving.std))
  (flags
   (:standard -warn-error -a -w -30)))
-
-(alias
- (name default)
- (deps tadpole.cmxs))
