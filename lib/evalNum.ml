@@ -68,8 +68,7 @@ let binop = function
   | (TF32, F_DIV, F32 x, F32 y) -> Some (F32 (Nfloat32.BinOp.div x y))
   | (TF32, F_MIN, F32 x, F32 y) -> Some (F32 (Nfloat32.BinOp.min x y))
   | (TF32, F_MAX, F32 x, F32 y) -> Some (F32 (Nfloat32.BinOp.max x y))
-  | (TF32, F_COPYSIGN, F32 x, F32 y) ->
-    Some (F32 (Nfloat32.BinOp.copy_sign x y))
+  | (TF32, F_COPYSIGN, F32 x, F32 y) -> Some (F32 (Nfloat32.BinOp.copy_sign x y))
   (* TF64 *)
   | (TF64, F_ADD, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.add x y))
   | (TF64, F_SUB, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.sub x y))
@@ -77,8 +76,7 @@ let binop = function
   | (TF64, F_DIV, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.div x y))
   | (TF64, F_MIN, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.min x y))
   | (TF64, F_MAX, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.max x y))
-  | (TF64, F_COPYSIGN, F64 x, F64 y) ->
-    Some (F64 (Nfloat64.BinOp.copy_sign x y))
+  | (TF64, F_COPYSIGN, F64 x, F64 y) -> Some (F64 (Nfloat64.BinOp.copy_sign x y))
   | _ -> None
 
 let testop = function
@@ -135,10 +133,8 @@ let cvtop = function
   | (TI32, CVT_REINTERPRET, TF32, F32 x) ->
     Some (I32 (Nint32.CvtOp.reinterpret_f32 x))
   (* TI64 *)
-  | (TI64, CVT_EXTEND_S, TI32, I32 x) ->
-    Some (I64 (Nint64.CvtOp.extend_s_i32 x))
-  | (TI64, CVT_EXTEND_U, TI32, I32 x) ->
-    Some (I64 (Nint64.CvtOp.extend_u_i32 x))
+  | (TI64, CVT_EXTEND_S, TI32, I32 x) -> Some (I64 (Nint64.CvtOp.extend_s_i32 x))
+  | (TI64, CVT_EXTEND_U, TI32, I32 x) -> Some (I64 (Nint64.CvtOp.extend_u_i32 x))
   | (TI64, CVT_TRUNC_S, TF32, F32 x) -> Some (I64 (Nint64.CvtOp.trunc_s_f32 x))
   | (TI64, CVT_TRUNC_S, TF64, F64 x) -> Some (I64 (Nint64.CvtOp.trunc_s_f64 x))
   | (TI64, CVT_TRUNC_U, TF32, F32 x) -> Some (I64 (Nint64.CvtOp.trunc_u_f32 x))
@@ -166,8 +162,7 @@ let cvtop = function
     Some (F64 (Nfloat64.CvtOp.convert_u_i32 x))
   | (TF64, CVT_CONVERT_U, TI64, I64 x) ->
     Some (F64 (Nfloat64.CvtOp.convert_u_i64 x))
-  | (TF64, CVT_PROMOTE, TF32, F32 x) ->
-    Some (F64 (Nfloat64.CvtOp.promote_f32 x))
+  | (TF64, CVT_PROMOTE, TF32, F32 x) -> Some (F64 (Nfloat64.CvtOp.promote_f32 x))
   | (TF64, CVT_REINTERPRET, TI64, I64 x) ->
     Some (F64 (Nfloat64.CvtOp.reinterpret_i64 x))
   | _ -> None

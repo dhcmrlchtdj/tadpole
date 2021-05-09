@@ -19,8 +19,7 @@ let wrap f src =
   object%js
     method toWASM = to_jsUint8Array (WasmPrinter.to_string m)
 
-    method toWAT =
-      to_jsString (WatPrettyPrinter.pretty (WatPrinter.to_string m))
+    method toWAT = to_jsString (WatPrettyPrinter.pretty (WatPrinter.to_string m))
   end
 
 let () =

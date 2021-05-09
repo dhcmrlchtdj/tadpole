@@ -83,22 +83,26 @@ type externtype =
 let extern_funcs =
   Array.filter_map (function
     | ET_func i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let extern_tables =
   Array.filter_map (function
     | ET_table i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let extern_mems =
   Array.filter_map (function
     | ET_mem i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let extern_globals =
   Array.filter_map (function
     | ET_global i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 (* ******** *)
 
@@ -293,22 +297,26 @@ and externval =
 let externval_funcs =
   Array.filter_map (function
     | EV_func i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let externval_tables =
   Array.filter_map (function
     | EV_table i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let externval_mems =
   Array.filter_map (function
     | EV_mem i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 let externval_globals =
   Array.filter_map (function
     | EV_global i -> Some i
-    | _ -> None)
+    | _ -> None
+    )
 
 type tableinst = {
   elem: funcaddr option array;

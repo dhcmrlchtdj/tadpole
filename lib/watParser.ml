@@ -78,7 +78,8 @@ module Type = struct
           pts
           |> List.rev_map (function
                | D.KEYWORD kw -> valtype kw
-               | _ -> Error "expect keyword")
+               | _ -> Error "expect keyword"
+               )
           |> Result.flatten_l
         in
         aux (pts @ p) r t
@@ -87,7 +88,8 @@ module Type = struct
           rts
           |> List.rev_map (function
                | D.KEYWORD kw -> valtype kw
-               | _ -> Error "expect keyword")
+               | _ -> Error "expect keyword"
+               )
           |> Result.flatten_l
         in
         aux p (rts @ r) t

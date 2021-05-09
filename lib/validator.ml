@@ -52,8 +52,7 @@ module Instruction = struct
       (ctx : context)
       (ins : instr list)
       (l : valtype list)
-      (r : valtype list)
-    =
+      (r : valtype list) =
     match ins with
     | [] ->
       if Types.equal_resulttype l r

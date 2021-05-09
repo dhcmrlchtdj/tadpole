@@ -61,7 +61,8 @@ module Document = struct
           ds
           |> List.mapi (fun i x ->
                  let x = aux x in
-                 if i = 0 then [ x ] else [ Newline 0; x ])
+                 if i = 0 then [ x ] else [ Newline 0; x ]
+             )
           |> List.flatten
           |> group
         in

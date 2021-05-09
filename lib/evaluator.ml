@@ -34,9 +34,8 @@ let grow_mem (mem : meminst) (n : int) : meminst option =
     Some { mem with data }
   )
 
-let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
-    : store * funcaddr
-  =
+let alloc_func (moduleinst : moduleinst) (s : store) (func : func) :
+    store * funcaddr =
   let a = Array.length s.funcs in
   let functype = moduleinst.types.(func.typei) in
   let func_inst = Func { functype; moduleinst; func } in
@@ -44,9 +43,8 @@ let alloc_func (moduleinst : moduleinst) (s : store) (func : func)
   let s2 = { s with funcs } in
   (s2, a)
 
-let alloc_host_func (s : store) (functype : functype) (hostfunc : hostfunc)
-    : store * funcaddr
-  =
+let alloc_host_func (s : store) (functype : functype) (hostfunc : hostfunc) :
+    store * funcaddr =
   let a = Array.length s.funcs in
   let func_inst = HostFunc { functype; hostfunc } in
   let funcs = Array.append s.funcs [| func_inst |] in
@@ -69,9 +67,8 @@ let alloc_mem (s : store) ({ min; max } : memtype) : store * memaddr =
   let s2 = { s with mems } in
   (s2, a)
 
-let alloc_global (s : store) ((mut, _) : globaltype) (value : value)
-    : store * globaladdr
-  =
+let alloc_global (s : store) ((mut, _) : globaltype) (value : value) :
+    store * globaladdr =
   let a = Array.length s.globals in
   let glob_inst = { value; mut } in
   let globals = Array.append s.globals [| glob_inst |] in
@@ -82,9 +79,7 @@ let alloc_module
     (s : store)
     (m : moduledef)
     (externs : externval list)
-    (values : value array)
-    : store * moduleinst
-  =
+    (values : value array) : store * moduleinst =
   let mod_inst =
     {
       types = m.types;
@@ -394,34 +389,44 @@ and eval_memory_instr =
         (fun b -> I64 (Nint64.of_bytes b))
     | Load8S (TI32, memarg) ->
       aux_memory_load ctx memarg 1 (sign_pad 8 32) (fun b ->
-          I32 (Nint32.of_bytes b))
+          I32 (Nint32.of_bytes b)
+      )
     | Load8U (TI32, memarg) ->
       aux_memory_load ctx memarg 1 (sign_pad 8 32) (fun b ->
-          I32 (Nint32.of_bytes b))
+          I32 (Nint32.of_bytes b)
+      )
     | Load16S (TI32, memarg) ->
       aux_memory_load ctx memarg 2 (unsign_pad 16 32) (fun b ->
-          I32 (Nint32.of_bytes b))
+          I32 (Nint32.of_bytes b)
+      )
     | Load16U (TI32, memarg) ->
       aux_memory_load ctx memarg 2 (unsign_pad 16 32) (fun b ->
-          I32 (Nint32.of_bytes b))
+          I32 (Nint32.of_bytes b)
+      )
     | Load8S (TI64, memarg) ->
       aux_memory_load ctx memarg 1 (sign_pad 8 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Load8U (TI64, memarg) ->
       aux_memory_load ctx memarg 1 (unsign_pad 8 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Load16S (TI64, memarg) ->
       aux_memory_load ctx memarg 2 (sign_pad 16 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Load16U (TI64, memarg) ->
       aux_memory_load ctx memarg 2 (unsign_pad 16 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Load32S (TI64, memarg) ->
       aux_memory_load ctx memarg 4 (sign_pad 64 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Load32U (TI64, memarg) ->
       aux_memory_load ctx memarg 4 (unsign_pad 64 64) (fun b ->
-          I64 (Nint64.of_bytes b))
+          I64 (Nint64.of_bytes b)
+      )
     | Store (TF32, memarg) -> aux_memory_store ctx memarg 4 to_bytes
     | Store (TF64, memarg) -> aux_memory_store ctx memarg 8 to_bytes
     | Store (TI32, memarg) -> aux_memory_store ctx memarg 4 to_bytes
@@ -549,7 +554,8 @@ and eval_admin_instr (ctx : context) = function
               | TI32 -> I32 0l
               | TI64 -> I64 0L
               | TF32 -> F32 Nfloat32.zero
-              | TF64 -> F64 0.0)
+              | TF64 -> F64 0.0
+            )
           func.func.locals
       in
       let n = List.length params in
@@ -648,16 +654,18 @@ let invoke =
 (* ******** *)
 
 let instantiate (s : store) (m : moduledef) (externs : externval list) : context
-  =
+    =
   let vals =
     let global_externs =
       externs
       |> List.filter (function
            | EV_global _ -> true
-           | _ -> false)
+           | _ -> false
+           )
       |> List.map (function
            | EV_global addr -> addr
-           | _ -> failwith "never")
+           | _ -> failwith "never"
+           )
       |> Array.of_list
     in
     let moduleinst =

@@ -126,7 +126,8 @@ module Value = struct
   let idx = u32
 end
 
-let aux_vec (f : S.t -> ('a * S.t) or_err) (src : S.t) : ('a list * S.t) or_err =
+let aux_vec (f : S.t -> ('a * S.t) or_err) (src : S.t) : ('a list * S.t) or_err
+    =
   let rec aux (acc : 'a list) (src : S.t) n =
     if n = 0
     then (
@@ -501,9 +502,8 @@ module Instruction = struct
 end
 
 module Module = struct
-  let aux_parse_section (f : S.t -> ('a * S.t) or_err) (src : S.t option)
-      : 'a array or_err
-    =
+  let aux_parse_section (f : S.t -> ('a * S.t) or_err) (src : S.t option) :
+      'a array or_err =
     match src with
     | None -> Ok [||]
     | Some src ->

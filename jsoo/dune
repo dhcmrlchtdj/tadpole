@@ -1,12 +1,11 @@
 (executable
  (modes js)
  (name jsoo)
- (promote (until-clean) (into ../_build) (only *.bc.js))
  (js_of_ocaml
-  (flags --opt=3 --no-source-map))
+  (flags --no-source-map))
  (libraries js_of_ocaml containers tadpole)
  (preprocess
-  (pps js_of_ocaml.ppx))
+  (pps js_of_ocaml-ppx))
  (flags
   (:standard -warn-error -a)))
 

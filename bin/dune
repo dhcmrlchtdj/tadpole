@@ -1,7 +1,6 @@
 (executables
  (public_names wasm wat)
  (names wasm wat)
- (promote (until-clean) (into ../_build))
  (libraries containers tadpole)
  (flags
   (:standard -warn-error -a)))
